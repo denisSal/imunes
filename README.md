@@ -1,5 +1,5 @@
 ************************************************************************
-IMUNES - an Integrated Multiprotocol Network Emulator / Simulator
+## IMUNES - an Integrated Multiprotocol Network Emulator / Simulator
 ************************************************************************
 
 IMUNES GUI is a simple Tcl/Tk based management console, allowing for
@@ -78,6 +78,8 @@ First we need to install the packages required for IMUNES:
     nsenter (part of the util-linux package since version 2.23 and later)
     xterm
     make (used for installation)
+    
+To run IMUNES experiments, you must run the Docker daemon and start the ovs-vswitchd service (starting these services depends on your Linux distribution).
 
 Note: on some distributions the netem module `sch_netem` required for link configuration is only available by installing additional kernel packages. Please check the availability of the module:
 
@@ -211,6 +213,13 @@ in the terminal:
     # imunes
 
 To execute experiments, run it as root.
+
+### IMUNES wiki
+
+Visit our [wiki](https://github.com/imunes/imunes/wiki) for more:
+ - [IMUNES examples](https://github.com/imunes/imunes/wiki#imunes-examples)
+ - [Scripting IMUNES experiments](https://github.com/imunes/imunes/wiki#scripting-imunes-experiments)
+ - [Troubleshooting](https://github.com/imunes/imunes/wiki#troubleshooting)
 
 For additional information visit our web site:
         http://imunes.net/
