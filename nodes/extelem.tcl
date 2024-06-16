@@ -26,41 +26,40 @@
 # and Technology through the research contract #IP-2003-143.
 #
 
-# $Id: hub.tcl 129 2015-02-13 11:14:44Z valter $
+# $Id: extelem.tcl 129 2015-02-13 11:14:44Z valter $
 
 
-#****h* imunes/hub.tcl
+#****h* imunes/extelem.tcl
 # NAME
-#  hub.tcl -- defines hub specific procedures
+#  extelem.tcl -- defines extelem specific procedures
 # FUNCTION
-#  This module is used to define all the hub specific procedures.
+#  This module is used to define all the extelem specific procedures.
 # NOTES
-#  Procedures in this module start with the keyword hub and
+#  Procedures in this module start with the keyword extelem and
 #  end with function specific part that is the same for all the
 #  node types that work on the same layer.
 #****
 
-set MODULE hub
+set MODULE extelem
 
 registerModule $MODULE
 
-#****f* hub.tcl/hub.prepareSystem
+#****f* extelem.tcl/extelem.prepareSystem
 # NAME
-#   hub.prepareSystem -- prepare system
+#   extelem.prepareSystem -- prepare system
 # SYNOPSIS
-#   hub.prepareSystem
+#   extelem.prepareSystem
 # FUNCTION
-#   Loads ng_hub into the kernel.
+#   Loads ng_extelem into the kernel.
 #****
 proc $MODULE.prepareSystem {} {
-    catch { exec kldload ng_hub }
 }
 
-#****f* hub.tcl/hub.confNewIfc
+#****f* extelem.tcl/extelem.confNewIfc
 # NAME
-#   hub.confNewIfc -- configure new interface
+#   extelem.confNewIfc -- configure new interface
 # SYNOPSIS
-#   hub.confNewIfc $node $ifc
+#   extelem.confNewIfc $node $ifc
 # FUNCTION
 #   Configures new interface for the specified node.
 # INPUTS
@@ -68,13 +67,16 @@ proc $MODULE.prepareSystem {} {
 #   * ifc -- interface name
 #****
 proc $MODULE.confNewIfc { node ifc } {
+    set old [getNodeExternalIfcs $node]
+    lappend old [list $ifc "UNASSIGNED"]
+    setNodeExternalIfcs $node $old
 }
 
-#****f* hub.tcl/hub.confNewNode
+#****f* extelem.tcl/extelem.confNewNode
 # NAME
-#   hub.confNewNode -- configure new node
+#   extelem.confNewNode -- configure new node
 # SYNOPSIS
-#   hub.confNewNode $node
+#   extelem.confNewNode $node
 # FUNCTION
 #   Configures new node with the specified id.
 # INPUTS
@@ -83,18 +85,18 @@ proc $MODULE.confNewIfc { node ifc } {
 proc $MODULE.confNewNode { node } {
     upvar 0 ::cf::[set ::curcfg]::$node $node
     global nodeNamingBase
-    
+
     set nconfig [list \
-	"hostname [getNewNodeNameType hub $nodeNamingBase(hub)]" \
+	"hostname [getNewNodeNameType extelem $nodeNamingBase(extelem)]" \
 	! ]
     lappend $node "network-config [list $nconfig]"
 }
 
-#****f* hub.tcl/hub.icon
+#****f* extelem.tcl/extelem.icon
 # NAME
-#   hub.icon -- icon
+#   extelem.icon -- icon
 # SYNOPSIS
-#   hub.icon $size
+#   extelem.icon $size
 # FUNCTION
 #   Returns path to node icon, depending on the specified size.
 # INPUTS
@@ -106,66 +108,66 @@ proc $MODULE.icon { size } {
     global ROOTDIR LIBDIR 
     switch $size {
       normal {
-	return $ROOTDIR/$LIBDIR/icons/normal/hub.gif
+	return $ROOTDIR/$LIBDIR/icons/normal/cloud.gif
       }
       small {
-	return $ROOTDIR/$LIBDIR/icons/small/hub.gif
+	return $ROOTDIR/$LIBDIR/icons/small/cloud.gif
       }
       toolbar {
-	return $ROOTDIR/$LIBDIR/icons/tiny/hub.gif
+	return $ROOTDIR/$LIBDIR/icons/tiny/cloud.gif
       }
     }
 }
 
-#****f* hub.tcl/hub.toolbarIconDescr
+#****f* extelem.tcl/extelem.toolbarIconDescr
 # NAME
-#   hub.toolbarIconDescr -- toolbar icon description
+#   extelem.toolbarIconDescr -- toolbar icon description
 # SYNOPSIS
-#   hub.toolbarIconDescr
+#   extelem.toolbarIconDescr
 # FUNCTION
 #   Returns this module's toolbar icon description.
 # RESULT
 #   * descr -- string describing the toolbar icon
 #****
 proc $MODULE.toolbarIconDescr {} {
-    return "Add new Hub"
+    return "Add new External element"
 }
 
-#****f* hub.tcl/hub.ifcName
+#****f* extelem.tcl/extelem.ifcName
 # NAME
-#   hub.ifcName -- interface name
+#   extelem.ifcName -- interface name
 # SYNOPSIS
-#   hub.ifcName
+#   extelem.ifcName
 # FUNCTION
-#   Returns hub interface name prefix.
+#   Returns extelem interface name prefix.
 # RESULT
 #   * name -- name prefix string
 #****
 proc $MODULE.ifcName {l r} {
-    return e
+    return x
 }
 
-#****f* hub.tcl/hub.layer
+#****f* extelem.tcl/extelem.layer
 # NAME
-#   hub.layer -- layer
+#   extelem.layer -- layer
 # SYNOPSIS
-#   set layer [hub.layer]
+#   set layer [extelem.layer]
 # FUNCTION
-#   Returns the layer on which the hub operates, i.e. returns LINK. 
+#   Returns the layer on which the extelem operates, i.e. returns LINK. 
 # RESULT
 #   * layer -- set to LINK
 #****
 proc $MODULE.layer {} {
-    return LINK
+    return NETWORK
 }
 
-#****f* hub.tcl/hub.virtlayer
+#****f* extelem.tcl/extelem.virtlayer
 # NAME
-#   hub.virtlayer -- virtual layer  
+#   extelem.virtlayer -- virtual layer  
 # SYNOPSIS
-#   set layer [hub.virtlayer]
+#   set layer [extelem.virtlayer]
 # FUNCTION
-#   Returns the layer on which the hub is instantiated, i.e. returns NETGRAPH. 
+#   Returns the layer on which the extelem is instantiated, i.e. returns NETGRAPH. 
 # RESULT
 #   * layer -- set to NETGRAPH
 #****
@@ -173,55 +175,49 @@ proc $MODULE.virtlayer {} {
     return NETGRAPH
 }
 
-#****f* hub.tcl/hub.instantiate
+#****f* extelem.tcl/extelem.instantiate
 # NAME
-#   hub.instantiate -- instantiate
+#   extelem.instantiate -- instantiate
 # SYNOPSIS
-#   hub.instantiate $eid $node
+#   extelem.instantiate $eid $node
 # FUNCTION
-#   Procedure hub.instantiate creates a new netgraph node of the type hub.
+#   Procedure extelem.instantiate creates a new netgraph node of the type extelem.
 #   The name of the netgraph node is in form of exprimentId_nodeId.
 # INPUTS
 #   * eid -- experiment id
-#   * node -- id of the node (type of the node is hub)
+#   * node -- id of the node (type of the node is extelem)
 #****
 proc $MODULE.instantiate { eid node } {
-    l2node.instantiate $eid $node
+    foreach group [getNodeExternalIfcs $node] {
+	lassign $group ifc extIfc
+	captureExtIfcByName $eid $extIfc
+    }
 }
 
-proc $MODULE.setupNamespace { eid node } {
-    l2node.setupNamespace $eid $node
-}
-
-proc $MODULE.createIfcs { eid node ifcs } {
-    l2node.createIfcs $eid $node $ifcs
-}
-
-proc $MODULE.destroyIfcs { eid node ifcs } {
-    l2node.destroyIfcs $eid $node $ifcs
-}
-
-#****f* hub.tcl/hub.destroy
+#****f* extelem.tcl/extelem.destroy
 # NAME
-#   hub.destroy -- destroy
+#   extelem.destroy -- destroy
 # SYNOPSIS
-#   hub.destroy $eid $node
+#   extelem.destroy $eid $node
 # FUNCTION
-#   Destroys a hub. Destroys the netgraph node that represents
-#   the hub by sending a shutdown message.
+#   Destroys a extelem. Destroys the netgraph node that represents
+#   the extelem by sending a shutdown message.
 # INPUTS
 #   * eid -- experiment id
-#   * node -- id of the node (type of the node is hub)
+#   * node -- id of the node (type of the node is extelem)
 #****
 proc $MODULE.destroy { eid node } {
-    l2node.destroy $eid $node
+    foreach group [getNodeExternalIfcs $node] {
+	lassign $group ifc extIfc
+	releaseExtIfcByName $eid $extIfc
+    }
 } 
 
-#****f* hub.tcl/hub.nghook
+#****f* extelem.tcl/extelem.nghook
 # NAME
-#   hub.nghook
+#   extelem.nghook
 # SYNOPSIS
-#   hub.nghook $eid $node $ifc 
+#   extelem.nghook $eid $node $ifc 
 # FUNCTION
 #   Returns the id of the netgraph node and the name of the netgraph hook
 #   which is used for connecting two netgraph nodes. Netgraph node name is in
@@ -236,18 +232,18 @@ proc $MODULE.destroy { eid node } {
 #     netgraph hook (ngNode ngHook).
 #****
 proc $MODULE.nghook { eid node ifc } {
-    set ifunit [string range $ifc 1 end]
-    return [list $node link$ifunit]
+    lassign [lindex [lsearch -index 0 -all -inline -exact [getNodeExternalIfcs $node] $ifc] 0] ifc extIfc
+    return [list $extIfc lower]
 }
 
 
-#****f* hub.tcl/hub.configGUI
+#****f* extelem.tcl/extelem.configGUI
 # NAME
-#   hub.configGUI -- configuration GUI
+#   extelem.configGUI -- configuration GUI
 # SYNOPSIS
-#   hub.configGUI $c $node
+#   extelem.configGUI $c $node
 # FUNCTION
-#   Defines the structure of the hub configuration window by calling
+#   Defines the structure of the extelem configuration window by calling
 #   procedures for creating and organising the window, as well as procedures
 #   for adding certain modules to that window.
 # INPUTS
@@ -258,26 +254,26 @@ proc $MODULE.configGUI { c node } {
     global wi
     global guielements treecolumns
     set guielements {}
+    set treecolumns {}
 
     configGUI_createConfigPopupWin $c
-    wm title $wi "hub configuration"
-    configGUI_nodeName $wi $node "Node name:"
+    wm title $wi "External element configuration"
+    configGUI_nodeName $wi $node "External element name:"
 
     configGUI_addPanedWin $wi
-    set treecolumns {"QLen Queue len" "QDisc Queue disc" "QDrop Queue drop"}
-    configGUI_addTree $wi $node
+    configGUI_rj45s $wi $node
 
     configGUI_buttonsACNode $wi $node
 }
 
-#****f* hub.tcl/hub.configInterfacesGUI
+#****f* extelem.tcl/extelem.configInterfacesGUI
 # NAME
-#   hub.configInterfacesGUI -- configuration of interfaces GUI
+#   extelem.configInterfacesGUI -- configuration of interfaces GUI
 # SYNOPSIS
-#   hub.configInterfacesGUI $wi $node $ifc
+#   extelem.configInterfacesGUI $wi $node $ifc
 # FUNCTION
 #   Defines which modules for changing interfaces parameters are contained in
-#   the hub configuration window. It is done by calling procedures for adding
+#   the extelem configuration window. It is done by calling procedures for adding
 #   certain modules to the window.
 # INPUTS
 #   * wi -- widget

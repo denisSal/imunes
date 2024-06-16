@@ -26,31 +26,31 @@
 # and Technology through the research contract #IP-2003-143.
 #
 
-# $Id: quagga.tcl 128 2014-12-19 11:59:09Z denis $
+# $Id: frr.tcl 128 2014-12-19 11:59:09Z denis $
 
 
-#****h* imunes/quagga.tcl
+#****h* imunes/frr.tcl
 # NAME
-#  router.quagga.tcl -- defines specific procedures for router 
-#  using quagga routing model
+#  router.frr.tcl -- defines specific procedures for router 
+#  using frr routing model
 # FUNCTION
 #  This module defines all the specific procedures for a router
-#  which uses quagga routing model.
+#  which uses frr routing model.
 # NOTES
-#  Procedures in this module start with the keyword router.quagga and
+#  Procedures in this module start with the keyword router.frr and
 #  end with function specific part that is the same for all the node
 #  types that work on the same layer.
 #****
 
-set MODULE router.quagga
+set MODULE router.frr
 
-#****f* quagga.tcl/router.quagga.layer
+#****f* frr.tcl/router.frr.layer
 # NAME
-#   router.quagga.layer -- layer
+#   router.frr.layer -- layer
 # SYNOPSIS
-#   set layer [router.quagga.layer]
+#   set layer [router.frr.layer]
 # FUNCTION
-#   Returns the layer on which the router using quagga model
+#   Returns the layer on which the router using frr model
 #   operates, i.e. returns NETWORK. 
 # RESULT
 #   * layer -- set to NETWORK
@@ -59,13 +59,13 @@ proc $MODULE.layer {} {
     return NETWORK
 }
 
-#****f* quagga.tcl/router.quagga.virtlayer
+#****f* frr.tcl/router.frr.virtlayer
 # NAME
-#   router.quagga.virtlayer -- virtual layer
+#   router.frr.virtlayer -- virtual layer
 # SYNOPSIS
-#   set layer [router.quagga.virtlayer]
+#   set layer [router.frr.virtlayer]
 # FUNCTION
-#   Returns the layer on which the router using model quagga is instantiated,
+#   Returns the layer on which the router using model frr is instantiated,
 #   i.e. returns VIMAGE. 
 # RESULT
 #   * layer -- set to VIMAGE
@@ -74,20 +74,20 @@ proc $MODULE.virtlayer {} {
     return VIMAGE
 }
 
-#****f* quagga.tcl/router.quagga.cfggen
+#****f* frr.tcl/router.frr.cfggen
 # NAME
-#   router.quagga.cfggen -- configuration generator
+#   router.frr.cfggen -- configuration generator
 # SYNOPSIS
-#   set config [router.quagga.cfggen $node]
+#   set config [router.frr.cfggen $node]
 # FUNCTION
 #   Generates configuration. This configuration represents the default
 #   configuration loaded on the booting time of the virtual nodes and it is
-#   closly related to the procedure router.quagga.bootcmd.
+#   closly related to the procedure router.frr.bootcmd.
 #   Generated configuration comprises the ip addresses (both ipv4 and ipv6)
 #   and interface states (up or down) for each interface of a given node.
 #   Static routes are also included.
 # INPUTS
-#   * node - node id (type of the node is router and routing model is quagga)
+#   * node - node id (type of the node is router and routing model is frr)
 # RESULT
 #   * congif -- generated configuration 
 #****
@@ -156,54 +156,54 @@ proc $MODULE.cfggen { node } {
     return $cfg
 }
 
-#****f* quagga.tcl/router.quagga.bootcmd
+#****f* frr.tcl/router.frr.bootcmd
 # NAME
-#   router.quagga.bootcmd -- boot command
+#   router.frr.bootcmd -- boot command
 # SYNOPSIS
-#   set appl [router.quagga.bootcmd $node]
+#   set appl [router.frr.bootcmd $node]
 # FUNCTION
 #   Procedure bootcmd returns the defaut application that reads and employes
-#   the configuration generated in router.quagga.cfggen.
-#   In this case (procedure router.quagga.bootcmd) specific application
-#   is quaggaboot.sh
+#   the configuration generated in router.frr.cfggen.
+#   In this case (procedure router.frr.bootcmd) specific application
+#   is frrboot.sh
 # INPUTS
-#   * node - node id (type of the node is router and routing model is quagga)
+#   * node - node id (type of the node is router and routing model is frr)
 # RESULT
-#   * appl -- application that reads the configuration (quaggaboot.sh) 
+#   * appl -- application that reads the configuration (frrboot.sh) 
 #****
 proc $MODULE.bootcmd { node } {
 
-    return "/usr/local/bin/quaggaboot.sh"
+    return "/usr/local/bin/frrboot.sh"
 }
 
-#****f* quagga.tcl/router.quagga.shellcmds
+#****f* frr.tcl/router.frr.shellcmds
 # NAME
-#   router.quagga.shellcmds -- shell commands
+#   router.frr.shellcmds -- shell commands
 # SYNOPSIS
-#   set shells [router.quagga.shellcmds]
+#   set shells [router.frr.shellcmds]
 # FUNCTION
 #   Procedure shellcmds returns the shells that can be opened
 #   as a default shell for the system. 
 # RESULT
-#   * shells -- default shells for the router.quagga
+#   * shells -- default shells for the router.frr
 #****
 proc $MODULE.shellcmds {} {
     return "csh bash vtysh sh tcsh"
 }
 
-#****f* quagga.tcl/router.quagga.instantiate
+#****f* frr.tcl/router.frr.instantiate
 # NAME
-#   router.quagga.instantiate -- instantiate
+#   router.frr.instantiate -- instantiate
 # SYNOPSIS
-#   router.quagga.instantiate $eid $node
+#   router.frr.instantiate $eid $node
 # FUNCTION
 #   Creates a new virtual node for a given node in imunes. 
-#   Procedure router.quagga.instantiate cretaes a new virtual node with all
+#   Procedure router.frr.instantiate cretaes a new virtual node with all
 #   the interfaces and CPU parameters as defined in imunes. It sets the
 #   net.inet.ip.forwarding and net.inet6.ip6.forwarding kernel variables to 1.
 # INPUTS
 #   * eid - experiment id
-#   * node - node id (type of the node is router and routing model is quagga)
+#   * node - node id (type of the node is router and routing model is frr)
 #****
 proc $MODULE.instantiate { eid node } {
     l3node.instantiate $eid $node
@@ -223,34 +223,34 @@ proc $MODULE.createIfcs { eid node ifcs } {
     l3node.createIfcs $eid $node $ifcs
 }
 
-#****f* quagga.tcl/router.quagga.start
+#****f* frr.tcl/router.frr.start
 # NAME
-#   router.quagga.start -- start
+#   router.frr.start -- start
 # SYNOPSIS
-#   router.quagga.start $eid $node
+#   router.frr.start $eid $node
 # FUNCTION
-#   Starts a new router.quagga. The node can be started if it is instantiated. 
-#   Simulates the booting proces of a router.quagga, by calling l3node.start 
+#   Starts a new router.frr. The node can be started if it is instantiated. 
+#   Simulates the booting proces of a router.frr, by calling l3node.start 
 #   procedure.
 # INPUTS
 #   * eid - experiment id
-#   * node - node id (type of the node is router.quagga)
+#   * node - node id (type of the node is router.frr)
 #****
 proc $MODULE.start { eid node } {
     l3node.start $eid $node
 }
 
-#****f* quagga.tcl/router.quagga.shutdown
+#****f* frr.tcl/router.frr.shutdown
 # NAME
-#   router.quagga.shutdown -- shutdown
+#   router.frr.shutdown -- shutdown
 # SYNOPSIS
-#   router.quagga.shutdown $eid $node
+#   router.frr.shutdown $eid $node
 # FUNCTION
-#   Shutdowns a router.quagga. Simulates the shutdown proces of a
-#   router.quagga, by calling the l3node.shutdown procedure.
+#   Shutdowns a router.frr. Simulates the shutdown proces of a
+#   router.frr, by calling the l3node.shutdown procedure.
 # INPUTS
 #   * eid - experiment id
-#   * node - node id (type of the node is router.quagga)
+#   * node - node id (type of the node is router.frr)
 #****
 proc $MODULE.shutdown { eid node } {
     l3node.shutdown $eid $node
@@ -260,27 +260,27 @@ proc $MODULE.destroyIfcs { eid node ifcs } {
     l3node.destroyIfcs $eid $node $ifcs
 }
 
-#****f* quagga.tcl/router.quagga.destroy
+#****f* frr.tcl/router.frr.destroy
 # NAME
-#   router.quagga.destroy -- destroy
+#   router.frr.destroy -- destroy
 # SYNOPSIS
-#   router.quagga.destroy $eid $node
+#   router.frr.destroy $eid $node
 # FUNCTION
-#   Destroys a router.quagga. Destroys all the interfaces of the router.quagga 
+#   Destroys a router.frr. Destroys all the interfaces of the router.frr 
 #   and the vimage itself by calling l3node.destroy procedure. 
 # INPUTS
 #   * eid - experiment id
-#   * node - node id (type of the node is router.quagga)
+#   * node - node id (type of the node is router.frr)
 #****
 proc $MODULE.destroy { eid node } {
     l3node.destroy $eid $node
 }
 
-#****f* quagga.tcl/router.quagga.nghook
+#****f* frr.tcl/router.frr.nghook
 # NAME
-#   router.quagga.nghook -- nghook
+#   router.frr.nghook -- nghook
 # SYNOPSIS
-#   router.quagga.nghook $eid $node $ifc 
+#   router.frr.nghook $eid $node $ifc 
 # FUNCTION
 #   Returns the id of the netgraph node and the name of the netgraph hook
 #   which is used for connecting two netgraph nodes. This procedure calls

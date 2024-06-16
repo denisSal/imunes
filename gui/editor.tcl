@@ -162,7 +162,7 @@ proc chooseIfName {lnode rnode} {
 #****
 proc l3IfcName {lnode rnode} {
 
-    if {[nodeType $lnode] == "ext"} {
+    if {[nodeType $lnode] in "ext extnat"} {
 	return "ext"
     }
     if {[nodeType $rnode] == "wlan"} {
@@ -471,7 +471,7 @@ proc routerDefaultsApply { wi } {
     lset rdconfig 2 $routerOspfEnable 
     lset rdconfig 3 $routerOspf6Enable	
     set routerDefaultsModel $router_model 	
-    set model quagga
+    set model frr
     set selected_node_list [selectedNodes]
     set empty {}
 
@@ -683,6 +683,7 @@ proc topologyElementsTree {} {
 		foreach ifc [lsort -dictionary [ifcList $node]] {
 		    $f.tree insert $node end -id $node$ifc -text "$ifc" -tags $node$ifc
 		    $f.tree set $node$ifc state [getIfcOperState $node $ifc]
+		    $f.tree set $node$ifc nat [getIfcNatState $node $ifc]
 		    $f.tree set $node$ifc IPv4 [getIfcIPv4addr $node $ifc]
 		    $f.tree set $node$ifc IPv6 [getIfcIPv6addr $node $ifc]
                     $f.tree set $node$ifc MAC [getIfcMACaddr $node $ifc]
@@ -915,6 +916,7 @@ proc refreshTopologyTree {} {
 	    foreach ifc [lsort -dictionary [ifcList $node]] {
 		    $f.tree insert $node end -id $node$ifc -text "$ifc" -tags $node$ifc
 		    $f.tree set $node$ifc state [getIfcOperState $node $ifc]
+		    $f.tree set $node$ifc nat [getIfcNatState $node $ifc]
 		    $f.tree set $node$ifc IPv4 [getIfcIPv4addr $node $ifc]
 		    $f.tree set $node$ifc IPv6 [getIfcIPv6addr $node $ifc]
                     $f.tree set $node$ifc MAC [getIfcMACaddr $node $ifc]

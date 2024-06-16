@@ -144,17 +144,18 @@ proc drawNode { node } {
     set x [expr {[lindex $coords 0] * $zoom}]
     set y [expr {[lindex $coords 1] * $zoom}]
     if { [nodeType $node] != "pseudo" } {
-	set labelstr1 [getNodeName $node];
-#	set labelstr2 [getNodePartition $node];
-#	set l [format "%s\n%s" $labelstr1 $labelstr2];
-	set l $labelstr1;
+	set labelstr [getNodeName $node]
+	if { [nodeType $node] == "rj45" && [getEtherVlanEnabled $node] } {
+	    set labelstr "$labelstr (VLAN [getEtherVlanTag $node])"
+	}
+
 	foreach ifc [ifcList $node] {
 	    if {[string trim $ifc 0123456789] == "wlan"} {
-		set l [format "%s %s" $l [getIfcIPv4addr $node $ifc]]
+		set labelstr [format "%s %s" $labelstr [getIfcIPv4addr $node $ifc]]
 	    }
 	}
 	set label [.panwin.f1.c create text $x $y -fill blue \
-	    -text "$l" \
+	    -text "$labelstr" \
 	    -tags "nodelabel $node"]
     } else {
 	set pnode [peerByIfc [getNodeMirror $node] 0]
@@ -300,6 +301,10 @@ proc updateIfcLabel { lnode1 lnode2 } {
 
     set link [lindex [.panwin.f1.c gettags "link && $lnode1 && $lnode2"] 1]
     set ifc [ifcByPeer $lnode1 $lnode2]
+    if { [nodeType $lnode1] == "extelem" } {
+	set ifcs [getNodeExternalIfcs $lnode1]
+	set ifc [lindex [lsearch -inline -exact -index 0 $ifcs "$ifc"] 1]
+    }
     set ifipv4addr [getIfcIPv4addr $lnode1 $ifc]
     set ifipv6addr [getIfcIPv6addr $lnode1 $ifc]
     if { $ifc == 0 } {
@@ -315,13 +320,15 @@ proc updateIfcLabel { lnode1 lnode2 } {
     if { $showIfIPv6addrs && $ifipv6addr != "" } {
 	lappend labelstr "$ifipv6addr"
     }
+    set str ""
     if { [getIfcOperState $lnode1 $ifc] == "down" } {
 	set str "*"
-    } else {
-	set str ""
+    }
+    if { [getIfcNatState $lnode1 $ifc] == "on" } {
+	set str "${str}NAT-"
     }
     foreach elem $labelstr {
-	if {$str == "" || $str == "*"} {
+	if {$str in "{} * NAT- *NAT-" } {
 	    set str "$str[set elem]"
 	} else {
 	    set str "$str\r[set elem]"
@@ -338,7 +345,7 @@ proc updateIfcLabel { lnode1 lnode2 } {
 #   updateLinkLabel $link
 # FUNCTION
 #   Updates the link label, including link bandwidth, link delay,
-#   BER and duplicate values.
+#   BER, loss and duplicate values.
 # INPUTS
 #   * link -- link id of the link whose labels are updated.
 #****
@@ -349,6 +356,7 @@ proc updateLinkLabel { link } {
     set bwstr "[getLinkBandwidthString $link]"
     set delstr [getLinkDelayString $link]
     set ber [getLinkBER $link]
+    set loss [getLinkLoss $link]
     set dup [getLinkDup $link]
     set jitter [concat [getLinkJitterUpstream $link] [getLinkJitterDownstream $link]]
     if { "$bwstr" != "" } {
@@ -362,6 +370,9 @@ proc updateLinkLabel { link } {
     }
     if { "$ber" != "" } {
 	lappend labelstr "ber=$ber"
+    }
+    if { "$loss" != "" } {
+	lappend labelstr "loss=$loss%"
     }
     if { "$dup" != "" } {
 	lappend labelstr "dup=$dup%"

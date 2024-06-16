@@ -140,6 +140,16 @@ proc removeLink { link } {
 	set i [lsearch $pnodes $node]
 	set peer [lreplace $pnodes $i $i]
 	set ifc [ifcByPeer $node $peer]
+
+	if { [typemodel $node] in "extelem"} {
+	    set old [getNodeExternalIfcs $node]
+	    set idx [lsearch -exact -index 0 $old "$ifc"]
+	    setNodeExternalIfcs $node [lreplace $old $idx $idx]
+	    set i [lsearch [set $node] "interface-peer {$ifc $peer}"]
+	    set $node [lreplace [set $node] $i $i]
+	    continue
+	}
+
 	set index [lsearch -exact $IPv4UsedList [getIfcIPv4addr $node $ifc]]
 	set IPv4UsedList [lreplace $IPv4UsedList $index $index]
 	set index [lsearch -exact $IPv6UsedList [getIfcIPv6addr $node $ifc]]
@@ -149,12 +159,6 @@ proc removeLink { link } {
 	netconfClearSection $node "interface $ifc"
 	set i [lsearch [set $node] "interface-peer {$ifc $peer}"]
 	set $node [lreplace [set $node] $i $i]
-	if { [[typemodel $node].layer] == "NETWORK" } {
-	    set ifcs [ifcList $node]
-	    foreach iface $ifcs {
-		autoIPv4defaultroute $node $iface
-	    }
-	}
 	foreach lifc [logIfcList $node] {
 	    switch -exact [getLogIfcType $node $lifc] {
 		vlan {
@@ -167,6 +171,51 @@ proc removeLink { link } {
     }
     set i [lsearch -exact $link_list $link]
     set link_list [lreplace $link_list $i $i]
+}
+
+#****f* linkcfg.tcl/getLinkDirect
+# NAME
+#   getLinkDirect -- get if link is direct
+# SYNOPSIS
+#   set link_direct [getLinkDirect $link]
+# FUNCTION
+#   Returns boolean - link is direct.
+# INPUTS
+#   * link -- link id
+# RESULT
+#   * link_direct -- returns 0 if link is not a direct link and 1 if it is
+#****
+proc getLinkDirect { link } {
+    upvar 0 ::cf::[set ::curcfg]::$link $link
+
+    set entry [lsearch -inline [set $link] "direct *"]
+    if { $entry == "" } {
+	return 0
+    }
+
+    return [lindex $entry 1]
+}
+
+#****f* linkcfg.tcl/setLinkDirect
+# NAME
+#   setLinkDirect -- set link bandwidth
+# SYNOPSIS
+#   setLinkDirect $link $value
+# FUNCTION
+#   Sets the link bandwidth in a bits per second.
+# INPUTS
+#   * link -- link id
+#   * value -- link bandwidth in bits per second.
+#****
+proc setLinkDirect { link value } {
+    upvar 0 ::cf::[set ::curcfg]::$link $link
+
+    set i [lsearch [set $link] "direct *"]
+    if { $value == 0 } {
+	set $link [lreplace [set $link] $i $i]
+    } else {
+	set $link [lreplace [set $link] $i $i "direct $value"]
+    }
 }
 
 #****f* linkcfg.tcl/getLinkBandwidth
@@ -666,6 +715,25 @@ proc getLinkBER { link } {
     return [lindex $entry 1]
 }
 
+#****f* linkcfg.tcl/getLinkLoss
+# NAME
+#   getLinkLoss -- get link loss
+# SYNOPSIS
+#   set loss [getLinkLoss $link]
+# FUNCTION
+#   Returns loss percentage of the link.
+# INPUTS
+#   * link -- link id
+# RESULT
+#   * loss -- The loss percentage of the link.
+#****
+proc getLinkLoss { link } {
+    upvar 0 ::cf::[set ::curcfg]::$link $link
+
+    set entry [lsearch -inline [set $link] "loss *"]
+    return [lindex $entry 1]
+}
+
 #****f* linkcfg.tcl/setLinkBER
 # NAME
 #   setLinkBER -- set link BER
@@ -685,6 +753,28 @@ proc setLinkBER { link value } {
 	set $link [lreplace [set $link] $i $i]
     } else {
 	set $link [lreplace [set $link] $i $i "ber $value"]
+    }
+}
+
+#****f* linkcfg.tcl/setLinkLoss
+# NAME
+#   setLinkLoss -- set link loss
+# SYNOPSIS
+#   setLinkLoss $link percentage
+# FUNCTION
+#   Sets the loss percentage of the link.
+# INPUTS
+#   * link -- link id
+#   * value -- The loss percentage of the link.
+#****
+proc setLinkLoss { link value } {
+    upvar 0 ::cf::[set ::curcfg]::$link $link
+
+    set i [lsearch [set $link] "loss *"]
+    if { $value <= 0 } {
+	set $link [lreplace [set $link] $i $i]
+    } else {
+	set $link [lreplace [set $link] $i $i "loss $value"]
     }
 }
 
@@ -869,6 +959,8 @@ proc splitLink { link nodetype } {
     setLinkDelay $new_link2 [getLinkDelay $link]
     setLinkBER $new_link1 [getLinkBER $link]
     setLinkBER $new_link2 [getLinkBER $link]
+    setLinkLoss $new_link1 [getLinkLoss $link]
+    setLinkLoss $new_link2 [getLinkLoss $link]
     setLinkDup $new_link1 [getLinkDup $link]
     setLinkDup $new_link2 [getLinkDup $link]
 
@@ -925,6 +1017,7 @@ proc mergeLink { link } {
     setLinkBandwidth $new_link [getLinkBandwidth $link]
     setLinkDelay $new_link [getLinkDelay $link]
     setLinkBER $new_link [getLinkBER $link]
+    setLinkLoss $new_link [getLinkLoss $link]
     setLinkDup $new_link [getLinkDup $link]
 
     set i [lsearch -exact $link_list $link]
@@ -1012,20 +1105,11 @@ proc newLink { lnode1 lnode2 } {
 
     lappend link_list $link
 
-    if {[isNodeRouter $lnode1]} {
-	if {[info procs [nodeType $lnode1].confNewIfc] != ""} {
-	    [nodeType $lnode1].confNewIfc $lnode1 $ifname1
-	}
-	if {[info procs [nodeType $lnode2].confNewIfc] != ""} {
-	    [nodeType $lnode2].confNewIfc $lnode2 $ifname2
-	}
-    } else {
-	if {[info procs [nodeType $lnode2].confNewIfc] != ""} {
-	    [nodeType $lnode2].confNewIfc $lnode2 $ifname2
-	}
-	if {[info procs [nodeType $lnode1].confNewIfc] != ""} {
-	    [nodeType $lnode1].confNewIfc $lnode1 $ifname1
-	}
+    if {[info procs [nodeType $lnode1].confNewIfc] != ""} {
+	[nodeType $lnode1].confNewIfc $lnode1 $ifname1
+    }
+    if {[info procs [nodeType $lnode2].confNewIfc] != ""} {
+	[nodeType $lnode2].confNewIfc $lnode2 $ifname2
     }
 
     return $link

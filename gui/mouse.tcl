@@ -345,6 +345,9 @@ proc button3link { c x y } {
 	}
     }
 
+    global linkDirect_$link
+    set linkDirect_$link [getLinkDirect $link]
+
     .button3menu delete 0 end
 
     #
@@ -371,6 +374,19 @@ proc button3link { c x y } {
 	#
 	.button3menu add command -label "Clear link jitter" \
 	    -command "linkJitterReset $link"
+    }
+
+    #
+    # Toggle direct link
+    #
+    if { $oper_mode != "exec" } {
+	.button3menu add checkbutton -label "Direct link" \
+	    -underline 5 -variable linkDirect_$link \
+	    -command "toggleDirectLink $c $link"
+    } else {
+	.button3menu add checkbutton -label "Direct link" \
+	    -underline 5 -variable linkDirect_$link \
+	    -state disabled
     }
 
     #
@@ -852,13 +868,7 @@ proc button3node { c x y } {
 	    .button3menu.wireshark add command -label "No interfaces available." 
 	} else {
 	    foreach ifc [allIfcList $node] {
-		set tmpifc $ifc
-		if { $isOSlinux } {
-		    if { $ifc == "lo0" } {
-			set tmpifc lo
-		    }
-		}
-		set label "$tmpifc"
+		set label "$ifc"
 		if { [getIfcIPv4addr $node $ifc] != "" } {
 		    set label "$label ([getIfcIPv4addr $node $ifc])"
 		}
@@ -866,7 +876,7 @@ proc button3node { c x y } {
 		    set label "$label ([getIfcIPv6addr $node $ifc])"
 		}
 		.button3menu.wireshark add command -label $label \
-		    -command "startWiresharkOnNodeIfc $node $tmpifc"
+		    -command "startWiresharkOnNodeIfc $node $ifc"
 	    }
 	}
 	#
@@ -878,13 +888,7 @@ proc button3node { c x y } {
 	    .button3menu.tcpdump add command -label "No interfaces available." 
 	} else {
 	    foreach ifc [allIfcList $node] {
-		set tmpifc $ifc
-		if { $isOSlinux } {
-		    if { $ifc == "lo0" } {
-			set tmpifc lo
-		    }
-		}
-		set label "$tmpifc"
+		set label "$ifc"
 		if { [getIfcIPv4addr $node $ifc] != "" } {
 		    set label "$label ([getIfcIPv4addr $node $ifc])"
 		}
@@ -892,7 +896,7 @@ proc button3node { c x y } {
 		    set label "$label ([getIfcIPv6addr $node $ifc])"
 		}
 		.button3menu.tcpdump add command -label $label \
-		    -command "startTcpdumpOnNodeIfc $node $tmpifc"
+		    -command "startTcpdumpOnNodeIfc $node $ifc"
 	    }
 	}
 	#
@@ -1989,12 +1993,6 @@ proc changeAddressRange {} {
     set autorenumber 0
     set changeAddressRange 0
     
-    foreach node $selected_nodes {
-	foreach ifc [ifcList $node] {
-	    autoIPv4defaultroute $node $ifc
-	}
-    }
-    
     redrawAll
     updateUndoLog
 }
@@ -2112,12 +2110,6 @@ proc changeAddressRange6 {} {
 
     set autorenumber 0
     set changeAddressRange6 0
-    
-    foreach node $selected_nodes {
-	foreach ifc [ifcList $node] {
-	    autoIPv6defaultroute $node $ifc
-	}
-    }
     
     redrawAll
     updateUndoLog
