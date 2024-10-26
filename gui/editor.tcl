@@ -1374,3 +1374,40 @@ proc refreshHiddenNodes { content_frame } {
 proc _invokeNodeProc { node_cfg proc_name args } {
 	return [invokeTypeProc [_getNodeType $node_cfg] $proc_name {*}$args]
 }
+
+#****f* editor.tcl/checkDoubleRange
+# NAME
+#   checkDoubleRange -- check float range
+# SYNOPSIS
+#   set check [checkDoubleRange $str $low $high]
+# FUNCTION
+#   This procedure checks the input string to see if it is
+#   an float between the low and high value.
+# INPUTS
+#   str -- string to check
+#   low -- the bottom value
+#   high -- the top value
+# RESULT
+#   * check -- set to 1 if the str is string between low and high
+#   value, 0 otherwise.
+#****
+proc checkDoubleRange { str low high } {
+	if { $str == "" } {
+		return 1
+	}
+
+	set str [string trimleft $str 0]
+	if { $str == "" } {
+		set str 0
+	}
+
+	if { ! [string is double $str] } {
+		return 0
+	}
+
+	if { $str < $low || $str > $high } {
+		return 0
+	}
+
+	return 1
+}
