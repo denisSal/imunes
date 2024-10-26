@@ -190,9 +190,9 @@ foreach file_path [glob -directory $ROOTDIR/$LIBDIR/runtime *.tcl] {
 setPlatformVariables
 
 global cfg_types_dictionary cfg_types_array cfg_types_inner_dictionary
-set cfg_types_dictionary "gui canvases nodes links annotations images custom_configs ipsec_configs ifaces IFACES_CONFIG NODE_CONFIG"
+set cfg_types_dictionary "gui canvases nodes links annotations images custom_configs ipsec_configs ifaces IFACES_CONFIG NODE_CONFIG advanced_options"
 set cfg_types_array "croutes4 croutes6 ipv4_addrs ipv6_addrs services events tayga_mappings"
-set cfg_types_inner_dictionary "vlan ipsec nat64 packgen packets"
+set cfg_types_inner_dictionary "vlan ipsec nat64 packgen packets jail_options docker_options"
 
 if { $prepareFlag } {
 	prepareVroot
