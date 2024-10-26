@@ -1,13 +1,5 @@
 # updateNode cases
 
-addCase_updateNode "custom_image" {
-	setNodeCustomImage $node_id $new_value
-}
-
-addCase_updateNode "docker_attach" {
-	setNodeDockerAttach $node_id $new_value
-}
-
 addCase_updateNode "croutes4" {
 	setNodeStatIPv4routes $node_id $new_value
 }
@@ -105,6 +97,58 @@ addCase_updateNode "custom_selected" {
 		}
 
 		setNodeCustomConfigSelected $node_id $custom_selected_key $custom_selected_new_value
+	}
+}
+
+addCase_updateNode "advanced_options" {
+	set advanced_options_diff [dictDiff $old_value $new_value]
+	dict for {advanced_options_key advanced_options_change} $advanced_options_diff {
+		if { $advanced_options_change == "copy" } {
+			continue
+		}
+
+		dputs "======== $advanced_options_change: '$advanced_options_key'"
+
+		set advanced_options_old_value [_cfgGet $old_value $advanced_options_key]
+		set advanced_options_new_value [_cfgGet $new_value $advanced_options_key]
+		if { $advanced_options_change in "changed" } {
+			dputs "======== OLD: '$advanced_options_old_value'"
+		}
+		if { $advanced_options_change in "new changed" } {
+			dputs "======== NEW: '$advanced_options_new_value'"
+		}
+
+		set type_diff [dictDiff $advanced_options_old_value $advanced_options_new_value]
+		dict for {type_key type_change} $type_diff {
+			if { $type_change == "copy" } {
+				continue
+			}
+
+			dputs "============ $type_change: '$type_key'"
+
+			set type_old_value [_cfgGet $advanced_options_old_value $type_key]
+			set type_new_value [_cfgGet $advanced_options_new_value $type_key]
+			if { $type_change in "changed" } {
+				dputs "============ OLD: '$type_old_value'"
+			}
+			if { $type_change in "new changed" } {
+				dputs "============ NEW: '$type_new_value'"
+			}
+
+			if { $advanced_options_key == "jail_options" } {
+				if { $type_change == "removed" } {
+					setNodeJailOptions $node_id $type_key ""
+				} else {
+					setNodeJailOptions $node_id $type_key $type_new_value
+				}
+			} elseif { $advanced_options_key == "docker_options" } {
+				if { $type_change == "removed" } {
+					setNodeDockerOptions $node_id $type_key ""
+				} else {
+					setNodeDockerOptions $node_id $type_key $type_new_value
+				}
+			}
+		}
 	}
 }
 
