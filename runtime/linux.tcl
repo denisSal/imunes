@@ -320,7 +320,7 @@ proc allSnapshotsAvailable {} {
 	set snapshots $VROOT_MASTER
 	foreach node_id [getFromRunning "node_list"] {
 		# TODO: create another field for other jail/docker arguments
-		set img [lindex [split [getNodeCustomImage $node_id] " "] end]
+		set img [lindex [split [getNodeDockerOptions $node_id "custom_image"] " "] end]
 		if { $img != "" } {
 			lappend snapshots $img
 		}
@@ -504,17 +504,6 @@ proc nodeLogIfacesCreate { node_id ifaces } {
 	}
 
 	pipesExec "docker exec -d $docker_id sh -c '$cmds'" "hold"
-
-	## docker interface is created before other ones, so let's rename it to something that's not used by IMUNES
-	#if { [getNodeDockerAttach $node_id] == 1 } {
-	#	set cmds "ip r save > /tmp/routes"
-	#	set cmds "$cmds ; ip l set eth0 down"
-	#	set cmds "$cmds ; ip l set eth0 name docker0"
-	#	set cmds "$cmds ; ip l set docker0 up"
-	#	set cmds "$cmds ; ip r restore < /tmp/routes"
-	#	set cmds "$cmds ; rm -f /tmp/routes"
-	#	pipesExec "docker exec -d $docker_id sh -c '$cmds'" "hold"
-	#}
 }
 
 proc createNsLinkBridge { node_ns link } {
