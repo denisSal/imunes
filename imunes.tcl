@@ -187,6 +187,8 @@ foreach {option default_value} [concat $option_defaults $gui_option_defaults] {
     set $option $default_value
 }
 
+set manual_execution 0
+
 # Set default L2 node list
 set l2nodes "hub lanswitch rj45 stpswitch filter packgen ext extnat"
 # Set default L3 node list
@@ -344,12 +346,14 @@ if { $execMode == "interactive" } {
 	namespace eval ::cf::[set curcfg] {}
 	upvar 0 ::cf::[set ::curcfg]::dict_run dict_run
 	upvar 0 ::cf::[set ::curcfg]::execute_vars execute_vars
+	upvar 0 ::cf::[set ::curcfg]::manual_execute_vars manual_execute_vars
 	upvar 0 ::cf::[set ::curcfg]::dict_cfg dict_cfg
 	set dict_cfg [dict create]
 	setOption "version" $CFG_VERSION
 
 	set dict_run [dict create]
 	set execute_vars [dict create]
+	set manual_execute_vars [dict create]
 
 	setToRunning "eid" ""
 	setToRunning "oper_mode" "edit"
@@ -390,12 +394,14 @@ if { $execMode == "interactive" } {
 	    namespace eval ::cf::[set curcfg] {}
 	    upvar 0 ::cf::[set ::curcfg]::dict_run dict_run
 	    upvar 0 ::cf::[set ::curcfg]::execute_vars execute_vars
+	    upvar 0 ::cf::[set ::curcfg]::manual_execute_vars manual_execute_vars
 	    upvar 0 ::cf::[set ::curcfg]::dict_cfg dict_cfg
 	    set dict_cfg [dict create]
 	    setOption "version" $CFG_VERSION
 
 	    set dict_run [dict create]
 	    set execute_vars [dict create]
+	    set manual_execute_vars [dict create]
 
 	    setToRunning "eid" $eid_base
 	    setToRunning "oper_mode" "edit"

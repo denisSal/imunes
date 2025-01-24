@@ -2020,6 +2020,8 @@ proc nodeUncfggenAutoRoutes6 { node_id { vtysh 0 } } {
 }
 
 proc updateNode { node_id old_node_cfg new_node_cfg } {
+    global manual_execution
+
     dputs ""
     dputs "= /UPDATE NODE $node_id START ="
 
@@ -2043,7 +2045,7 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 	return $old_node_cfg
     }
 
-    if { [getFromRunning "cfg_deployed"] && [getFromRunning "auto_execution"] } {
+    if { [getFromRunning "cfg_deployed"] && ([getFromRunning "auto_execution"] || $manual_execution) } {
 	setToExecuteVars "terminate_cfg" [cfgGet]
     }
 

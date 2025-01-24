@@ -94,12 +94,14 @@ proc newProject {} {
     upvar 0 ::cf::[set ::curcfg]::dict_run dict_run
     upvar 0 ::cf::[set ::curcfg]::dict_cfg dict_cfg
     upvar 0 ::cf::[set ::curcfg]::execute_vars execute_vars
+    upvar 0 ::cf::[set ::curcfg]::manual_execute_vars manual_execute_vars
 
     set dict_cfg [dict create]
     setOption "version" $CFG_VERSION
 
     set dict_run [dict create]
     set execute_vars [dict create]
+    set manual_execute_vars [dict create]
 
     setToRunning "eid" ""
     setToRunning "oper_mode" "edit"

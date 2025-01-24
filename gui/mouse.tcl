@@ -43,9 +43,13 @@ proc animateCursor {} {
 #****
 proc removeLinkGUI { link_id atomic { keep_ifaces 0 } } {
     global changed
+    global manual_execution
+
+    set old_manual_execution $manual_execution
+    set manual_execution 1
 
     if { $atomic == "atomic" } {
-	if { [getFromRunning "cfg_deployed"] && [getFromRunning "auto_execution"] } {
+	if { [getFromRunning "cfg_deployed"] && ([getFromRunning "auto_execution"] || $manual_execution) } {
 	    setToExecuteVars "terminate_cfg" [cfgGet]
 	}
     }
@@ -82,6 +86,8 @@ proc removeLinkGUI { link_id atomic { keep_ifaces 0 } } {
 	updateUndoLog
 	.panwin.f1.c config -cursor left_ptr
     }
+
+    set manual_execution $old_manual_execution
 }
 
 #****f* editor.tcl/removeNodeGUI
@@ -96,7 +102,9 @@ proc removeLinkGUI { link_id atomic { keep_ifaces 0 } } {
 #   * node_id -- node id
 #****
 proc removeNodeGUI { node_id { keep_other_ifaces 0 } } {
-    if { [getFromRunning "cfg_deployed"] && [getFromRunning "auto_execution"] } {
+    global manual_execution
+
+    if { [getFromRunning "cfg_deployed"] && ([getFromRunning "auto_execution"] || $manual_execution) } {
 	setToExecuteVars "terminate_cfg" [cfgGet]
     }
 
@@ -832,8 +840,58 @@ proc button3node { c x y } {
     #
     .button3menu add command -label "Delete (keep interfaces)" -command "deleteSelection 1"
 
-    if { $type != "pseudo" && $oper_mode == "exec" && [getFromRunning "auto_execution"] } {
+    if { $type != "pseudo" && $oper_mode == "exec" } {
 	.button3menu add separator
+    }
+
+    #
+    # Node execution menu
+    #
+    .button3menu.mnode_execute delete 0 end
+    if { $type != "pseudo" && $oper_mode == "exec" && ! [getFromRunning "auto_execution"] } {
+	.button3menu add cascade -label "Node execution" \
+	    -menu .button3menu.mnode_execute
+
+	.button3menu.mnode_execute add command -label "Start" \
+	    -command "
+		global manual_execution
+
+		set manual_execution 1
+		foreach node_id \[selectedNodes\] {
+		    if { \[getFromRunning \${node_id}_running] != true } {
+			trigger_nodeCreate \$node_id
+		    }
+		}
+		undeployCfg ; deployCfg ; redrawAll
+
+		set manual_execution 0
+	    "
+	.button3menu.mnode_execute add command -label "Stop" \
+	    -command "
+		global manual_execution
+
+		set manual_execution 1
+		foreach node_id \[selectedNodes\] {
+		    if { \[getFromRunning \${node_id}_running] == true } {
+			trigger_nodeDestroy \$node_id
+		    }
+		}
+		undeployCfg ; deployCfg ; redrawAll
+
+		set manual_execution 0
+	    "
+	.button3menu.mnode_execute add command -label "Restart" \
+	    -command "
+		global manual_execution
+
+		set manual_execution 1
+		foreach node_id \[selectedNodes\] {
+		    trigger_nodeRecreate \$node_id
+		}
+		undeployCfg ; deployCfg ; redrawAll
+
+		set manual_execution 0
+	    "
     }
 
     #
@@ -1013,8 +1071,9 @@ proc button3node { c x y } {
 	#
 	.button3menu.sett add command -label "IPv4 autorenumber" -command {
 	    global IPv4autoAssign
+	    global manual_execution
 
-	    if { [getFromRunning "cfg_deployed"] && [getFromRunning "auto_execution"] } {
+	    if { [getFromRunning "cfg_deployed"] && ([getFromRunning "auto_execution"] || $manual_execution) } {
 		setToExecuteVars "terminate_cfg" [cfgGet]
 	    }
 
@@ -1034,8 +1093,9 @@ proc button3node { c x y } {
 	#
 	.button3menu.sett add command -label "IPv6 autorenumber" -command {
 	    global IPv6autoAssign
+	    global manual_execution
 
-	    if { [getFromRunning "cfg_deployed"] && [getFromRunning "auto_execution"] } {
+	    if { [getFromRunning "cfg_deployed"] && ([getFromRunning "auto_execution"] || $manual_execution) } {
 		setToExecuteVars "terminate_cfg" [cfgGet]
 	    }
 
@@ -1624,16 +1684,17 @@ proc button1-release { c x y } {
 	if { $destobj != "" && $curobj != "" && $destobj != $curobj } {
 	    set lnode1 [lindex [$c gettags $curobj] 1]
 	    set lnode2 [lindex [$c gettags $destobj] 1]
-	    set link_id [newLink $lnode1 $lnode2]
-	    if { $link_id != "" } {
-		drawLink $link_id
-		redrawLink $link_id
-		updateLinkLabel $link_id
-		set changed 1
-	    }
-
-	    undeployCfg
-	    deployCfg
+	    newLinkGUI $lnode1 $lnode2
+#	    set link_id [newLink $lnode1 $lnode2]
+#	    if { $link_id != "" } {
+#		drawLink $link_id
+#		redrawLink $link_id
+#		updateLinkLabel $link_id
+#		set changed 1
+#	    }
+#
+#	    undeployCfg
+#	    deployCfg
 	}
     } elseif { $activetool in "rectangle oval text freeform" } {
 	popupAnnotationDialog $c 0 "false"
@@ -2116,11 +2177,19 @@ proc deleteSelection { { keep_other_ifaces 0 } } {
     global changed
     global background
     global viewid
+    global manual_execution
+
+    set old_manual_execution $manual_execution
 
     catch { unset viewid }
     .panwin.f1.c config -cursor watch; update
 
-    foreach lnode [selectedNodes] {
+    set selected_nodes [selectedNodes]
+    foreach lnode $selected_nodes {
+	if { $lnode == [lindex $selected_nodes end] } {
+	    set manual_execution 1
+	}
+
 	removeNodeGUI $lnode $keep_other_ifaces
 
 	set changed 1
@@ -2140,6 +2209,8 @@ proc deleteSelection { { keep_other_ifaces 0 } } {
 
     .panwin.f1.c config -cursor left_ptr
     .bottom.textbox config -text ""
+
+    set manual_execution $old_manual_execution
 }
 
 #****f* editor.tcl/removeIPv4nodes
@@ -2152,8 +2223,9 @@ proc deleteSelection { { keep_other_ifaces 0 } } {
 #****
 proc removeIPv4nodes {} {
     global changed
+    global manual_execution
 
-    if { [getFromRunning "cfg_deployed"] && [getFromRunning "auto_execution"] } {
+    if { [getFromRunning "cfg_deployed"] && ([getFromRunning "auto_execution"] || $manual_execution) } {
 	setToExecuteVars "terminate_cfg" [cfgGet]
     }
 
@@ -2198,8 +2270,9 @@ proc removeIPv4nodes {} {
 #****
 proc removeIPv6nodes {} {
     global changed
+    global manual_execution
 
-    if { [getFromRunning "cfg_deployed"] && [getFromRunning "auto_execution"] } {
+    if { [getFromRunning "cfg_deployed"] && ([getFromRunning "auto_execution"] || $manual_execution) } {
 	setToExecuteVars "terminate_cfg" [cfgGet]
     }
 

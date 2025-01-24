@@ -214,6 +214,7 @@ proc finishTerminating { status msg w } {
 #****
 proc undeployCfg { { eid "" } { terminate 0 } } {
     global progressbarCount execMode skip_nodes
+    global manual_execution
 
     if { ! $terminate } {
 	if { ! [getFromRunning "cfg_deployed"] } {
@@ -228,7 +229,9 @@ proc undeployCfg { { eid "" } { terminate 0 } } {
 	    createExperimentFiles $eid
 	    createRunningVarsFile $eid
 
-	    return
+	    if { ! $manual_execution } {
+		return
+	    }
 	}
     }
 

@@ -626,6 +626,10 @@ proc newLinkGUI { node1_id node2_id } {
 
 proc newLinkWithIfacesGUI { node1_id iface1_id node2_id iface2_id } {
     global changed
+    global manual_execution
+
+    set old_manual_execution $manual_execution
+    set manual_execution 1
 
     set link_id [newLinkWithIfaces $node1_id $iface1_id $node2_id $iface2_id]
     if { $link_id == "" } {
@@ -646,6 +650,8 @@ proc newLinkWithIfacesGUI { node1_id iface1_id node2_id iface2_id } {
     redrawAll
     set changed 1
     updateUndoLog
+
+    set manual_execution $old_manual_execution
 }
 
 #****f* editor.tcl/raiseAll

@@ -112,6 +112,12 @@ proc updateTerminateVars {} {
 }
 
 proc trigger_nodeConfig { node_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] || [getFromRunning "${node_id}_running"] == false } {
 	return
     }
@@ -126,6 +132,12 @@ proc trigger_nodeConfig { node_id } {
 }
 
 proc trigger_nodeUnconfig { node_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] } {
 	return
     }
@@ -141,6 +153,12 @@ proc trigger_nodeUnconfig { node_id } {
 }
 
 proc trigger_nodeReconfig { node_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] } {
 	return
     }
@@ -154,6 +172,12 @@ proc trigger_nodeReconfig { node_id } {
 }
 
 proc trigger_nodeFullConfig { node_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] || [getFromRunning "${node_id}_running"] == false } {
 	return
     }
@@ -165,6 +189,12 @@ proc trigger_nodeFullConfig { node_id } {
 }
 
 proc trigger_nodeFullUnconfig { node_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] } {
 	return
     }
@@ -176,6 +206,12 @@ proc trigger_nodeFullUnconfig { node_id } {
 }
 
 proc trigger_nodeFullReconfig { node_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] } {
 	return
     }
@@ -197,6 +233,12 @@ proc trigger_nodeFullReconfig { node_id } {
 }
 
 proc trigger_nodeCreate { node_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] } {
 	return
     }
@@ -227,6 +269,12 @@ proc trigger_nodeCreate { node_id } {
 }
 
 proc trigger_nodeDestroy { node_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] } {
 	return
     }
@@ -280,6 +328,12 @@ proc trigger_nodeDestroy { node_id } {
 }
 
 proc trigger_nodeRecreate { node_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] } {
 	return
     }
@@ -302,6 +356,12 @@ proc trigger_nodeRecreate { node_id } {
 }
 
 proc trigger_linkConfig { link_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] } {
 	return
     }
@@ -316,6 +376,12 @@ proc trigger_linkConfig { link_id } {
 }
 
 proc trigger_linkUnconfig { link_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] } {
 	return
     }
@@ -339,6 +405,12 @@ proc trigger_linkUnconfig { link_id } {
 }
 
 proc trigger_linkReconfig { link_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] } {
 	return
     }
@@ -352,6 +424,12 @@ proc trigger_linkReconfig { link_id } {
 }
 
 proc trigger_linkCreate { link_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] } {
 	return
     }
@@ -377,6 +455,12 @@ proc trigger_linkCreate { link_id } {
 }
 
 proc trigger_linkDestroy { link_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] } {
 	return
     }
@@ -411,6 +495,12 @@ proc trigger_linkDestroy { link_id } {
 }
 
 proc trigger_linkRecreate { link_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] } {
 	return
     }
@@ -424,6 +514,12 @@ proc trigger_linkRecreate { link_id } {
 }
 
 proc trigger_ifaceCreate { node_id iface_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] || [getFromRunning "${node_id}_running"] == false } {
 	return
     }
@@ -441,6 +537,12 @@ proc trigger_ifaceCreate { node_id iface_id } {
 }
 
 proc trigger_ifaceDestroy { node_id iface_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] || [getFromRunning "${node_id}_running"] == false } {
 	return
     }
@@ -473,6 +575,12 @@ proc trigger_ifaceDestroy { node_id iface_id } {
 }
 
 proc trigger_ifaceRecreate { node_id iface_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] || [getFromRunning "${node_id}_running"] == false } {
 	return
     }
@@ -486,6 +594,12 @@ proc trigger_ifaceRecreate { node_id iface_id } {
 }
 
 proc trigger_ifaceConfig { node_id iface_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] || [getFromRunning "${node_id}_running"] == false } {
 	return
     }
@@ -501,6 +615,12 @@ proc trigger_ifaceConfig { node_id iface_id } {
 }
 
 proc trigger_ifaceUnconfig { node_id iface_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] || [getFromRunning "${node_id}_running"] == false } {
 	return
     }
@@ -531,6 +651,12 @@ proc trigger_ifaceUnconfig { node_id iface_id } {
 }
 
 proc trigger_ifaceReconfig { node_id iface_id } {
+    global manual_execution
+
+    if { ! [getFromRunning "auto_execution"] && ! $manual_execution } {
+	return
+    }
+
     if { ! [getFromRunning "cfg_deployed"] || [getFromRunning "${node_id}_running"] == false } {
 	return
     }

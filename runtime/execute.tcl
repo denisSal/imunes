@@ -417,6 +417,7 @@ proc nodeIpsecInit { node_id } {
 #****
 proc deployCfg { { execute 0 } } {
     global progressbarCount execMode skip_nodes err_skip_nodesifaces err_skip_nodes
+    global manual_execution
 
     if { ! $execute } {
 	if { ! [getFromRunning "cfg_deployed"] } {
@@ -427,7 +428,9 @@ proc deployCfg { { execute 0 } } {
 	    createExperimentFiles [getFromRunning "eid"]
 	    createRunningVarsFile [getFromRunning "eid"]
 
-	    return
+	    if { ! $manual_execution } {
+		return
+	    }
 	}
     }
 

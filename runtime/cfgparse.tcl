@@ -1546,20 +1546,37 @@ proc lappendToRunning { key value } {
 }
 
 proc getFromExecuteVars { key { config "" } } {
+    global manual_execution
+
     if { $config == "" } {
 	set config [set ::curcfg]
     }
-    upvar 0 ::cf::${config}::execute_vars execute_vars
 
-    return [dictGet $execute_vars $key]
+    if { $manual_execution } {
+	upvar 0 ::cf::${config}::manual_execute_vars manual_execute_vars
+
+	return [dictGet $manual_execute_vars $key]
+    } else {
+	upvar 0 ::cf::${config}::execute_vars execute_vars
+
+	return [dictGet $execute_vars $key]
+    }
 }
 
 proc setToExecuteVars { key value } {
-    upvar 0 ::cf::[set ::curcfg]::execute_vars execute_vars
+    global manual_execution
 
-    set execute_vars [dictSet $execute_vars $key $value]
+    if { $manual_execution } {
+	upvar 0 ::cf::[set ::curcfg]::manual_execute_vars manual_execute_vars
+	set manual_execute_vars [dictSet $manual_execute_vars $key $value]
 
-    return $execute_vars
+	return $manual_execute_vars
+    } else {
+	upvar 0 ::cf::[set ::curcfg]::execute_vars execute_vars
+	set execute_vars [dictSet $execute_vars $key $value]
+
+	return $execute_vars
+    }
 }
 
 proc unsetExecuteVars { key } {
