@@ -162,7 +162,7 @@ proc topoGenDone { nodes } {
     set changed 1
     updateUndoLog
     redrawAll
-    selectNodes $nodes
+    selectObjects "node" $nodes
 }
 
 #

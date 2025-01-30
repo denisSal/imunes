@@ -769,12 +769,10 @@ proc bindEventsToTree {} {
 	}"
 
     $f.tree tag bind nodes <1> \
-	  ".panwin.f1.c dtag node selected; \
-	    .panwin.f1.c delete -withtags selectmark"
+	  "gui_selectObjects \"none\""
 
     $f.tree tag bind links <1> \
-	  ".panwin.f1.c dtag node selected; \
-	    .panwin.f1.c delete -withtags selectmark"
+	  "gui_selectObjects \"none\""
 
     foreach node_id $nodetags {
 	set type [getNodeType $node_id]
@@ -785,15 +783,13 @@ proc bindEventsToTree {} {
 	    "if { ! [string equal {} [$f.tree prev $node_id]] } {
 		selectNodeFromTree [$f.tree prev $node_id]
 	    } else {
-		.panwin.f1.c dtag node selected
-		.panwin.f1.c delete -withtags selectmark
+		gui_selectObjects \"none\"
 	    }"
 	$f.tree tag bind $node_id <Key-Down> \
 	    "if { ! [string equal {} [$f.tree next $node_id]] } {
 		selectNodeFromTree [$f.tree next $node_id]
 	    } else {
-		.panwin.f1.c dtag node selected
-		.panwin.f1.c delete -withtags selectmark
+		gui_selectObjects \"none\"
 	    }"
 	$f.tree tag bind $node_id <Double-1> \
 	    "$type.configGUI .panwin.f1.c $node_id"
@@ -818,8 +814,7 @@ proc bindEventsToTree {} {
 	    "if { ! [string equal {} [$f.tree prev $link_id]] } {
 		selectLinkPeersFromTree [$f.tree prev $link_id]
 	    } else {
-		.panwin.f1.c dtag node selected
-		.panwin.f1.c delete -withtags selectmark
+		gui_selectObjects \"none\"
 	    }"
 	$f.tree tag bind $link_id <Key-Down> \
 	    "if { ! [string equal {} [$f.tree next $link_id]] } {
@@ -844,11 +839,7 @@ proc selectNodeFromTree { node_id } {
     setToRunning "curcanvas" [getNodeCanvas $node_id]
     switchCanvas none
 
-    .panwin.f1.c dtag node selected
-    .panwin.f1.c delete -withtags selectmark
-
-    set obj [.panwin.f1.c find withtag "node && $node_id"]
-    drawBBoxAroundObject .panwin.f1.c $obj
+    selectObjects "node" $node_id
 }
 
 #****f* editor.tcl/selectLinkPeersFromTree
@@ -862,16 +853,11 @@ proc selectNodeFromTree { node_id } {
 #****
 proc selectLinkPeersFromTree { link_id } {
     lassign [getLinkPeers $link_id] node1_id node2_id
+
     setToRunning "curcanvas" [getNodeCanvas $node1_id]
     switchCanvas none
 
-    .panwin.f1.c dtag node selected
-    .panwin.f1.c delete -withtags selectmark
-
-    set obj0 [.panwin.f1.c find withtag "node && $node1_id"]
-    set obj1 [.panwin.f1.c find withtag "node && $node2_id"]
-    drawBBoxAroundObject .panwin.f1.c $obj0
-    drawBBoxAroundObject .panwin.f1.c $obj1
+    selectObjects "node" "$node1_id $node2_id"
 }
 
 #****f* editor.tcl/refreshTopologyTree

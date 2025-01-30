@@ -224,5 +224,6 @@ proc paste {} {
 
     redrawAll
     setActiveTool select
-    selectNodes [concat $copypaste_list $new_annotations]
+    selectObjects "node" $copypaste_list
+    selectObjects "annotation" $new_annotations add
 }

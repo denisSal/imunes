@@ -151,45 +151,80 @@ proc splitLinkGUI { link_id } {
     redrawAll
 }
 
-#****f* editor.tcl/gui_tagObjectAsSelected
+#****f* editor.tcl/gui_selectObjects
 # NAME
-#   gui_tagObjectAsSelected -- tag 'current' object as selected
+#   gui_selectObjects -- tag objects as selected
 # SYNOPSIS
-#   gui_tagObjectAsSelected $gui_object_id
+#   gui_selectObjects $gui_objects_ids [add_remove]
 # FUNCTION
-#   Tag an object under the mouse cursor (with tag current) as 'selected'.
+#   Tag objects in a list 'selected'. If add is given, append to the already
+#   selected objects. If remove is given, delete from it. If no last argument
+#   is given, reset previously selected objects.
+# INPUTS
+#   * gui_objects_ids -- tk canvas object IDs
+#   * add_remove -- add to/remove from or create new selection
 #****
-proc gui_tagObjectAsSelected { gui_object_id } {
+proc gui_selectObjects { gui_objects_ids { add_remove "" } } {
     global c
 
-    set object_id [lindex [$c gettags $gui_object_id] 1]
-    if { $object_id == "" } {
-	return
-    }
-
-    $c addtag "selected" withtag $gui_object_id
-}
-
-#****f* editor.tcl/gui_tagCurrentObjectAsSelected
-# NAME
-#   gui_tagCurrentObjectAsSelected -- tag 'current' object as selected
-# SYNOPSIS
-#   gui_tagCurrentObjectAsSelected
-# FUNCTION
-#   Tag an object under the mouse cursor (with tag current) as 'selected'.
-#****
-proc gui_tagCurrentObjectAsSelected {} {
-    global c
-
-    set gui_object_id [$c find withtag "current"]
-    if { $gui_object_id == "" || "selectable" ni [$c gettags $gui_object_id] } {
+    # deselect all
+    if { $add_remove == "" } {
 	$c delete -withtags "selectmark"
 	$c dtag "selected"
+    }
 
+    if { $gui_objects_ids == "none" } {
+	return
+    } elseif { $gui_objects_ids == "current" } {
+	set gui_objects_ids [$c find withtag "current"]
+    }
+
+    # remove unselectable objects from list
+    foreach gui_object_id $gui_objects_ids {
+	set all_tags [$c gettags $gui_object_id]
+	if { "selectable" ni $all_tags || \
+	    ("selected" in $all_tags && $add_remove == "add") } {
+
+	    set gui_objects_ids [removeFromList $gui_objects_ids $gui_object_id]
+	}
+    }
+
+    if { $gui_objects_ids == "" } {
 	return
     }
 
-    return [gui_tagObjectAsSelected $gui_object_id]
+    # add a prefix prefix "t" to all object ids and merge with || between them
+    set tags "[join [lmap n $gui_objects_ids {set n "t$n"}] " || "]"
+    if { $add_remove == "remove" } {
+	# remove "selected" tag from those objects
+	$c dtag "$tags" "selected"
+
+	# delete bboxes of those objects
+	$c delete -withtags "selectmark && ($tags)"
+    } else {
+	# add "selected" tag to those objects
+	$c addtag "selected" withtag "$tags"
+
+	# draw bboxes for those objects
+	drawBBoxAroundObject $c $gui_objects_ids
+    }
+}
+
+#****f* editor.tcl/gui_isObjectSelected
+# NAME
+#   gui_isObjectSelected -- is object selected
+# SYNOPSIS
+#   gui_isObjectSelected $gui_object_id
+# FUNCTION
+# Returns true if tk canvas object $gui_object_id is selected, otherwise
+# returns false.
+# INPUTS
+#   * gui_object_id -- object to check
+#****
+proc gui_isObjectSelected { gui_object_id } {
+    global c
+
+    return [expr {"selected" in [$c gettags $gui_object_id]}]
 }
 
 #****f* editor.tcl/drawBBoxAroundObject
@@ -204,32 +239,27 @@ proc gui_tagCurrentObjectAsSelected {} {
 #   * c -- tk canvas
 #   * gui_object_id -- tk canvas object tag id
 #****
-proc drawBBoxAroundObject { c gui_object_id } {
-    if { $gui_object_id == "none" } {
-	$c delete -withtags "selectmark"
-	return
+proc drawBBoxAroundObject { c gui_objects_ids } {
+    foreach gui_object_id $gui_objects_ids {
+	set object_id [lindex [$c gettags $gui_object_id] 1]
+	if { $object_id == "" } {
+	    return
+	}
+
+	set bbox [$c bbox $gui_object_id]
+	if { $bbox == "" } {
+	    return
+	}
+
+	lassign $bbox bx1 by1 bx2 by2
+	set bx1 [expr {$bx1 - 2}]
+	set by1 [expr {$by1 - 2}]
+	set bx2 [expr {$bx2 + 1}]
+	set by2 [expr {$by2 + 1}]
+	$c delete -withtags "selectmark && t$gui_object_id && $object_id"
+	$c create line $bx1 $by1 $bx2 $by1 $bx2 $by2 $bx1 $by2 $bx1 $by1 \
+	    -dash {6 4} -fill black -width 1 -tags "selectmark t$gui_object_id $object_id"
     }
-
-    set object_id [lindex [$c gettags $gui_object_id] 1]
-    if { $object_id == "" } {
-	return
-    }
-
-    $c addtag "selected" withtag $gui_object_id
-
-    set bbox [$c bbox $gui_object_id]
-    if { $bbox == "" } {
-	return
-    }
-
-    lassign $bbox bx1 by1 bx2 by2
-    set bx1 [expr {$bx1 - 2}]
-    set by1 [expr {$by1 - 2}]
-    set bx2 [expr {$bx2 + 1}]
-    set by2 [expr {$by2 + 1}]
-    $c delete -withtags "selectmark && $object_id"
-    $c create line $bx1 $by1 $bx2 $by1 $bx2 $by2 $bx1 $by2 $bx1 $by1 \
-	-dash {6 4} -fill black -width 1 -tags "selectmark $object_id"
 }
 
 #****f* editor.tcl/gui_selectAllObjects
@@ -241,26 +271,52 @@ proc drawBBoxAroundObject { c gui_object_id } {
 #   Select all object on the canvas.
 #****
 proc gui_selectAllObjects {} {
-    foreach gui_object_id [.panwin.f1.c find withtag "selectable"] {
-	gui_tagObjectAsSelected $gui_object_id
-    }
+    global c
+
+    gui_selectObjects [$c find withtag "selectable"]
 }
 
-#****f* editor.tcl/gui_tagNodeAsSelected
+#****f* editor.tcl/selectObjects
 # NAME
-#   gui_tagNodeAsSelected -- select nodes
+#   selectObjects -- select objects
 # SYNOPSIS
-#   gui_tagNodeAsSelected $node_list
+#   selectObjects type $object_ids [add_remove]
 # FUNCTION
-#   Select all nodes in a list.
+#   Select all objects in a list. If add is given, append to the already
+#   selected objects. If remove is given, delete from it. If no last argument
+#   is given, reset previously selected objects.
 # INPUTS
-#   * node_list -- list of nodes to select.
+#   * type -- object type (node, annotation)
+#   * object_ids -- list of objects to select.
+#   * add_remove -- add to/remove from or create new selection
 #****
-proc gui_tagNodeAsSelected { node_list } {
-    foreach node_id $node_list {
-	drawBBoxAroundObject .panwin.f1.c [.panwin.f1.c find withtag \
-	    "(node || text || oval || rectangle || freeform) && $node_id"]
+proc selectObjects { type object_ids { add_remove "" } } {
+    global c
+
+    if { $object_ids == "all" } {
+	return [gui_selectObjects [$c find withtag "$type"]]
     }
+
+    gui_selectObjects [$c find withtag \
+	"$type && ([join $object_ids " || "])"] $add_remove
+}
+
+#****f* editor.tcl/isObjectSelected
+# NAME
+#   isObjectSelected -- is object selected
+# SYNOPSIS
+#   isObjectSelected type $object_id
+# FUNCTION
+# Returns true if object $object_id of type $type is selected, otherwise
+# returns false.
+# INPUTS
+#   * type -- object type (node, annotation)
+#   * object_id -- object to check
+#****
+proc isObjectSelected { type object_id } {
+    global c
+
+    return [expr {"selected" in [$c gettags "$type && $object_id"]}]
 }
 
 #****f* editor.tcl/selectedNodes
@@ -366,7 +422,7 @@ proc selectAdjacent {} {
     }
 
     if { $adjacent != "" } {
-	selectNodes $adjacent
+	selectObjects "node" $adjacent add
     }
 }
 
@@ -630,9 +686,7 @@ proc button3node { c x y } {
     set mirror_node [getNodeMirror $node_id]
 
     if { [$c gettags "node && $node_id && selected"] == "" } {
-	$c dtag node selected
-	$c delete -withtags selectmark
-	drawBBoxAroundObject $c [$c find withtag "current"]
+	selectObjects "node" $node_id
     }
 
     .button3menu delete 0 end
@@ -1266,7 +1320,7 @@ proc button1 { c x y button } {
     set curobj [$c find withtag current]
     set curtype [lindex [$c gettags current] 0]
     set wasselected 0
-    if { $curtype in "node oval rectangle text freeform" || ( $curtype == "nodelabel" &&
+    if { $curtype in "node annotation" || ( $curtype == "nodelabel" &&
 	 [getNodeType [lindex [$c gettags $curobj] 1]] == "pseudo") } {
 
 	set node_id [lindex [$c gettags current] 1]
@@ -1274,18 +1328,14 @@ proc button1 { c x y button } {
 
 	if { $button == "ctrl" } {
 	    if { $wasselected } {
-		$c dtag $node_id selected
-		$c delete -withtags "selectmark && $node_id"
+		gui_selectObjects $curobj "remove"
 	    }
 	} elseif { ! $wasselected } {
-	    foreach node_type "node text oval rectangle freeform" {
-		$c dtag $node_type selected
-	    }
-	    $c delete -withtags selectmark
+	    gui_selectObjects "none"
 	}
 
 	if { $activetool != "link" && ! $wasselected } {
-	    drawBBoxAroundObject $c $curobj
+	    gui_selectObjects $curobj "add"
 	}
     } elseif { $curtype == "selectmark" } {
 	set o1 [lindex [$c gettags current] 1]
@@ -1331,10 +1381,7 @@ proc button1 { c x y button } {
 	    }
 	}
     } elseif { $button != "ctrl" || $activetool != "select" } {
-	foreach node_type "node text oval rectangle freeform" {
-	    $c dtag $node_type selected
-	}
-	$c delete -withtags selectmark
+	gui_selectObjects "none"
     }
 
     #determine whether we can create nodes on the current object
@@ -1362,7 +1409,7 @@ proc button1 { c x y button } {
 		[expr {$y / $zoom + $dy}]"
 
 	    drawNode $node_id
-	    drawBBoxAroundObject $c [$c find withtag "node && $node_id"]
+	    selectObjects "node" $node_id
 
 	    set changed 1
 	} elseif { $activetool == "select" \
@@ -1388,7 +1435,7 @@ proc button1 { c x y button } {
 		-anchor w -justify left -tags "newtext"]
 	}
     } else {
-	if { $curtype in "node nodelabel text oval rectangle freeform" } {
+	if { $curtype in "node nodelabel annotation" } {
 	    if { $activetool == "select" && $button == "ctrl" && $wasselected } {
 		$c config -cursor cross
 	    } else {
@@ -1668,7 +1715,7 @@ proc button1-release { c x y } {
 	# selects the node whose label was moved
 	if { [lindex [$c gettags $curobj] 0] == "nodelabel" } {
 	    set node_id [lindex [$c gettags $curobj] 1]
-	    drawBBoxAroundObject $c [$c find withtag "node && $node_id"]
+	    selectObjects "node" $node_id
 	}
 
 	set selected {}
@@ -1706,138 +1753,140 @@ proc button1-release { c x y } {
 		set dy 0
 	    }
 
-	    if { [lindex [$c gettags $node_id] 0] == "oval" } {
-		lassign [$c coords [lindex [$c gettags $node_id] 1]] x1 y1 x2 y2
-		set x1 [expr {$x1 / $zoom}]
-		set y1 [expr {$y1 / $zoom}]
-		set x2 [expr {$x2 / $zoom}]
-		set y2 [expr {$y2 / $zoom}]
+	    if { [lindex [$c gettags $img] 0] == "annotation" } {
+		if { [lindex [$c gettags $img] 2] == "oval" } {
+		    lassign [$c coords [lindex [$c gettags $img] 1]] x1 y1 x2 y2
+		    set x1 [expr {$x1 / $zoom}]
+		    set y1 [expr {$y1 / $zoom}]
+		    set x2 [expr {$x2 / $zoom}]
+		    set y2 [expr {$y2 / $zoom}]
 
-		if { $x1 < 0 } {
-		    set x2 [expr {$x2-$x1}]
-		    set x1 0
-		    set outofbounds 1
-		}
-		if { $y1 < 0 } {
-		    set y2 [expr {$y2-$y1}]
-		    set y1 0
-		    set outofbounds 1
-		}
-		if { $x2 > $sizex } {
-		    set x1 [expr {$x1-($x2-$sizex)}]
-		    set x2 $sizex
-		    set outofbounds 1
-		}
-		if { $y2 > $sizey } {
-		    set y1 [expr {$y1-($y2-$sizey)}]
-		    set y2 $sizey
-		    set outofbounds 1
-		}
+		    if { $x1 < 0 } {
+			set x2 [expr {$x2-$x1}]
+			set x1 0
+			set outofbounds 1
+		    }
+		    if { $y1 < 0 } {
+			set y2 [expr {$y2-$y1}]
+			set y1 0
+			set outofbounds 1
+		    }
+		    if { $x2 > $sizex } {
+			set x1 [expr {$x1-($x2-$sizex)}]
+			set x2 $sizex
+			set outofbounds 1
+		    }
+		    if { $y2 > $sizey } {
+			set y1 [expr {$y1-($y2-$sizey)}]
+			set y2 $sizey
+			set outofbounds 1
+		    }
 
-		setAnnotationCoords $node_id "$x1 $y1 $x2 $y2"
-	    }
-
-	    if { [lindex [$c gettags $node_id] 0] == "rectangle" } {
-		set coordinates [$c coords [lindex [$c gettags $node_id] 1]]
-		set x1 [expr {[lindex $coordinates 0] / $zoom}]
-		set y1 [expr {[lindex $coordinates 1] / $zoom}]
-		set x2 [expr {[lindex $coordinates 6] / $zoom}]
-		set y2 [expr {[lindex $coordinates 13] / $zoom}]
-
-		if { $x1 < 0 } {
-		    set x2 [expr {$x2-$x1}]
-		    set x1 0
-		    set outofbounds 1
-		}
-		if { $y1 < 0 } {
-		    set y2 [expr {$y2-$y1}]
-		    set y1 0
-		    set outofbounds 1
-		}
-		if { $x2 > $sizex } {
-		    set x1 [expr {$x1-($x2-$sizex)}]
-		    set x2 $sizex
-		    set outofbounds 1
-		}
-		if { $y2 > $sizey } {
-		    set y1 [expr {$y1-($y2-$sizey)}]
-		    set y2 $sizey
-		    set outofbounds 1
+		    setAnnotationCoords $node_id "$x1 $y1 $x2 $y2"
 		}
 
-		setAnnotationCoords $node_id "$x1 $y1 $x2 $y2"
-	    }
+		if { [lindex [$c gettags $node_id] 2] == "rectangle" } {
+		    set coordinates [$c coords [lindex [$c gettags $node_id] 1]]
+		    set x1 [expr {[lindex $coordinates 0] / $zoom}]
+		    set y1 [expr {[lindex $coordinates 1] / $zoom}]
+		    set x2 [expr {[lindex $coordinates 6] / $zoom}]
+		    set y2 [expr {[lindex $coordinates 13] / $zoom}]
 
-	    if { [lindex [$c gettags $node_id] 0] == "freeform" } {
-		lassign [$c bbox "selectmark && $node_id"] x1 y1 x2 y2
-		set x1 [expr {$x1 / $zoom}]
-		set y1 [expr {$y1 / $zoom}]
-		set x2 [expr {$x2 / $zoom}]
-		set y2 [expr {$y2 / $zoom}]
+		    if { $x1 < 0 } {
+			set x2 [expr {$x2-$x1}]
+			set x1 0
+			set outofbounds 1
+		    }
+		    if { $y1 < 0 } {
+			set y2 [expr {$y2-$y1}]
+			set y1 0
+			set outofbounds 1
+		    }
+		    if { $x2 > $sizex } {
+			set x1 [expr {$x1-($x2-$sizex)}]
+			set x2 $sizex
+			set outofbounds 1
+		    }
+		    if { $y2 > $sizey } {
+			set y1 [expr {$y1-($y2-$sizey)}]
+			set y2 $sizey
+			set outofbounds 1
+		    }
 
-		set shiftx 0
-		set shifty 0
-
-		if { $x1 < 0 } {
-		    set shiftx -$x1
-		    set outofbounds 1
-		}
-		if { $y1 < 0 } {
-		    set shifty -$y1
-		    set outofbounds 1
-		}
-		if { $x2 > $sizex } {
-		    set shiftx [expr $sizex-$x2]
-		    set outofbounds 1
-		}
-		if { $y2 > $sizey } {
-		    set shifty [expr $sizey-$y2]
-		    set outofbounds 1
-		}
-
-		set coordinates [$c coords [lindex [$c gettags $node_id] 1]]
-                set l [expr {[llength $coordinates]-1}]
-                set newcoords {}
-                set i 0
-
-		while { $i <= $l } {
-                    set f1 [expr {[lindex $coords $i] * $zoom}]
-                    set g1 [expr {[lindex $coords $i+1] * $zoom}]
-                    set xx1 [expr $f1+$shiftx]
-                    set yy1 [expr $g1+$shifty]
-
-                    lappend newcoords $xx1 $yy1
-                    set i [expr {$i+2}]
-                }
-
-                setAnnotationCoords $node_id $newcoords
-	    }
-
-	    if { [lindex [$c gettags $node_id] 0] == "text" } {
-		set bbox [$c bbox "selectmark && $node_id"]
-		lassign [$c coords [lindex [$c gettags $node_id] 1]] x1 y1
-
-		set width [expr [lindex $bbox 2] - [lindex $bbox 0]]
-		set height [expr [lindex $bbox 3] - [lindex $bbox 1]]
-
-		if { [lindex $bbox 0] < 0 } {
-		    set x1 5
-		    set outofbounds 1
-		}
-		if { [lindex $bbox 1] < 0 } {
-		    set y1 [expr $height/2]
-		    set outofbounds 1
-		}
-		if { [lindex $bbox 2] > $sizex } {
-		    set x1 [expr $sizex-$width+5]
-		    set outofbounds 1
-		}
-		if { [lindex $bbox 3] > $sizey } {
-		    set y1 [expr {$sizey-$height/2}]
-		    set outofbounds 1
+		    setAnnotationCoords $node_id "$x1 $y1 $x2 $y2"
 		}
 
-		setAnnotationCoords $node_id "$x1 $y1"
+		if { [lindex [$c gettags $node_id] 2] == "freeform" } {
+		    lassign [$c bbox "selectmark && $node_id"] x1 y1 x2 y2
+		    set x1 [expr {$x1 / $zoom}]
+		    set y1 [expr {$y1 / $zoom}]
+		    set x2 [expr {$x2 / $zoom}]
+		    set y2 [expr {$y2 / $zoom}]
+
+		    set shiftx 0
+		    set shifty 0
+
+		    if { $x1 < 0 } {
+			set shiftx -$x1
+			set outofbounds 1
+		    }
+		    if { $y1 < 0 } {
+			set shifty -$y1
+			set outofbounds 1
+		    }
+		    if { $x2 > $sizex } {
+			set shiftx [expr $sizex-$x2]
+			set outofbounds 1
+		    }
+		    if { $y2 > $sizey } {
+			set shifty [expr $sizey-$y2]
+			set outofbounds 1
+		    }
+
+		    set coordinates [$c coords [lindex [$c gettags $node_id] 1]]
+		    set l [expr {[llength $coordinates]-1}]
+		    set newcoords {}
+		    set i 0
+
+		    while { $i <= $l } {
+			set f1 [expr {[lindex $coords $i] * $zoom}]
+			set g1 [expr {[lindex $coords $i+1] * $zoom}]
+			set xx1 [expr $f1+$shiftx]
+			set yy1 [expr $g1+$shifty]
+
+			lappend newcoords $xx1 $yy1
+			set i [expr {$i+2}]
+		    }
+
+		    setAnnotationCoords $node_id $newcoords
+		}
+
+		if { [lindex [$c gettags $node_id] 2] == "text" } {
+		    set bbox [$c bbox "selectmark && $node_id"]
+		    lassign [$c coords [lindex [$c gettags $node_id] 1]] x1 y1
+
+		    set width [expr [lindex $bbox 2] - [lindex $bbox 0]]
+		    set height [expr [lindex $bbox 3] - [lindex $bbox 1]]
+
+		    if { [lindex $bbox 0] < 0 } {
+			set x1 5
+			set outofbounds 1
+		    }
+		    if { [lindex $bbox 1] < 0 } {
+			set y1 [expr $height/2]
+			set outofbounds 1
+		    }
+		    if { [lindex $bbox 2] > $sizex } {
+			set x1 [expr $sizex-$width+5]
+			set outofbounds 1
+		    }
+		    if { [lindex $bbox 3] > $sizey } {
+			set y1 [expr {$sizey-$height/2}]
+			set outofbounds 1
+		    }
+
+		    setAnnotationCoords $node_id "$x1 $y1"
+		}
 	    }
 
 	    $c move "selectmark && $node_id" $dx $dy
@@ -1848,7 +1897,7 @@ proc button1-release { c x y } {
 	if { $outofbounds } {
 	    redrawAll
 	    if { $activetool == "select" } {
-		selectNodes $selected
+		selectObjects "node" $selected
 	    }
 	}
 
@@ -1856,11 +1905,7 @@ proc button1-release { c x y } {
 	    undeployCfg
 	    deployCfg
 
-	    foreach img [$c find withtag "node && selected"] {
-		set node_id [lindex [$c gettags $img] 1]
-		drawNode $node_id
-		drawBBoxAroundObject $c [$c find withtag "node && $node_id"]
-	    }
+	    gui_selectObjects [$c find withtag "node && selected"] "add"
 
 	    foreach link_id [$c find withtag "link && need_redraw"] {
 		redrawLink [lindex [$c gettags $link_id] 1]
@@ -1873,7 +1918,7 @@ proc button1-release { c x y } {
 	    redrawAll
 
 	    if { $activetool == "select" } {
-		selectNodes $selected
+		selectObjects "node" $selected
 	    }
 
 	    set changed 0
@@ -1901,26 +1946,12 @@ proc button1-release { c x y } {
 	    catch { $c find enclosed $x $y $x1 $y1 } enc_objs
 	    foreach obj $enc_objs {
 		set tags [$c gettags $obj]
-		if { [lindex $tags 0] == "node" && [lsearch $tags selected] == -1 } {
-		    lappend enclosed $obj
-		}
-		if { [lindex $tags 0] == "oval" && [lsearch $tags selected] == -1 } {
-		    lappend enclosed $obj
-		}
-		if { [lindex $tags 0] == "rectangle" && [lsearch $tags selected] == -1 } {
-		    lappend enclosed $obj
-		}
-		if { [lindex $tags 0] == "text" && [lsearch $tags selected] == -1 } {
-		    lappend enclosed $obj
-		}
-		if { [lindex $tags 0] == "freeform" && [lsearch $tags selected] == -1 } {
+		if { [lindex $tags 0] in "node annotation" && [lsearch $tags "selected"] == -1 } {
 		    lappend enclosed $obj
 		}
 	    }
 
-	    foreach obj $enclosed {
-		drawBBoxAroundObject $c $obj
-	    }
+	    gui_selectObjects $enclosed "add"
 	} else {
 	    setAnnotationCoords $resizeobj "$x $y $x1 $y1"
 	    set redrawNeeded 1

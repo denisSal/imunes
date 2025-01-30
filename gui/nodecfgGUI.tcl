@@ -61,7 +61,7 @@ proc nodeConfigGUI { c node_id } {
 	set mirror_node [getNodeMirror $node_id]
 	setToRunning "curcanvas" [getNodeCanvas $mirror_node]
 	switchCanvas none
-	after idle selectNodes [getIfcPeer $mirror_node "ifc0"]
+	after idle selectObjects "node" [getIfcPeer $mirror_node "ifc0"]
 
 	return
     } else {

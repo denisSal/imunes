@@ -286,7 +286,9 @@ proc drawOval { oval } {
     if { $bordercolor == "" } { set bordercolor black }
 
     set newoval [.panwin.f1.c create oval $x1 $y1 $x2 $y2 \
-	-fill $color -width $width -outline $bordercolor -tags "oval $oval selectable"]
+	-fill $color -width $width -outline $bordercolor -tags "annotation $oval oval selectable"]
+
+    .panwin.f1.c addtag "t$newoval" withtag $newoval
     .panwin.f1.c raise $newoval
 }
 
@@ -508,13 +510,14 @@ proc drawRect { rectangle } {
 
     if { $width == 0 } {
 	set newrect [roundRect .panwin.f1.c $x1 $y1 $x2 $y2 $rad \
-	    -fill $color -tags "rectangle $rectangle selectable"]
+	    -fill $color -tags "annotation $rectangle rectangle selectable"]
     } else {
 	set newrect [roundRect .panwin.f1.c $x1 $y1 $x2 $y2 $rad \
 	    -fill $color -outline $bordercolor -width $width \
-	    -tags "rectangle $rectangle selectable"]
+	    -tags "annotation $rectangle rectangle selectable"]
     }
 
+    .panwin.f1.c addtag "t$newrect" withtag $newrect
     .panwin.f1.c raise $newrect
 }
 
@@ -693,8 +696,10 @@ proc drawText { text } {
 
     lassign [lmap n $coords {expr $n * [getFromRunning "zoom"]}] x y
     set newtext [.panwin.f1.c create text $x $y -text $label -anchor w \
-	-font "$font" -justify left -fill $labelcolor -tags "text $text selectable"]
-	.panwin.f1.c raise $newtext
+	-font "$font" -justify left -fill $labelcolor -tags "annotation $text text selectable"]
+
+    .panwin.f1.c addtag "t$newtext" withtag $newtext
+    .panwin.f1.c raise $newtext
 }
 
 #****f* annotations.tcl/popupFreeformDialog
@@ -860,7 +865,7 @@ proc drawFreeform { freeform } {
 	    set y2 [expr {[lindex $coords $i+3] * $zoom}]
 	    set tempfree [.panwin.f1.c create line $x1 $y1 $x2 $y2 \
 		-fill $color -width $width \
-		-tags "freeform $freeform selectable"]
+		-tags "annotation $freeform freeform selectable"]
 	} else {
 	    set x1 [expr {[lindex $coords $i] * $zoom}]
 	    set y1 [expr {[lindex $coords $i+1] * $zoom}]
@@ -869,6 +874,7 @@ proc drawFreeform { freeform } {
 	    set i [expr {$i+2}]
     }
 
+    .panwin.f1.c addtag "t$tempfree" withtag $tempfree
     .panwin.f1.c raise $tempfree
 }
 
@@ -1027,13 +1033,9 @@ proc button3annotation { type c x y } {
 
     set wasselected [expr {$item in [selectedAnnotations]}]
     if { ! $wasselected } {
-	foreach node_type "node text oval rectangle freeform" {
-	    $c dtag $node_type selected
-	}
-	$c delete -withtags selectmark
+	gui_selectObjects "current"
     }
 
-    drawBBoxAroundObject $c [$c find withtag "current"]
     set menutext "$type $item"
 
     .button3menu delete 0 end
