@@ -355,8 +355,8 @@ bind . <Control-c> copySelection
 bind . <Control-v> paste
 .menubar.edit add separator
 .menubar.edit add command -label "Select all" \
-    -accelerator "Ctrl+A" -underline 0 -command "selectAllObjects"
-bind . <Control-a> selectAllObjects
+    -accelerator "Ctrl+A" -underline 0 -command "gui_selectAllObjects"
+bind . <Control-a> gui_selectAllObjects
 .menubar.edit add command -label "Select adjacent" \
     -accelerator "Ctrl+D" -underline 7 -command selectAdjacent
 bind . <Control-d> selectAdjacent
@@ -382,7 +382,7 @@ menu .menubar.canvas -tearoff 0
 	 return
     }
 
-    selectAllObjects
+    gui_selectAllObjects
     deleteSelection
 
     set i [lsearch $canvas_list $curcanvas]

@@ -151,6 +151,47 @@ proc splitLinkGUI { link_id } {
     redrawAll
 }
 
+#****f* editor.tcl/gui_tagObjectAsSelected
+# NAME
+#   gui_tagObjectAsSelected -- tag 'current' object as selected
+# SYNOPSIS
+#   gui_tagObjectAsSelected $gui_object_id
+# FUNCTION
+#   Tag an object under the mouse cursor (with tag current) as 'selected'.
+#****
+proc gui_tagObjectAsSelected { gui_object_id } {
+    global c
+
+    set object_id [lindex [$c gettags $gui_object_id] 1]
+    if { $object_id == "" } {
+	return
+    }
+
+    $c addtag "selected" withtag $gui_object_id
+}
+
+#****f* editor.tcl/gui_tagCurrentObjectAsSelected
+# NAME
+#   gui_tagCurrentObjectAsSelected -- tag 'current' object as selected
+# SYNOPSIS
+#   gui_tagCurrentObjectAsSelected
+# FUNCTION
+#   Tag an object under the mouse cursor (with tag current) as 'selected'.
+#****
+proc gui_tagCurrentObjectAsSelected {} {
+    global c
+
+    set gui_object_id [$c find withtag "current"]
+    if { $gui_object_id == "" || "selectable" ni [$c gettags $gui_object_id] } {
+	$c delete -withtags "selectmark"
+	$c dtag "selected"
+
+	return
+    }
+
+    return [gui_tagObjectAsSelected $gui_object_id]
+}
+
 #****f* editor.tcl/drawBBoxAroundObject
 # NAME
 #   drawBBoxAroundObject -- draw bounding box around object
@@ -191,34 +232,32 @@ proc drawBBoxAroundObject { c gui_object_id } {
 	-dash {6 4} -fill black -width 1 -tags "selectmark $object_id"
 }
 
-#****f* editor.tcl/selectAllObjects
+#****f* editor.tcl/gui_selectAllObjects
 # NAME
-#   selectAllObjects -- select all objects on the canvas
+#   gui_selectAllObjects -- select all objects on the canvas
 # SYNOPSIS
-#   selectAllObjects
+#   gui_selectAllObjects
 # FUNCTION
 #   Select all object on the canvas.
 #****
-proc selectAllObjects {} {
-    foreach obj [.panwin.f1.c find withtag "node || text || oval || rectangle \
-	|| freeform"] {
-
-	drawBBoxAroundObject .panwin.f1.c $obj
+proc gui_selectAllObjects {} {
+    foreach gui_object_id [.panwin.f1.c find withtag "selectable"] {
+	gui_tagObjectAsSelected $gui_object_id
     }
 }
 
-#****f* editor.tcl/selectNodes
+#****f* editor.tcl/gui_tagNodeAsSelected
 # NAME
-#   selectNodes -- select nodes
+#   gui_tagNodeAsSelected -- select nodes
 # SYNOPSIS
-#   selectNodes $nodelist
+#   gui_tagNodeAsSelected $node_list
 # FUNCTION
 #   Select all nodes in a list.
 # INPUTS
-#   * nodelist -- list of nodes to select.
+#   * node_list -- list of nodes to select.
 #****
-proc selectNodes { nodelist } {
-    foreach node_id $nodelist {
+proc gui_tagNodeAsSelected { node_list } {
+    foreach node_id $node_list {
 	drawBBoxAroundObject .panwin.f1.c [.panwin.f1.c find withtag \
 	    "(node || text || oval || rectangle || freeform) && $node_id"]
     }

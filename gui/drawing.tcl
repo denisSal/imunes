@@ -127,7 +127,7 @@ proc drawNode { node_id } {
     if { $custom_icon == "" } {
 	global $type
 
-	.panwin.f1.c create image $x $y -image [set $type] -tags "node $node_id"
+	.panwin.f1.c create image $x $y -image [set $type] -tags "node $node_id selectable"
     } else {
 	global icon_size
 
@@ -135,13 +135,13 @@ proc drawNode { node_id } {
 	    normal {
 		set icon_data [getImageData $custom_icon]
 		image create photo img_$custom_icon -data $icon_data
-		.panwin.f1.c create image $x $y -image img_$custom_icon -tags "node $node_id"
+		.panwin.f1.c create image $x $y -image img_$custom_icon -tags "node $node_id selectable"
 	    }
 	    small {
 		set icon_data [getImageData $custom_icon]
 		image create photo img_$custom_icon -data $icon_data
 		set img_$custom_icon [image% img_$custom_icon 70 $custom_icon]
-		.panwin.f1.c create image $x $y -image [set img_$custom_icon] -tags "node $node_id"
+		.panwin.f1.c create image $x $y -image [set img_$custom_icon] -tags "node $node_id selectable"
 	    }
 	}
     }
@@ -223,11 +223,11 @@ proc drawLink { link_id } {
     if { [getLinkMirror $link_id] != "" } {
 	set newlink [.panwin.f1.c create line 0 0 0 0 \
 	    -fill [getLinkColor $link_id] -width $lwidth \
-	    -tags "link $link_id $node1_id $node2_id" -arrow both]
+	    -tags "link $link_id $node1_id $node2_id selectable" -arrow both]
     } else {
 	set newlink [.panwin.f1.c create line 0 0 0 0 \
 	    -fill [getLinkColor $link_id] -width $lwidth \
-	    -tags "link $link_id $node1_id $node2_id"]
+	    -tags "link $link_id $node1_id $node2_id selectable"]
     }
 
     # XXX Invisible pseudo-links
@@ -239,14 +239,14 @@ proc drawLink { link_id } {
     .panwin.f1.c raise $newlink background
     set newlink [.panwin.f1.c create line 0 0 0 0 \
 	-fill white -width [expr {$lwidth + 4}] \
-	-tags "link $link_id $node1_id $node2_id"]
+	-tags "link $link_id $node1_id $node2_id selectable"]
     .panwin.f1.c raise $newlink background
 
     set ang [calcAngle $link_id]
 
-    .panwin.f1.c create text 0 0 -tags "linklabel $link_id" -justify center -angle $ang
-    .panwin.f1.c create text 0 0 -tags "interface $node1_id $link_id" -justify center -angle $ang
-    .panwin.f1.c create text 0 0 -tags "interface $node2_id $link_id" -justify center -angle $ang
+    .panwin.f1.c create text 0 0 -tags "linklabel $link_id selectable" -justify center -angle $ang
+    .panwin.f1.c create text 0 0 -tags "interface $node1_id $link_id selectable" -justify center -angle $ang
+    .panwin.f1.c create text 0 0 -tags "interface $node2_id $link_id selectable" -justify center -angle $ang
 
     .panwin.f1.c raise linklabel "link || background"
     .panwin.f1.c raise interface "link || linklabel || background"
@@ -1359,6 +1359,11 @@ proc switchCanvas { direction } {
 #****
 proc animate {} {
     global animatephase
+    global c
+
+    foreach gui_object_id [$c find withtag "selected"] {
+	drawBBoxAroundObject $c $gui_object_id
+    }
 
     catch { .panwin.f1.c itemconfigure "selectmark || selectbox" -dashoffset $animatephase } err
     if { $err != "" } {

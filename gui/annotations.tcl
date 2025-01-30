@@ -286,7 +286,7 @@ proc drawOval { oval } {
     if { $bordercolor == "" } { set bordercolor black }
 
     set newoval [.panwin.f1.c create oval $x1 $y1 $x2 $y2 \
-	-fill $color -width $width -outline $bordercolor -tags "oval $oval"]
+	-fill $color -width $width -outline $bordercolor -tags "oval $oval selectable"]
     .panwin.f1.c raise $newoval
 }
 
@@ -508,11 +508,11 @@ proc drawRect { rectangle } {
 
     if { $width == 0 } {
 	set newrect [roundRect .panwin.f1.c $x1 $y1 $x2 $y2 $rad \
-	    -fill $color -tags "rectangle $rectangle"]
+	    -fill $color -tags "rectangle $rectangle selectable"]
     } else {
 	set newrect [roundRect .panwin.f1.c $x1 $y1 $x2 $y2 $rad \
 	    -fill $color -outline $bordercolor -width $width \
-	    -tags "rectangle $rectangle"]
+	    -tags "rectangle $rectangle selectable"]
     }
 
     .panwin.f1.c raise $newrect
@@ -693,7 +693,7 @@ proc drawText { text } {
 
     lassign [lmap n $coords {expr $n * [getFromRunning "zoom"]}] x y
     set newtext [.panwin.f1.c create text $x $y -text $label -anchor w \
-	-font "$font" -justify left -fill $labelcolor -tags "text $text"]
+	-font "$font" -justify left -fill $labelcolor -tags "text $text selectable"]
 	.panwin.f1.c raise $newtext
 }
 
@@ -860,7 +860,7 @@ proc drawFreeform { freeform } {
 	    set y2 [expr {[lindex $coords $i+3] * $zoom}]
 	    set tempfree [.panwin.f1.c create line $x1 $y1 $x2 $y2 \
 		-fill $color -width $width \
-		-tags "freeform $freeform"]
+		-tags "freeform $freeform selectable"]
 	} else {
 	    set x1 [expr {[lindex $coords $i] * $zoom}]
 	    set y1 [expr {[lindex $coords $i+1] * $zoom}]
