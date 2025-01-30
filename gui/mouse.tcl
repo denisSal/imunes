@@ -151,48 +151,32 @@ proc splitLinkGUI { link_id } {
     redrawAll
 }
 
-#****f* editor.tcl/selectNode
+#****f* editor.tcl/drawBBoxAroundObject
 # NAME
-#   selectNode -- select node
+#   drawBBoxAroundObject -- draw bounding box around object
 # SYNOPSIS
-#   selectNode $c $obj
+#   drawBBoxAroundObject $c $gui_object_id
 # FUNCTION
 #   Crates the selecting box around the specified canvas
 #   object.
 # INPUTS
 #   * c -- tk canvas
-#   * obj -- tk canvas object tag id
+#   * gui_object_id -- tk canvas object tag id
 #****
-proc selectNode { c obj } {
-    if { $obj == "none" } {
+proc drawBBoxAroundObject { c gui_object_id } {
+    if { $gui_object_id == "none" } {
 	$c delete -withtags "selectmark"
 	return
     }
 
-    set node_id [lindex [$c gettags $obj] 1]
-    if { $node_id == "" } {
+    set object_id [lindex [$c gettags $gui_object_id] 1]
+    if { $object_id == "" } {
 	return
     }
 
-    $c addtag selected withtag "node && $node_id"
-    if { [getNodeType $node_id] == "pseudo" } {
-	set bbox [$c bbox "nodelabel && $node_id"]
-    } elseif { [getAnnotationType $node_id] == "rectangle" } {
-	$c addtag selected withtag "rectangle && $node_id"
-	set bbox [$c bbox "rectangle && $node_id"]
-    } elseif { [getAnnotationType $node_id] == "text" } {
-	$c addtag selected withtag "text && $node_id"
-	set bbox [$c bbox "text && $node_id"]
-    } elseif { [getAnnotationType $node_id] == "oval" } {
-	$c addtag selected withtag "oval && $node_id"
-	set bbox [$c bbox "oval && $node_id"]
-    } elseif { [getAnnotationType $node_id] == "freeform" } {
-	$c addtag selected withtag "freeform && $node_id"
-	set bbox [$c bbox "freeform && $node_id"]
-    } else {
-	set bbox [$c bbox "node && $node_id"]
-    }
+    $c addtag "selected" withtag $gui_object_id
 
+    set bbox [$c bbox $gui_object_id]
     if { $bbox == "" } {
 	return
     }
@@ -202,9 +186,9 @@ proc selectNode { c obj } {
     set by1 [expr {$by1 - 2}]
     set bx2 [expr {$bx2 + 1}]
     set by2 [expr {$by2 + 1}]
-    $c delete -withtags "selectmark && $node_id"
+    $c delete -withtags "selectmark && $object_id"
     $c create line $bx1 $by1 $bx2 $by1 $bx2 $by2 $bx1 $by2 $bx1 $by1 \
-	-dash {6 4} -fill black -width 1 -tags "selectmark $node_id"
+	-dash {6 4} -fill black -width 1 -tags "selectmark $object_id"
 }
 
 #****f* editor.tcl/selectAllObjects
@@ -219,7 +203,7 @@ proc selectAllObjects {} {
     foreach obj [.panwin.f1.c find withtag "node || text || oval || rectangle \
 	|| freeform"] {
 
-	selectNode .panwin.f1.c $obj
+	drawBBoxAroundObject .panwin.f1.c $obj
     }
 }
 
@@ -235,7 +219,7 @@ proc selectAllObjects {} {
 #****
 proc selectNodes { nodelist } {
     foreach node_id $nodelist {
-	selectNode .panwin.f1.c [.panwin.f1.c find withtag \
+	drawBBoxAroundObject .panwin.f1.c [.panwin.f1.c find withtag \
 	    "(node || text || oval || rectangle || freeform) && $node_id"]
     }
 }
@@ -609,7 +593,7 @@ proc button3node { c x y } {
     if { [$c gettags "node && $node_id && selected"] == "" } {
 	$c dtag node selected
 	$c delete -withtags selectmark
-	selectNode $c [$c find withtag "current"]
+	drawBBoxAroundObject $c [$c find withtag "current"]
     }
 
     .button3menu delete 0 end
@@ -1262,7 +1246,7 @@ proc button1 { c x y button } {
 	}
 
 	if { $activetool != "link" && ! $wasselected } {
-	    selectNode $c $curobj
+	    drawBBoxAroundObject $c $curobj
 	}
     } elseif { $curtype == "selectmark" } {
 	set o1 [lindex [$c gettags current] 1]
@@ -1339,7 +1323,7 @@ proc button1 { c x y button } {
 		[expr {$y / $zoom + $dy}]"
 
 	    drawNode $node_id
-	    selectNode $c [$c find withtag "node && $node_id"]
+	    drawBBoxAroundObject $c [$c find withtag "node && $node_id"]
 
 	    set changed 1
 	} elseif { $activetool == "select" \
@@ -1645,7 +1629,7 @@ proc button1-release { c x y } {
 	# selects the node whose label was moved
 	if { [lindex [$c gettags $curobj] 0] == "nodelabel" } {
 	    set node_id [lindex [$c gettags $curobj] 1]
-	    selectNode $c [$c find withtag "node && $node_id"]
+	    drawBBoxAroundObject $c [$c find withtag "node && $node_id"]
 	}
 
 	set selected {}
@@ -1836,7 +1820,7 @@ proc button1-release { c x y } {
 	    foreach img [$c find withtag "node && selected"] {
 		set node_id [lindex [$c gettags $img] 1]
 		drawNode $node_id
-		selectNode $c [$c find withtag "node && $node_id"]
+		drawBBoxAroundObject $c [$c find withtag "node && $node_id"]
 	    }
 
 	    foreach link_id [$c find withtag "link && need_redraw"] {
@@ -1896,7 +1880,7 @@ proc button1-release { c x y } {
 	    }
 
 	    foreach obj $enclosed {
-		selectNode $c $obj
+		drawBBoxAroundObject $c $obj
 	    }
 	} else {
 	    setAnnotationCoords $resizeobj "$x $y $x1 $y1"

@@ -1033,7 +1033,7 @@ proc button3annotation { type c x y } {
 	$c delete -withtags selectmark
     }
 
-    selectNode $c [$c find withtag "current"]
+    drawBBoxAroundObject $c [$c find withtag "current"]
     set menutext "$type $item"
 
     .button3menu delete 0 end

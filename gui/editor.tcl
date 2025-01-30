@@ -848,7 +848,7 @@ proc selectNodeFromTree { node_id } {
     .panwin.f1.c delete -withtags selectmark
 
     set obj [.panwin.f1.c find withtag "node && $node_id"]
-    selectNode .panwin.f1.c $obj
+    drawBBoxAroundObject .panwin.f1.c $obj
 }
 
 #****f* editor.tcl/selectLinkPeersFromTree
@@ -870,8 +870,8 @@ proc selectLinkPeersFromTree { link_id } {
 
     set obj0 [.panwin.f1.c find withtag "node && $node1_id"]
     set obj1 [.panwin.f1.c find withtag "node && $node2_id"]
-    selectNode .panwin.f1.c $obj0
-    selectNode .panwin.f1.c $obj1
+    drawBBoxAroundObject .panwin.f1.c $obj0
+    drawBBoxAroundObject .panwin.f1.c $obj1
 }
 
 #****f* editor.tcl/refreshTopologyTree
