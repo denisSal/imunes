@@ -170,9 +170,11 @@ proc $MODULE.shellcmds {} {
 #     netgraph hook (ngNode ngHook).
 #****
 proc $MODULE.nghook { eid node_id iface_id } {
-    set ifunit [string range $iface_id 3 end]
-    return [list $node_id link$ifunit]
     set ifunit [expr [string range $iface_id 3 end] + 1]
+    if { ! [getNodeVlanFiltering $node_id] } {
+	return [list $node_id link$ifunit]
+    }
+
     set vlantag [getIfcVlanTag $node_id $iface_id]
     set hook_name "v$vlantag"
 
@@ -261,12 +263,13 @@ proc $MODULE.nodeLogIfacesCreate { eid node_id ifaces } {
 #   * ifaces -- list of interface ids
 #****
 proc $MODULE.nodeIfacesConfigure { eid node_id ifaces } {
+    if { ! [getNodeVlanFiltering $node_id] } {
+	return
+    }
+
     foreach iface_id $ifaces {
-	set vlantype [getIfcVlanType $node_id $iface_id]
-	if { $vlantype != "" } {
-	    set vlantag [getIfcVlanTag $node_id $iface_id]
-	    execSetIfcVlanConfig $eid $node_id $iface_id $vlantag $vlantype
-	}
+	execSetIfcVlanConfig $eid $node_id $iface_id \
+	    [getIfcVlanTag $node_id $iface_id] [getIfcVlanType $node_id $iface_id]
     }
 }
 
@@ -305,6 +308,10 @@ proc $MODULE.nodeConfigure { eid node_id } {
 #   * ifaces -- list of interface ids
 #****
 proc $MODULE.nodeIfacesUnconfigure { eid node_id ifaces } {
+    if { ! [getNodeVlanFiltering $node_id] } {
+	return
+    }
+
     foreach iface_id $ifaces {
         execDelIfcVlanConfig $eid $node_id $iface_id
     }

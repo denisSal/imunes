@@ -1589,12 +1589,12 @@ proc configGUI_bridgeIfcVlanConfig { wi node_id iface_id } {
 
     set ifvlantype$iface_id [_getIfcVlanType $node_cfg $iface_id]
     if { [set ifvlantype$iface_id] == "" } {
-	set ifvlantype$iface_id "DISABLED"
+	set ifvlantype$iface_id "access"
     }
 
     ttk::frame $wi.if$iface_id.vlancfg -borderwidth 2
 
-    ttk::label $wi.if$iface_id.vlancfg.txt1 -text "Vlan tag" -anchor w
+    ttk::label $wi.if$iface_id.vlancfg.txt1 -text "VLAN tag" -anchor w
     ttk::spinbox $wi.if$iface_id.vlancfg.vlantag -width 4 \
     	-validate focus -invalidcommand "focusAndFlash %W"
     set vlan_tag [_getIfcVlanTag $node_cfg $iface_id]
@@ -1607,10 +1607,10 @@ proc configGUI_bridgeIfcVlanConfig { wi node_id iface_id } {
     	-from 1 -to 4094 -increment 1 \
     	-validatecommand { checkIntRange %P 1 4094 }
 
-    ttk::label $wi.if$iface_id.vlancfg.txt2 -text "Vlan type" -anchor w
-    ttk::combobox $wi.if$iface_id.vlancfg.vlantype -width 10 \
+    ttk::label $wi.if$iface_id.vlancfg.txt2 -text "VLAN type" -anchor w
+    ttk::combobox $wi.if$iface_id.vlancfg.vlantype -width 6 \
         -textvariable ifvlantype$iface_id \
-        -values [list "DISABLED" "access" "trunk"]
+        -values [list "access" "trunk"]
 
     pack $wi.if$iface_id.vlancfg.txt1 $wi.if$iface_id.vlancfg.vlantag -side left -anchor w
     pack $wi.if$iface_id.vlancfg.txt2 -side left -anchor w -padx 2
@@ -2311,6 +2311,38 @@ proc configGUI_cpuConfig { wi node_id } {
     pack $wi.cpucfg -anchor w -fill both
 }
 
+#****f* nodecfgGUI.tcl/configGUI_bridgeVLANConfig
+# NAME
+#   configGUI_servicesConfig -- configure GUI - services configuration
+# SYNOPSIS
+#   configGUI_servicesConfig $wi $node_id
+# FUNCTION
+#   Creating module for changing services started on node.
+# INPUTS
+#   * wi -- widget
+#   * node_id -- node id
+#****
+proc configGUI_bridgeVLANConfig { wi node_id } {
+    global guielements
+    lappend guielements configGUI_bridgeVLANConfig
+
+    global node_cfg
+
+    set w $wi.vlan_filtering
+    ttk::frame $w -relief groove -borderwidth 2 -padding 2
+    ttk::label $w.label -text "Enable VLAN filtering:"
+
+    pack $w.label -side left -padx 2
+
+    ttk::checkbutton $w.enabled
+    pack $w.enabled -side left -padx 6
+
+    set checkbutton_dict "0 !selected 1 selected"
+    $w.enabled state [dict get $checkbutton_dict [_getNodeVlanFiltering $node_cfg]]
+
+    pack $w -fill both
+}
+
 #****f* nodecfgGUI.tcl/configGUI_ifcVlanConfig
 # NAME
 #   configGUI_ifcVlanConfig -- configure GUI - interface vlan configuration
@@ -2601,10 +2633,6 @@ proc configGUI_bridgeIfcVlanConfigApply { wi node_id iface_id } {
     }
 
     set vlantype [$wi.if$iface_id.vlancfg.vlantype get]
-    if { $vlantype == "DISABLED" } {
-	set vlantype ""
-    }
-
     set oldvlantype [_getIfcVlanType $node_cfg $iface_id]
     if { $vlantype != $oldvlantype } {
 	if { $apply == 1 } {
@@ -3177,6 +3205,28 @@ proc configGUI_cpuConfigApply { wi node_id } {
 
     if { $oldcpuconf != $newcpuconf } {
 	setNodeCPUConf $node_id [list $newcpuconf]
+	set changed 1
+    }
+}
+
+#****f* nodecfgGUI.tcl/configGUI_bridgeVLANConfigApply
+# NAME
+#   configGUI_bridgeVLANConfigApply -- configure GUI - services config apply
+# SYNOPSIS
+#   configGUI_bridgeVLANConfigApply $wi $node_id
+# FUNCTION
+#   Saves changes in the module with services.
+# INPUTS
+#   * wi -- widget
+#   * node_id -- node id
+#****
+proc configGUI_bridgeVLANConfigApply { wi node_id } {
+    global changed
+    global node_cfg
+
+    set new_vlan_filtering_enabled [expr {"selected" in [$wi.vlan_filtering.enabled state]}]
+    if { [_getNodeVlanFiltering $node_cfg] != $new_vlan_filtering_enabled } {
+	set node_cfg [_setNodeVlanFiltering $node_cfg $new_vlan_filtering_enabled]
 	set changed 1
     }
 }
@@ -7752,6 +7802,14 @@ proc _getNodeDockerAttach { node_cfg } {
 
 proc _setNodeDockerAttach { node_cfg state } {
     return [_cfgSet $node_cfg "docker_attach" $state]
+}
+
+proc _getNodeVlanFiltering { node_cfg } {
+    return [_cfgGetWithDefault 0 $node_cfg "vlan_filtering"]
+}
+
+proc _setNodeVlanFiltering { node_cfg state } {
+    return [_cfgSet $node_cfg "vlan_filtering" $state]
 }
 
 proc _getNodeIPsec { node_cfg } {

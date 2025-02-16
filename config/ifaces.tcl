@@ -966,8 +966,16 @@ proc getIfcVlanTag { node_id iface_id } {
 proc setIfcVlanTag { node_id iface_id tag } {
     cfgSet "nodes" $node_id "ifaces" $iface_id "vlan_tag" $tag
 
-    if { [getNodeType $node_id] == "rj45 lanswitch" } {
+    set node_type [getNodeType $node_id]
+    if { [getNodeType $node_id] == "rj45" } {
 	trigger_nodeRecreate $node_id
+    } elseif { [getNodeType $node_id] == "lanswitch" } {
+	# TODO: check
+	trigger_ifaceReconfig $node_id $iface_id
+	set link_id [getIfcLink $node_id $iface_id]
+	if { $link_id != "" } {
+	    trigger_linkRecreate $link_id
+	}
     }
 }
 

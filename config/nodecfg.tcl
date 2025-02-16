@@ -1612,6 +1612,16 @@ proc setNodeDockerAttach { node_id state } {
     trigger_nodeRecreate $node_id
 }
 
+proc getNodeVlanFiltering { node_id } {
+    return [cfgGetWithDefault 0 "nodes" $node_id "vlan_filtering"]
+}
+
+proc setNodeVlanFiltering { node_id state } {
+    cfgSet "nodes" $node_id "vlan_filtering" $state
+
+    trigger_nodeRecreate $node_id
+}
+
 proc getNodeIface { node_id iface_id } {
     return [cfgGet "nodes" $node_id "ifaces" $iface_id]
 }
@@ -2081,6 +2091,10 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 
 	    "docker_attach" {
 		setNodeDockerAttach $node_id $new_value
+	    }
+
+	    "vlan_filtering" {
+		setNodeVlanFiltering $node_id $new_value
 	    }
 
 	    "croutes4" {

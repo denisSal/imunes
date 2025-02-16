@@ -18,13 +18,11 @@ proc l2node.nodeCreate { eid node_id } {
     set type [getNodeType $node_id]
 
     set ageing_time ""
-    set vlanfiltering ""
-
     if { $type == "hub" } {
 	set ageing_time "ageing_time 0"
     }
 
-    set vlanfiltering "vlan_filtering 1"
+    set vlanfiltering "vlan_filtering [getNodeVlanFiltering $node_id]"
 
     set nodeNs [getNodeNetns $eid $node_id]
     pipesExec "ip netns exec $nodeNs ip link add name $node_id type bridge $vlanfiltering $ageing_time" "hold"

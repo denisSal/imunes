@@ -545,24 +545,18 @@ proc execSetIfcQLen { eid node_id iface_id qlen } {
 #   vlantag -- vlan tag number
 #   vlantype -- vlan type (access/trunk)
 #****
-proc execSetIfcVlanConfig { eid node_id iface_id } {
-    set vlantag [getIfcVlanTag $node_id $iface_id]
-    set vlantype [getIfcVlanType $node_id $iface_id]
-
+proc execSetIfcVlanConfig { eid node_id iface_id vlantag vlantype } {
     set access_ifc_key "$eid,$node_id,$vlantag"
     set trunk_ifc_key "$eid,$node_id,trunk"
+
     set ngcmds ""
-
-    set trunk_ifc_name "$node_id-downstream"
-    set hook_name "v$vlantag"
-
-    if {$vlantype eq "trunk"} {
+    if {$vlantype == "trunk"} {
         if {![info exists ::trunk_interfaces($trunk_ifc_key)]} {
             set ::trunk_interfaces($trunk_ifc_key) 0
         }
         if { $::trunk_interfaces($trunk_ifc_key) == 0 } {
-            append ngcmds "mkpeer $node_id: bridge downstream link0\n"
-            append ngcmds "name $node_id:downstream $trunk_ifc_name\n"
+            append ngcmds "mkpeer $node_id-vlan: bridge downstream link0\n"
+            append ngcmds "name $node_id-vlan:downstream $node_id-downstream\n"
         }
         incr ::trunk_interfaces($trunk_ifc_key)
     } else {
@@ -570,9 +564,11 @@ proc execSetIfcVlanConfig { eid node_id iface_id } {
             set ::vlan_interfaces($access_ifc_key) 0
         }
         if { $::vlan_interfaces($access_ifc_key) == 0 } {
-            append ngcmds "mkpeer $node_id: bridge $hook_name link0\n"
-            append ngcmds "name $node_id:$hook_name $node_id-$hook_name\n"
-            append ngcmds "msg $node_id: addfilter { vlan=$vlantag hook=\\\"$hook_name\\\" }\n"
+	    set hook_name "v$vlantag"
+
+            append ngcmds "mkpeer $node_id-vlan: bridge $hook_name link0\n"
+            append ngcmds "name $node_id-vlan:$hook_name $node_id-$hook_name\n"
+            append ngcmds "msg $node_id-vlan: addfilter { vlan=$vlantag hook=\\\"$hook_name\\\" }\n"
         }
         incr ::vlan_interfaces($access_ifc_key)
     }
@@ -600,16 +596,13 @@ proc execDelIfcVlanConfig { eid node_id iface_id } {
 
     set access_ifc_key "$eid,$node_id,$vlantag"
     set trunk_ifc_key "$eid,$node_id,trunk"
+
     set ngcmds ""
-
-    set trunk_ifc_name "$node_id-downstream"
-    set hook_name "v$vlantag"
-
     if {$vlantype eq "trunk"} {
         if {[info exists ::trunk_interfaces($trunk_ifc_key)] && $::trunk_interfaces($trunk_ifc_key) > 0} {
             incr ::trunk_interfaces($trunk_ifc_key) -1
             if {$::trunk_interfaces($trunk_ifc_key) == 0} {
-                append ngcmds "disconnect $node_id: downstream\n"
+                append ngcmds "shutdown $node_id-vlan:downstream\n"
                 unset ::trunk_interfaces($trunk_ifc_key)
             }
         }
@@ -617,8 +610,7 @@ proc execDelIfcVlanConfig { eid node_id iface_id } {
         if {[info exists ::vlan_interfaces($access_ifc_key)] && $::vlan_interfaces($access_ifc_key) > 0} {
             incr ::vlan_interfaces($access_ifc_key) -1
             if {$::vlan_interfaces($access_ifc_key) == 0} {
-                append ngcmds "msg $node_id: delfilter \\\"$hook_name\\\" \n"
-                append ngcmds "disconnect $node_id: $hook_name\n"
+                append ngcmds "shutdown $node_id-vlan:v$vlantag\n"
                 unset ::vlan_interfaces($access_ifc_key)
             }
         }
@@ -1436,9 +1428,6 @@ proc nodePhysIfacesCreate { node_id ifaces } {
 
 	switch -exact $prefix {
 	    e {
-	        if { [getNodeType $node_id] in "lanswitch" } {
-                    execSetIfcVlanConfig $eid $node_id $iface_id
-                }
 	    }
 	    eth {
 		# save newly created ngnodeX into a shell variable ifid and
@@ -2253,33 +2242,28 @@ proc l2node.nodeCreate { eid node_id } {
     set nodeType [getNodeType $node_id]
 
     switch -exact $nodeType {
-	nonvlanswitch {
-	    set ngtype bridge
-	}
+	lanswitch {
+            set ngtype bridge
+        }
 	hub {
 	    set ngtype hub
 	}
-	lanswitch {
-            set ngtype vlan
-        }
     }
 
     switch -exact $nodeType {
-        nonvlanswitch -
+        lanswitch -
         hub {
             # create an ng node and make it persistent in the same command
             # bridge demands hookname 'linkX'
-            set ngcmds "mkpeer $ngtype link0 link0\n"
-            set ngcmds "$ngcmds msg .link0 setpersistent\n"
-            set ngcmds "$ngcmds name .link0 $node_id"
+            set ngcmds "mkpeer $ngtype link1 link1\n"
+            set ngcmds "$ngcmds msg .link1 setpersistent\n"
+            set ngcmds "$ngcmds name .link1 $node_id\n"
         }
-        lanswitch {
-            # create an ng_vlan node and make it persistent in the same command
-            set ngcmds "mkpeer $ngtype $node_id parent\n"
-            set ngcmds "$ngcmds name .$node_id $node_id\n"
-            set ngcmds "$ngcmds mkpeer $node_id: eiface nomatch ether\n"
-            set ngcmds "$ngcmds name $node_id:nomatch $node_id-hole"
-        }
+    }
+
+    if { [getNodeVlanFiltering $node_id] } {
+	set ngcmds "$ngcmds mkpeer $node_id: vlan link0 unconfig\n"
+	set ngcmds "$ngcmds name $node_id:link0 $node_id-vlan\n"
     }
 
     pipesExec "printf \"$ngcmds\" | jexec $eid ngctl -f -" "hold"

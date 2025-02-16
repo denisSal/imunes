@@ -126,6 +126,8 @@ proc $MODULE.configGUI { c node_id } {
 
     configGUI_nodeName $wi $node_id "Node name:"
 
+    configGUI_bridgeVLANConfig $wi $node_id
+
     configGUI_addPanedWin $wi
     set treecolumns {"QLen Queue len" "QDisc Queue disc" "QDrop Queue drop"}
     configGUI_addTree $wi $node_id
