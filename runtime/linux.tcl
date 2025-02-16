@@ -12,7 +12,7 @@ set ULIMIT_PROC "1024:2048"
 #   Procedure l2node.nodeCreate creates a new netgraph node of the appropriate type.
 # INPUTS
 #   * eid -- experiment id
-#   * node_id -- id of the node (type of the node is either lanswitch, vlanswitch or hub)
+#   * node_id -- id of the node (type of the node is either lanswitch or hub)
 #****
 proc l2node.nodeCreate { eid node_id } {
     set type [getNodeType $node_id]
@@ -22,9 +22,9 @@ proc l2node.nodeCreate { eid node_id } {
 
     if { $type == "hub" } {
 	set ageing_time "ageing_time 0"
-    } elseif { $type == "vlanswitch" } {
-	set vlanfiltering "vlan_filtering 1"
     }
+
+    set vlanfiltering "vlan_filtering 1"
 
     set nodeNs [getNodeNetns $eid $node_id]
     pipesExec "ip netns exec $nodeNs ip link add name $node_id type bridge $vlanfiltering $ageing_time" "hold"
@@ -672,11 +672,6 @@ proc nodePhysIfacesCreate { node_id ifaces } {
 	    e {
 		# bridge private hook with L2 node
 		setNsIfcMaster $nodeNs $iface_name $node_id "up"
-		if { [getNodeType $node_id] in "vlanswitch" } {
-		    set vlantag [getIfcVlanTag $node_id $iface_id]
-		    set vlantype [getIfcVlanType $node_id $iface_id]
-		    execSetIfcVlanConfig $eid $node_id $iface_id $vlantag $vlantype
-		}
 	    }
 	    ext {
 		# bridge private hook with ext node
@@ -702,7 +697,7 @@ proc nodePhysIfacesCreate { node_id ifaces } {
 		# XXX not yet implemented
 		if { [getIfcType $node_id $iface_id] == "stolen" } {
 		    captureExtIfcByName $eid $iface_name $node_id
-		    if { [getNodeType $node_id] in "hub lanswitch vlanswitch" } {
+		    if { [getNodeType $node_id] in "hub lanswitch" } {
 			setNsIfcMaster $nodeNs $iface_name $node_id "up"
 		    }
 		}
@@ -1917,13 +1912,13 @@ proc execSetIfcQLen { eid node_id iface_id qlen } {
 #   node_id -- node id
 #   iface_id -- interface name
 #   vlantag -- vlan tag number
-#   vlantype -- vlan type (access/trunk)
+#   vlantype -- vlan type (disabled/access/trunk)
 #****
 proc execSetIfcVlanConfig { eid node_id iface_id vlantag vlantype } {
     set iface_name [getIfcName $node_id $iface_id]
     set nsstr "netns exec $eid-$node_id"
 
-    if { $vlantag != 1 || $vlantype == "trunk"} {
+    if { $vlantag != 1 || $vlantype in "\"\" trunk"} {
         pipesExec "ip $nsstr bridge vlan del dev $iface_name vid 1" "hold"
     }
 
@@ -1935,10 +1930,11 @@ proc execSetIfcVlanConfig { eid node_id iface_id vlantag vlantype } {
                 pipesExec "ip $nsstr bridge vlan add dev $iface_name vid $id_vlantag tagged" "hold"
             }
         }
-    } else {
-        # Default is access
+    } elseif { $vlantype == "access" } {
         pipesExec "ip $nsstr bridge vlan add dev $iface_name vid $vlantag pvid untagged" "hold"
     }
+
+    # Default is disabled
 }
 
 

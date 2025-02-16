@@ -1436,7 +1436,7 @@ proc nodePhysIfacesCreate { node_id ifaces } {
 
 	switch -exact $prefix {
 	    e {
-	        if { [getNodeType $node_id] in "vlanswitch" } {
+	        if { [getNodeType $node_id] in "lanswitch" } {
                     execSetIfcVlanConfig $eid $node_id $iface_id
                 }
 	    }
@@ -1495,7 +1495,7 @@ proc nodePhysIfacesCreate { node_id ifaces } {
 		# XXX not yet implemented
 		if { [getIfcType $node_id $iface_id] == "stolen" } {
 		    captureExtIfcByName $eid $iface_name $node_id
-		    if { [getNodeType $node_id] in "hub lanswitch vlanswitch" } {
+		    if { [getNodeType $node_id] in "hub lanswitch" } {
 			lassign [[getNodeType $node_id].nghook $eid $node_id $iface_id] \
 			    ngpeer1 nghook1
 			lassign "$iface_name lower" \
@@ -2247,25 +2247,25 @@ proc terminate_removeExperimentFiles { eid } {
 #   Procedure l2node.nodeCreate creates a new netgraph node of the appropriate type.
 # INPUTS
 #   * eid -- experiment id
-#   * node_id -- id of the node (type of the node is either lanswitch, vlanswitch or hub)
+#   * node_id -- id of the node (type of the node is either lanswitch or hub)
 #****
 proc l2node.nodeCreate { eid node_id } {
     set nodeType [getNodeType $node_id]
 
     switch -exact $nodeType {
-	lanswitch {
+	nonvlanswitch {
 	    set ngtype bridge
 	}
 	hub {
 	    set ngtype hub
 	}
-	vlanswitch {
+	lanswitch {
             set ngtype vlan
         }
     }
 
     switch -exact $nodeType {
-        lanswitch -
+        nonvlanswitch -
         hub {
             # create an ng node and make it persistent in the same command
             # bridge demands hookname 'linkX'
@@ -2273,7 +2273,7 @@ proc l2node.nodeCreate { eid node_id } {
             set ngcmds "$ngcmds msg .link0 setpersistent\n"
             set ngcmds "$ngcmds name .link0 $node_id"
         }
-        vlanswitch {
+        lanswitch {
             # create an ng_vlan node and make it persistent in the same command
             set ngcmds "mkpeer $ngtype $node_id parent\n"
             set ngcmds "$ngcmds name .$node_id $node_id\n"
@@ -2299,7 +2299,7 @@ proc l2node.nodeCreate { eid node_id } {
 #****
 proc l2node.nodeDestroy { eid node_id } {
     pipesExec "jexec $eid ngctl msg $node_id: shutdown" "hold"
-    if { [getNodeType $node_id] in "vlanswitch" } {
+    if { [getNodeType $node_id] in "lanswitch" } {
 	pipesExec "jexec $eid ngctl shutdown $node_id-hole:" "hold"
     }
 }

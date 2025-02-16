@@ -172,6 +172,15 @@ proc $MODULE.shellcmds {} {
 proc $MODULE.nghook { eid node_id iface_id } {
     set ifunit [string range $iface_id 3 end]
     return [list $node_id link$ifunit]
+    set ifunit [expr [string range $iface_id 3 end] + 1]
+    set vlantag [getIfcVlanTag $node_id $iface_id]
+    set hook_name "v$vlantag"
+
+    if { [getIfcVlanType $node_id $iface_id] == "trunk" } {
+        return [list "$node_id-downstream" "link$ifunit"]
+    } else {
+        return [list "$node_id-$hook_name" "link$ifunit"]
+    }
 }
 
 ################################################################################
@@ -192,6 +201,7 @@ proc $MODULE.prepareSystem {} {
     catch { exec sysctl net.bridge.bridge-nf-call-ip6tables=0 }
 
     catch { exec kldload ng_bridge }
+    catch { exec kldload ng_vlan }
 }
 
 #****f* lanswitch.tcl/lanswitch.nodeCreate
@@ -251,6 +261,13 @@ proc $MODULE.nodeLogIfacesCreate { eid node_id ifaces } {
 #   * ifaces -- list of interface ids
 #****
 proc $MODULE.nodeIfacesConfigure { eid node_id ifaces } {
+    foreach iface_id $ifaces {
+	set vlantype [getIfcVlanType $node_id $iface_id]
+	if { $vlantype != "" } {
+	    set vlantag [getIfcVlanTag $node_id $iface_id]
+	    execSetIfcVlanConfig $eid $node_id $iface_id $vlantag $vlantype
+	}
+    }
 }
 
 #****f* lanswitch.tcl/lanswitch.nodeConfigure
@@ -288,6 +305,9 @@ proc $MODULE.nodeConfigure { eid node_id } {
 #   * ifaces -- list of interface ids
 #****
 proc $MODULE.nodeIfacesUnconfigure { eid node_id ifaces } {
+    foreach iface_id $ifaces {
+        execDelIfcVlanConfig $eid $node_id $iface_id
+    }
 }
 
 proc $MODULE.nodeIfacesDestroy { eid node_id ifaces } {

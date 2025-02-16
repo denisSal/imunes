@@ -539,7 +539,7 @@ proc _setIfcVlanDev { node_cfg iface dev } {
 #   * tag -- interfaces's vlan-tag
 #****
 proc _getIfcVlanTag { node_cfg iface } {
-    return [_cfgGetWithDefault 1 $node_cfg "ifaces" $iface "vlan_tag"]
+    return [_cfgGet $node_cfg "ifaces" $iface "vlan_tag"]
 }
 
 #****f* nodecfg.tcl/setIfcVlanTag
@@ -572,7 +572,7 @@ proc _setIfcVlanTag { node_cfg iface tag } {
 #   * type -- interfaces's vlan type
 #****
 proc _getIfcVlanType { node_cfg iface } {
-    return [_cfgGetWithDefault "access" $node_cfg "ifaces" $iface "vlan_type"]
+    return [_cfgGet $node_cfg "ifaces" $iface "vlan_type"]
 }
 
 #****f* nodecfg.tcl/setIfcVlanType

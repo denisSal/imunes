@@ -948,7 +948,7 @@ proc setIfcVlanDev { node_id iface_id dev } {
 #   * tag -- interfaces's vlan-tag
 #****
 proc getIfcVlanTag { node_id iface_id } {
-    return [cfgGetWithDefault 1 "nodes" $node_id "ifaces" $iface_id "vlan_tag"]
+    return [cfgGet "nodes" $node_id "ifaces" $iface_id "vlan_tag"]
 }
 
 #****f* nodecfg.tcl/setIfcVlanTag
@@ -966,7 +966,7 @@ proc getIfcVlanTag { node_id iface_id } {
 proc setIfcVlanTag { node_id iface_id tag } {
     cfgSet "nodes" $node_id "ifaces" $iface_id "vlan_tag" $tag
 
-    if { [getNodeType $node_id] == "rj45 vlanswitch" } {
+    if { [getNodeType $node_id] == "rj45 lanswitch" } {
 	trigger_nodeRecreate $node_id
     }
 }
@@ -985,7 +985,7 @@ proc setIfcVlanTag { node_id iface_id tag } {
 #   * type -- interfaces's vlan type
 #****
 proc getIfcVlanType { node_id iface_id } {
-    return [cfgGetWithDefault "access" "nodes" $node_id "ifaces" $iface_id "vlan_type"]
+    return [cfgGet "nodes" $node_id "ifaces" $iface_id "vlan_type"]
 }
 
 #****f* nodecfg.tcl/setIfcVlanType
@@ -1003,7 +1003,7 @@ proc getIfcVlanType { node_id iface_id } {
 proc setIfcVlanType { node_id iface_id vlantype } {
     cfgSet "nodes" $node_id "ifaces" $iface_id "vlan_type" $vlantype
 
-    if { [getNodeType $node_id] in "rj45 vlanswitch" } {
+    if { [getNodeType $node_id] in "rj45 lanswitch" } {
         trigger_nodeRecreate $node_id
      }
  }

@@ -1588,25 +1588,33 @@ proc configGUI_bridgeIfcVlanConfig { wi node_id iface_id } {
     lappend guielements "configGUI_bridgeIfcVlanConfig $iface_id"
 
     set ifvlantype$iface_id [_getIfcVlanType $node_cfg $iface_id]
+    if { [set ifvlantype$iface_id] == "" } {
+	set ifvlantype$iface_id "DISABLED"
+    }
 
     ttk::frame $wi.if$iface_id.vlancfg -borderwidth 2
 
     ttk::label $wi.if$iface_id.vlancfg.txt1 -text "Vlan tag" -anchor w
     ttk::spinbox $wi.if$iface_id.vlancfg.vlantag -width 4 \
     	-validate focus -invalidcommand "focusAndFlash %W"
-    $wi.if$iface_id.vlancfg.vlantag insert 0 [_getIfcVlanTag $node_cfg $iface_id]
+    set vlan_tag [_getIfcVlanTag $node_cfg $iface_id]
+    if { $vlan_tag == "" } {
+	set vlan_tag 1
+    }
+
+    $wi.if$iface_id.vlancfg.vlantag insert 0 $vlan_tag
     $wi.if$iface_id.vlancfg.vlantag configure \
     	-from 1 -to 4094 -increment 1 \
     	-validatecommand { checkIntRange %P 1 4094 }
 
     ttk::label $wi.if$iface_id.vlancfg.txt2 -text "Vlan type" -anchor w
-    ttk::combobox $wi.if$iface_id.vlancfg.vlantype -width 6 \
+    ttk::combobox $wi.if$iface_id.vlancfg.vlantype -width 10 \
         -textvariable ifvlantype$iface_id \
-        -values [list access trunk]
+        -values [list "DISABLED" "access" "trunk"]
 
-    pack $wi.if$iface_id.vlancfg.txt1 $wi.if$iface_id.vlancfg.vlantag -side left -anchor w -padx 1
-    pack $wi.if$iface_id.vlancfg.txt2 -side left -anchor w
-    pack $wi.if$iface_id.vlancfg.vlantype -side left -anchor w -padx 1
+    pack $wi.if$iface_id.vlancfg.txt1 $wi.if$iface_id.vlancfg.vlantag -side left -anchor w
+    pack $wi.if$iface_id.vlancfg.txt2 -side left -anchor w -padx 2
+    pack $wi.if$iface_id.vlancfg.vlantype -side left -anchor w -padx 2
     pack $wi.if$iface_id.vlancfg -anchor w -padx 10
 }
 
@@ -2583,24 +2591,26 @@ proc configGUI_ifcQueueConfigApply { wi node_id iface_id } {
 proc configGUI_bridgeIfcVlanConfigApply { wi node_id iface_id } {
     global changed apply node_cfg
 
-    if { [getNodeType $node_id] in "vlanswitch" } {
-	set vlantag [$wi.if$iface_id.vlancfg.vlantag get]
-        set oldvlantag [_getIfcVlanTag $node_cfg $iface_id]
-        if { $vlantag != $oldvlantag } {
-            if { $apply == 1 } {
-                set node_cfg [_setIfcVlanTag $node_cfg $iface_id $vlantag]
-            }
-            set changed 1
-        }
+    set vlantag [$wi.if$iface_id.vlancfg.vlantag get]
+    set oldvlantag [_getIfcVlanTag $node_cfg $iface_id]
+    if { $vlantag != $oldvlantag } {
+	if { $apply == 1 } {
+	    set node_cfg [_setIfcVlanTag $node_cfg $iface_id $vlantag]
+	}
+	set changed 1
+    }
 
-        set vlantype [$wi.if$iface_id.vlancfg.vlantype get]
-        set oldvlantype [_getIfcVlanType $node_cfg $iface_id]
-        if { $vlantype != $oldvlantype } {
-            if { $apply == 1 } {
-                set node_cfg [_setIfcVlanType $node_cfg $iface_id $vlantype]
-            }
-            set changed 1
-        }
+    set vlantype [$wi.if$iface_id.vlancfg.vlantype get]
+    if { $vlantype == "DISABLED" } {
+	set vlantype ""
+    }
+
+    set oldvlantype [_getIfcVlanType $node_cfg $iface_id]
+    if { $vlantype != $oldvlantype } {
+	if { $apply == 1 } {
+	    set node_cfg [_setIfcVlanType $node_cfg $iface_id $vlantype]
+	}
+	set changed 1
     }
 }
 

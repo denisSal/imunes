@@ -152,5 +152,6 @@ proc $MODULE.configInterfacesGUI { wi node_id iface_id } {
     global guielements
 
     configGUI_ifcQueueConfig $wi $node_id $iface_id
+    configGUI_bridgeIfcVlanConfig $wi $node_id $iface_id
     configGUI_ifcGap $wi $iface_id 30
 }
