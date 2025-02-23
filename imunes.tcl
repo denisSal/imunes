@@ -187,15 +187,16 @@ foreach {option default_value} [concat $option_defaults $gui_option_defaults] {
     set $option $default_value
 }
 
+set all_modules_list {}
+set runnable_node_types {}
+
 # Set default node type list
 set node_types "lanswitch hub rj45 stpswitch filter packgen router host pc nat64 ext extnat"
-set runnable_node_types $node_types
 # Set default supported router models
 set supp_router_models "frr quagga static"
 
 if { $isOSlinux } {
     # Limit default nodes on linux
-    set runnable_node_types "lanswitch hub rj45 router pc host nat64 ext extnat"
     set supp_router_models "frr quagga static"
     safeSourceFile $ROOTDIR/$LIBDIR/runtime/linux.tcl
 }
