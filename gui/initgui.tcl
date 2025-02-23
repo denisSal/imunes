@@ -767,9 +767,105 @@ menu $m -tearoff 0
     -variable showTree -underline 5 \
     -command { topologyElementsTree }
 
+.menubar.view add separator
+
 .menubar.view add checkbutton -label "Show Unsupported Nodes" \
     -variable show_unsupported_nodes -underline 5 \
     -command { refreshToolBarNodes }
+
+.menubar.view add command -label "Customize Node Types" -underline 0 -command {
+    global all_modules_list hidden_node_types
+
+    set w .entry1
+    catch { destroy $w }
+
+    toplevel $w
+    wm transient $w .
+    wm title $w "Customize Node Types"
+    wm iconname $w "Customize Node Types"
+    grab $w
+
+    set top_frame [ttk::frame $w.top_frame]
+    pack $top_frame -fill both -expand 1 -padx 25 -pady 3
+
+    set hidden_frame [ttk::frame $top_frame.hidden]
+    grid $hidden_frame -in $top_frame -column 0 -row 0
+
+    ttk::label $hidden_frame.hidden -text "Hidden:"
+    grid $hidden_frame.hidden -in $hidden_frame -column 3 -row 0
+
+    set l2_node_types {}
+    set l3_node_types {}
+    foreach node_type $all_modules_list {
+	if { [$node_type.netlayer] == "LINK" } {
+	    lappend l2_node_types $node_type
+	} elseif { [$node_type.netlayer] == "NETWORK" } {
+	    lappend l3_node_types $node_type
+	}
+    }
+
+    set l2_frame [ttk::frame $top_frame.l2]
+    grid $l2_frame -in $top_frame -column 0 -row 1
+
+    ttk::label $l2_frame.l2 -text "L2 nodes" -width 20
+    grid $l2_frame.l2 -in $l2_frame -column 0 -row 0
+
+    set l3_frame [ttk::frame $top_frame.l3]
+    grid $l3_frame -in $top_frame -column 0 -row 2 -sticky e
+
+    ttk::label $l3_frame.l3 -text "L3 nodes" -width 20
+    grid $l3_frame.l3 -in $l3_frame -column 0 -row 0
+
+    set checkbutton_dict "0 !selected 1 selected"
+
+    set row_ctr 1
+    foreach node_type $l2_node_types {
+	ttk::label $l2_frame.$node_type -text "$node_type"
+	grid $l2_frame.$node_type -in $l2_frame -column 0 -row $row_ctr
+
+	ttk::checkbutton $l2_frame.cb$node_type
+	$l2_frame.cb$node_type state [dict get $checkbutton_dict [expr {$node_type in $hidden_node_types}]]
+	grid $l2_frame.cb$node_type -in $l2_frame -column 3 -row $row_ctr
+
+	incr row_ctr
+    }
+
+    set row_ctr 1
+    foreach node_type $l3_node_types {
+	ttk::label $l3_frame.$node_type -text "$node_type"
+	grid $l3_frame.$node_type -in $l3_frame -column 0 -row $row_ctr
+
+	ttk::checkbutton $l3_frame.cb$node_type
+	$l3_frame.cb$node_type state [dict get $checkbutton_dict [expr {$node_type in $hidden_node_types}]]
+	grid $l3_frame.cb$node_type -in $l3_frame -column 3 -row $row_ctr
+
+	incr row_ctr
+    }
+
+    set buttons_frame [ttk::frame $w.buttons_frame]
+    pack $buttons_frame -side bottom -fill x -pady 2m
+    ttk::button $buttons_frame.apply -text "Apply" -command {
+	global all_modules_list hidden_node_types
+
+	set hidden_node_types {}
+	foreach node_type $all_modules_list {
+	    if { [$node_type.netlayer] == "LINK" && "selected" in [$l2_frame.cb$node_type state] || \
+		[$node_type.netlayer] == "NETWORK" && "selected" in [$l3_frame.cb$node_type state] } {
+
+		lappend hidden_node_types $node_type
+	    }
+	}
+
+	refreshToolBarNodes
+	destroy .entry1
+    }
+    ttk::button $buttons_frame.cancel -text "Cancel" -command "destroy $w"
+
+    bind $w <Key-Escape> "destroy $w"
+
+    pack $buttons_frame.apply -side left -expand 1 -anchor e -padx 2
+    pack $buttons_frame.cancel -side right -expand 1 -anchor w -padx 2
+}
 
 .menubar.view add separator
 
