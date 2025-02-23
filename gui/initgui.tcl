@@ -91,6 +91,40 @@
 #    * def_router_model -- default router model
 #****
 
+proc refreshToolBarNodes {} {
+    global ROOTDIR LIBDIR
+    global mf all_modules_list hidden_node_types runnable_node_types
+
+    catch { destroy $mf.left.link_nodes }
+    catch { destroy $mf.left.net_nodes }
+
+    menu $mf.left.link_nodes -title "Link layer nodes"
+    menu $mf.left.net_nodes -title "Network layer nodes"
+
+    foreach node_type $all_modules_list {
+	if { $node_type in $hidden_node_types } {
+	    continue
+	}
+
+	set image [image create photo -file [$node_type.icon toolbar]]
+
+	if { [$node_type.netlayer] == "LINK" } {
+	    set frame_element "$mf.left.link_nodes"
+	} elseif { [$node_type.netlayer] == "NETWORK" } {
+	    set frame_element "$mf.left.net_nodes"
+	}
+
+	set background_color ""
+	if { $node_type ni $runnable_node_types } {
+	    set background_color "-background \"#bc5555\" -activebackground \"#bc5555\""
+	}
+
+	$frame_element add command -image $image -hidemargin 1 \
+	    -compound left -label [string range [$node_type.toolbarIconDescr] 8 end] \
+	    -command "setActiveTool $node_type" {*}$background_color
+    }
+}
+
 set newlink ""
 set newnode ""
 set selectbox ""
@@ -217,7 +251,6 @@ menu .menubar
 .menubar add cascade -label Events -underline 1 -menu .menubar.events
 .menubar add cascade -label Experiment -underline 1 -menu .menubar.experiment
 .menubar add cascade -label Help -underline 0 -menu .menubar.help
-
 
 #
 # File
@@ -966,22 +999,7 @@ foreach b {select link} {
     bind $mf.left.$b <Any-Leave> ".bottom.textbox config -text {}"
 }
 
-menu $mf.left.link_nodes -title "Link layer nodes"
-menu $mf.left.net_nodes -title "Network layer nodes"
-foreach b $all_modules_list {
-    set image [image create photo -file [$b.icon toolbar]]
-
-    if { [$b.netlayer] == "LINK" } {
-	$mf.left.link_nodes add command -image $image -hidemargin 1 \
-	    -compound left -label [string range [$b.toolbarIconDescr] 8 end] \
-	    -command "setActiveTool $b"
-    } elseif { [$b.netlayer] == "NETWORK" } {
-	$mf.left.net_nodes add command -image $image -hidemargin 1 \
-	    -compound left -label [string range [$b.toolbarIconDescr] 8 end] \
-	    -command "setActiveTool $b"
-    }
-}
-
+refreshToolBarNodes
 set image [image create photo -file $ROOTDIR/$LIBDIR/icons/tiny/l2.gif]
 ttk::menubutton $mf.left.link_layer -image $image -style Toolbutton \
     -menu $mf.left.link_nodes -direction right
