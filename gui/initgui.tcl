@@ -106,17 +106,23 @@ proc refreshToolBarNodes {} {
 	    continue
 	}
 
+	set background_color ""
+	if { $node_type ni $runnable_node_types } {
+	    global show_unsupported_nodes
+
+	    if { ! $show_unsupported_nodes } {
+		continue
+	    }
+
+	    set background_color "-background \"#bc5555\" -activebackground \"#bc5555\""
+	}
+
 	set image [image create photo -file [$node_type.icon toolbar]]
 
 	if { [$node_type.netlayer] == "LINK" } {
 	    set frame_element "$mf.left.link_nodes"
 	} elseif { [$node_type.netlayer] == "NETWORK" } {
 	    set frame_element "$mf.left.net_nodes"
-	}
-
-	set background_color ""
-	if { $node_type ni $runnable_node_types } {
-	    set background_color "-background \"#bc5555\" -activebackground \"#bc5555\""
 	}
 
 	$frame_element add command -image $image -hidemargin 1 \
@@ -760,6 +766,10 @@ menu $m -tearoff 0
 .menubar.view add checkbutton -label "Show Topology Tree" \
     -variable showTree -underline 5 \
     -command { topologyElementsTree }
+
+.menubar.view add checkbutton -label "Show Unsupported Nodes" \
+    -variable show_unsupported_nodes -underline 5 \
+    -command { refreshToolBarNodes }
 
 .menubar.view add separator
 
