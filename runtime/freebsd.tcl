@@ -1915,35 +1915,6 @@ proc createExperimentContainer {} {
     exec jail -c name=[getFromRunning "eid"] vnet children.max=[llength [getFromRunning "node_list"]] persist
 }
 
-#****f* freebsd.tcl/createDirectLinkBetween
-# NAME
-#   createDirectLinkBetween -- create direct link between
-# SYNOPSIS
-#   createDirectLinkBetween $node1_id $node2_id $iface1_id $iface2_id
-# FUNCTION
-#   Creates direct link between two given nodes. Direct link connects the host
-#   interface into the node, without ng_node between them.
-# INPUTS
-#   * node1_id -- node id of the first node
-#   * node2_id -- node id of the second node
-#   * iface1_id -- interface id on the first node
-#   * iface2_id -- interface id on the second node
-#****
-proc createDirectLinkBetween { node1_id node2_id iface1_id iface2_id } {
-    set eid [getFromRunning "eid"]
-
-    set ngpeer1 \
-	[lindex [[getNodeType $node1_id].nghook $eid $node1_id $iface1_id] 0]
-    set ngpeer2 \
-	[lindex [[getNodeType $node2_id].nghook $eid $node2_id $iface2_id] 0]
-    set nghook1 \
-	[lindex [[getNodeType $node1_id].nghook $eid $node1_id $iface1_id] 1]
-    set nghook2 \
-	[lindex [[getNodeType $node2_id].nghook $eid $node2_id $iface2_id] 1]
-
-    pipesExec "jexec $eid ngctl connect $ngpeer1: $ngpeer2: $nghook1 $nghook2" "hold"
-}
-
 #****f* freebsd.tcl/createLinkBetween
 # NAME
 #   createLinkBetween -- create link between
@@ -1968,6 +1939,13 @@ proc createLinkBetween { node1_id node2_id iface1_id iface2_id link_id } {
 	[lindex [[getNodeType $node1_id].nghook $eid $node1_id $iface1_id] 1]
     set nghook2 \
 	[lindex [[getNodeType $node2_id].nghook $eid $node2_id $iface2_id] 1]
+
+    # for direct links, skip pipe creation
+    if { [getLinkDirect $link_id] } {
+	pipesExec "jexec $eid ngctl connect $ngpeer1: $ngpeer2: $nghook1 $nghook2" "hold"
+
+	return
+    }
 
     set ngcmds "mkpeer $ngpeer1: pipe $nghook1 upper"
     set ngcmds "$ngcmds\n name $ngpeer1:$nghook1 $link_id"
@@ -2028,9 +2006,6 @@ proc configureLinkBetween { node1_id node2_id iface1_id iface2_id link_id } {
     if  { $linkJitterConfiguration } {
 	execSetLinkJitter $eid $link_id
     }
-}
-
-proc destroyDirectLinkBetween { eid node1_id node2_id } {
 }
 
 #****f* freebsd.tcl/destroyLinkBetween
