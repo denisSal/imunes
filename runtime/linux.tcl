@@ -653,6 +653,7 @@ proc nodePhysIfacesCreate { node_id ifaces } {
 
 	set iface_name [getIfcName $node_id $iface_id]
 	set public_hook $node_id-$iface_name
+	set public_ns $eid
 	set prefix [string trimright $iface_name "0123456789"]
 	if { $node_type in "ext extnat" } {
 	    set iface_name $node_id
@@ -662,7 +663,25 @@ proc nodePhysIfacesCreate { node_id ifaces } {
 	# without bridges between them
 	set this_link_id [getIfcLink $node_id $iface_id]
 	if { $this_link_id != "" && [getLinkDirect $this_link_id] } {
-	    continue
+	    lassign [logicalPeerByIfc $node_id $iface_id] peer_id peer_iface_id
+	    set public_hook [getIfcName $peer_id $peer_iface_id]
+	    if { [getFromRunning "${peer_id}|${peer_iface_id}_running"] == "true" } {
+		# already created, skip
+		continue
+	    }
+
+	    setToRunning "${peer_id}|${peer_iface_id}_running" true
+	    if { [getNodeType $peer_id] == "rj45" } {
+		# rj45 nodes will deal with this
+
+		continue
+	    }
+
+	    if { [getNodeType $peer_id] in "ext extnat" } {
+		set public_hook $peer_id
+	    }
+
+	    set public_ns [getNodeNetns $eid $peer_id]
 	}
 
 	switch -exact $prefix {
@@ -671,7 +690,13 @@ proc nodePhysIfacesCreate { node_id ifaces } {
 	    eth {
 		# Create a veth pair - private hook in node netns and public hook
 		# in the experiment netns
-		createNsVethPair $iface_name $nodeNs $public_hook $eid
+		createNsVethPair $iface_name $nodeNs $public_hook $public_ns
+	    }
+	}
+
+	if { $this_link_id != "" && [getLinkDirect $this_link_id] } {
+	    if { [[getNodeType $peer_id].virtlayer] == "NATIVE" } {
+		setNsIfcMaster $public_ns $public_hook $peer_id "up"
 	    }
 	}
 
@@ -877,107 +902,12 @@ proc setNsIfcMaster { netNs iface_name master state } {
     pipesExec "ip $nsstr link set $iface_name master $master $state" "hold"
 }
 
-#****f* linux.tcl/createDirectLinkBetween
-# NAME
-#   createDirectLinkBetween -- create direct link between
-# SYNOPSIS
-#   createDirectLinkBetween $node1_id $node2_id $iface1_id $iface2_id
-# FUNCTION
-#   Creates direct link between two given nodes. Direct link connects the host
-#   interface into the node, without ng_node between them.
-# INPUTS
-#   * node1_id -- node id of the first node
-#   * node2_id -- node id of the second node
-#   * iface1_id -- interface id on the first node
-#   * iface2_id -- interface id on the second node
-#****
-proc createDirectLinkBetween { node1_id node2_id iface1_id iface2_id } {
-    set eid [getFromRunning "eid"]
-
-    if { "rj45" in "[getNodeType $node1_id] [getNodeType $node2_id]" } {
-	if { [getNodeType $node1_id] == "rj45" } {
-	    set physical_ifc [getIfcName $node1_id $iface1_id]
-	    set vlan [getIfcVlanTag $node1_id $iface1_id]
-	    if { $vlan != "" && [getIfcVlanDev $node1_id $iface1_id] != "" } {
-		set physical_ifc $physical_ifc.$vlan
-	    }
-	    set nodeNs [getNodeNetns $eid $node2_id]
-	    set iface2_name [getIfcName $node2_id $iface2_id]
-	    set full_virtual_ifc $eid-$node2_id-$iface2_name
-	    set virtual_ifc $iface2_name
-	    set ether [getIfcMACaddr $node2_id $iface2_id]
-
-	    if { [[getNodeType $node2_id].virtlayer] == "NATIVE" } {
-		pipesExec "ip link set $physical_ifc netns $nodeNs" "hold"
-		setNsIfcMaster $nodeNs $physical_ifc $node2_id "up"
-		return
-	    }
-	} else {
-	    set physical_ifc [getIfcName $node2_id $iface2_id]
-	    set vlan [getIfcVlanTag $node2_id $iface2_id]
-	    if { $vlan != "" && [getIfcVlanDev $node2_id $iface2_id] != "" } {
-		set physical_ifc $physical_ifc.$vlan
-	    }
-	    set nodeNs [getNodeNetns $eid $node1_id]
-	    set iface1_name [getIfcName $node1_id $iface1_id]
-	    set full_virtual_ifc $eid-$node1_id-$iface1_name
-	    set virtual_ifc $iface1_name
-	    set ether [getIfcMACaddr $node1_id $iface1_id]
-
-	    if { [[getNodeType $node1_id].virtlayer] == "NATIVE" } {
-		pipesExec "ip link set $physical_ifc netns $nodeNs" "hold"
-		setNsIfcMaster $nodeNs $physical_ifc $node1_id "up"
-		return
-	    }
-	}
-
-	try {
-	    exec test -d /sys/class/net/$physical_ifc/wireless
-	} on error {} {
-	    # not wireless
-	    set cmds "ip link add link $physical_ifc name $full_virtual_ifc netns $nodeNs type macvlan mode private"
-	    set cmds "$cmds ; ip -n $nodeNs link set $full_virtual_ifc address $ether"
-	} on ok {} {
-	    # we cannot use macvlan on wireless interfaces, so MAC address cannot be changed
-	    set cmds "ip link add link $physical_ifc name $full_virtual_ifc netns $nodeNs type ipvlan mode l2"
-	}
-
-	set cmds "$cmds ; ip link set $physical_ifc up"
-	set cmds "$cmds ; ip -n $nodeNs link set $full_virtual_ifc name $virtual_ifc"
-	set cmds "$cmds ; ip -n $nodeNs link set $virtual_ifc up"
-	pipesExec "$cmds" "hold"
-
-	return
-    }
-
-    if { [getNodeType $node1_id] in "ext extnat" } {
-	set iface1_name $node1_id
-    } else {
-	set iface1_name [getIfcName $node1_id $iface1_id]
-    }
-
-    if { [getNodeType $node2_id] in "ext extnat" } {
-	set iface2_name $node2_id
-    } else {
-	set iface2_name [getIfcName $node2_id $iface2_id]
-    }
-
-    set node1Ns [getNodeNetns $eid $node1_id]
-    set node2Ns [getNodeNetns $eid $node2_id]
-    createNsVethPair $iface1_name $node1Ns $iface2_name $node2Ns
-
-    # add nodes iface hooks to link bridge and bring them up
-    foreach node_id [list $node1_id $node2_id] iface_name [list $iface1_name $iface2_name] ns [list $node1Ns $node2Ns] {
-	if { [[getNodeType $node_id].virtlayer] != "NATIVE" || [getNodeType $node_id] in "ext extnat" } {
-	    continue
-	}
-
-	setNsIfcMaster $ns $iface_name $node_id "up"
-    }
-}
-
 proc createLinkBetween { node1_id node2_id iface1_id iface2_id link_id } {
     set eid [getFromRunning "eid"]
+
+    if { [getLinkDirect $link_id] || "wlan" in "[getNodeType $node1_id] [getNodeType $node2_id]" } {
+	return
+    }
 
     # create link bridge in experiment netns
     createNsLinkBridge $eid $link_id
@@ -1274,10 +1204,11 @@ proc killAllNodeProcesses { eid node_id } {
     pipesExec "docker exec -d $docker_id sh -c 'killall5 -9 -o 1 -o \$(pgrep -P 1)'" "hold"
 }
 
-proc destroyDirectLinkBetween { eid node1_id node2_id } {
-}
+proc destroyLinkBetween { eid node1_id node2_id iface1_id iface2_id link_id } {
+    if { [getLinkDirect $link_id] || "wlan" in "[getNodeType $node1_id] [getNodeType $node2_id]" } {
+	return
+    }
 
-proc destroyLinkBetween { eid node1_id node2_id link_id } {
     pipesExec "ip -n $eid link del $link_id" "hold"
 }
 
@@ -1300,13 +1231,12 @@ proc nodeIfacesDestroy { eid node_id ifaces } {
 	    set link_id [getIfcLink $node_id $iface_id]
 	    if { $link_id != "" && [getLinkDirect $link_id] } {
 		pipesExec "ip link del $eid-$node_id" "hold"
+
+		lassign [logicalPeerByIfc $node_id $iface_id] peer_id peer_iface_id
+		setToRunning "${peer_id}|${peer_iface_id}_running" false
 	    } else {
 		pipesExec "ip -n $eid link del $node_id-[getIfcName $node_id $iface_id]" "hold"
 	    }
-	}
-    } elseif { $node_type == "rj45" } {
-	foreach iface_id $ifaces {
-	    releaseExtIfcByName $eid [getIfcName $node_id $iface_id] $node_id
 	}
     } else {
 	foreach iface_id $ifaces {
@@ -1324,6 +1254,12 @@ proc nodeIfacesDestroy { eid node_id ifaces } {
 
     foreach iface_id $ifaces {
 	setToRunning "${node_id}|${iface_id}_running" false
+
+	set link_id [getIfcLink $node_id $iface_id]
+	if { $link_id != "" && [getLinkDirect $link_id] } {
+	    lassign [logicalPeerByIfc $node_id $iface_id] peer_id peer_iface_id
+	    setToRunning "${peer_id}|${peer_iface_id}_running" false
+	}
     }
 }
 
@@ -1419,35 +1355,83 @@ proc getExtIfcs {} {
 proc captureExtIfc { eid node_id iface_id } {
     global execMode
 
+    set nsstrx ""
     set iface_name [getIfcName $node_id $iface_id]
+    set link_id [getIfcLink $node_id $iface_id]
+
+    # we need to create a VLAN device
     if { [getIfcVlanDev $node_id $iface_id] != "" } {
+	set nsstr ""
+	# if direct link, we should do this inside the experiment netns
+	if { $link_id != "" && [getLinkDirect $link_id] } {
+	    set nsstr "netns $eid"
+	    set nsstrx "-n $eid"
+	}
+
 	set vlan [getIfcVlanTag $node_id $iface_id]
 	try {
 	    exec ip link set $iface_name up
-	    exec ip link add link $iface_name name $iface_name.$vlan type vlan id $vlan
+	    exec ip link add link $iface_name name $iface_name.$vlan {*}$nsstr type vlan id $vlan
 	} on error err {
-	    set msg "Error: VLAN $vlan on external interface $iface_name can't be\
-		created.\n($err)"
+	    # if not direct link, raise error as we can't have multiple VLAN ifaces with the same VID
+	    if { $link_id == "" || ! [getLinkDirect $link_id] } {
+		set msg "Error: VLAN $vlan on external interface $iface_name can't be\
+		    created.\n($err)"
 
-	    if { $execMode == "batch" } {
-		puts stderr $msg
-	    } else {
-		after idle { .dialog1.msg configure -wraplength 4i }
-		tk_dialog .dialog1 "IMUNES error" $msg \
-		    info 0 Dismiss
+		if { $execMode == "batch" } {
+		    puts stderr $msg
+		} else {
+		    after idle { .dialog1.msg configure -wraplength 4i }
+		    tk_dialog .dialog1 "IMUNES error" $msg \
+			info 0 Dismiss
+		}
+
+		return -code error
 	    }
-
-	    return -code error
-	} on ok {} {
+	} finally {
 	    set iface_name $iface_name.$vlan
 	}
     }
 
-    if { [getLinkDirect [getIfcLink $node_id $iface_id]] } {
+    # if not direct link, just capture the iface in the experiment netns
+    if { $link_id == "" || ! [getLinkDirect $link_id] } {
+	captureExtIfcByName $eid $iface_name $node_id
+
 	return
     }
 
-    captureExtIfcByName $eid $iface_name $node_id
+    # if direct link, first create a macvlan/ipvlan
+    lassign [logicalPeerByIfc $node_id $iface_id] peer_id peer_iface_id
+
+    set peer_ns [getNodeNetns $eid $peer_id]
+    set other_iface_name [getIfcName $peer_id $peer_iface_id]
+    set full_virtual_ifc $eid-$peer_id-$other_iface_name
+
+    try {
+	exec test -d /sys/class/net/$iface_name/wireless
+    } on error {} {
+	# not wireless, so MAC address can be changed
+	set ether [getIfcMACaddr $peer_id $peer_iface_id]
+
+	# you can set macvlan mode to bridge to enable bridging of nodes in the same experiment
+	set cmds "ip $nsstrx link add link $iface_name name $full_virtual_ifc netns $peer_ns type macvlan mode private"
+	set cmds "$cmds ; ip -n $peer_ns link set $full_virtual_ifc address $ether"
+    } on ok {} {
+	# we cannot use macvlan on wireless interfaces, so MAC address cannot be changed
+	set cmds "ip $nsstrx link add link $iface_name name $full_virtual_ifc netns $peer_ns type ipvlan mode l2"
+    }
+    set cmds "$cmds ; ip $nsstrx link set $iface_name up"
+
+    # assign the created macvlan/ipvlan to the peer interface
+    set cmds "$cmds ; ip -n $peer_ns link set $full_virtual_ifc name $other_iface_name"
+    set cmds "$cmds ; ip -n $peer_ns link set $other_iface_name up"
+
+    pipesExec "$cmds" "hold"
+
+    # if peer is NATIVE, just set it as master
+    if { [[getNodeType $peer_id].virtlayer] == "NATIVE" } {
+	setNsIfcMaster $peer_ns $other_iface_name $peer_id "up"
+    }
 }
 
 #****f* linux.tcl/captureExtIfcByName
@@ -1482,24 +1466,27 @@ proc captureExtIfcByName { eid iface_name node_id } {
 #****
 proc releaseExtIfc { eid node_id iface_id } {
     set iface_name [getIfcName $node_id $iface_id]
+    set link_id [getIfcLink $node_id $iface_id]
+
     set vlan [getIfcVlanTag $node_id $iface_id]
     if { $vlan != "" && [getIfcVlanDev $node_id $iface_id] != "" } {
 	set iface_name $iface_name.$vlan
 
-	if { [getLinkDirect [getIfcLink $node_id $iface_id]] } {
-	    catch {exec ip link del $iface_name}
-	} else {
-	    catch {exec ip -n [getNodeNetns $eid $node_id] link del $iface_name}
+	if { $link_id == "" || ! [getLinkDirect $link_id] } {
+	    pipesExec "ip -n [getNodeNetns $eid $node_id] link del $iface_name" "hold"
+
+	    return
 	}
+    }
+
+    if { $link_id == "" || ! [getLinkDirect $link_id] } {
+	releaseExtIfcByName $eid $iface_name $node_id
 
 	return
     }
 
-    if { [getLinkDirect [getIfcLink $node_id $iface_id]] } {
-	return
-    }
-
-    releaseExtIfcByName $eid $iface_name $node_id
+    lassign [logicalPeerByIfc $node_id $iface_id] peer_id peer_iface_id
+    pipesExec "ip -n [getNodeNetns $eid $peer_id] link del [getIfcName $peer_id $peer_iface_id]" "hold"
 }
 
 #****f* linux.tcl/releaseExtIfc
@@ -1516,8 +1503,7 @@ proc releaseExtIfc { eid node_id iface_id } {
 proc releaseExtIfcByName { eid iface_name node_id } {
     global devfs_number
 
-    set nodeNs [getNodeNetns $eid $node_id]
-    pipesExec "ip -n $nodeNs link set $iface_name netns imunes_$devfs_number" "hold"
+    pipesExec "ip -n [getNodeNetns $eid $node_id] link set $iface_name netns imunes_$devfs_number" "hold"
 }
 
 proc getStateIfcCmd { iface_name state } {
