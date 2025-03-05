@@ -638,10 +638,12 @@ proc nodePhysIfacesCreate { node_id ifaces } {
 
     # Create "physical" network interfaces
     foreach iface_id $ifaces {
+	puts "CREATING: '$node_id' '$iface_id'"
 	setToRunning "${node_id}|${iface_id}_running" true
 
 	set iface_name [getIfcName $node_id $iface_id]
 	set public_hook $node_id-$iface_name
+	set public_ns $eid
 	set prefix [string trimright $iface_name "0123456789"]
 	if { $node_type in "ext extnat" } {
 	    set iface_name $node_id
@@ -651,7 +653,15 @@ proc nodePhysIfacesCreate { node_id ifaces } {
 	# without bridges between them
 	set this_link_id [getIfcLink $node_id $iface_id]
 	if { $this_link_id != "" && [getLinkDirect $this_link_id] } {
-	    continue
+	    lassign [logicalPeerByIfc $node_id $iface_id] peer_id peer_iface_id
+	    set peer_iface_name [getIfcName $peer_id $peer_iface_id]
+	    if { [getFromRunning "${peer_id}|${peer_iface_id}_running"] == "true" } {
+		# already created, skip
+		continue
+	    }
+
+	    set public_hook $peer_iface_name
+	    set public_ns [getNodeNetns $eid $peer_id]
 	}
 
 	switch -exact $prefix {
@@ -660,7 +670,7 @@ proc nodePhysIfacesCreate { node_id ifaces } {
 	    eth {
 		# Create a veth pair - private hook in node netns and public hook
 		# in the experiment netns
-		createNsVethPair $iface_name $nodeNs $public_hook $eid
+		createNsVethPair $iface_name $nodeNs $public_hook $public_ns
 	    }
 	}
 
@@ -848,6 +858,7 @@ proc createNsVethPair { ifname1 netNs1 ifname2 netNs2 } {
     }
 
     pipesExec "ip link add name $eid-$ifname1 $nsstr1 type veth peer name $eid-$ifname2 $nsstr2" "hold"
+    puts "ip link add name $eid-$ifname1 $nsstr1 type veth peer name $eid-$ifname2 $nsstr2"
 
     if { $nsstr1x != "" } {
 	pipesExec "ip $nsstr1x link set $eid-$ifname1 name $ifname1" "hold"
