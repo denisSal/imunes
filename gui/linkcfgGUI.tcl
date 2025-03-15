@@ -61,6 +61,10 @@ proc toggleDirectLink { c link_id } {
 	set link_id [lindex [$c gettags current] 1]
     }
 
+    if { [getFromRunning "cfg_deployed"] && [getFromRunning "auto_execution"] } {
+	setToExecuteVars "terminate_cfg" [cfgGet]
+    }
+
     set new_value [expr [getLinkDirect $link_id] ^ 1]
     setLinkDirect $link_id $new_value
 
@@ -68,6 +72,11 @@ proc toggleDirectLink { c link_id } {
     if { $mirror_link_id != "" } {
 	setLinkDirect $mirror_link_id $new_value
     }
+
+    undeployCfg
+    deployCfg
+
+    .panwin.f1.c config -cursor left_ptr
 }
 
 #****f* linkcfgGUI.tcl/link.configGUI
