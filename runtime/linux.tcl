@@ -456,7 +456,7 @@ proc getNodeNetns { eid node_id } {
 
     # Global netns
     if { [getNodeType $node_id] in "ext extnat" } {
-	return ""
+	return "imunes_$devfs_number"
     }
 
     # Node netns
@@ -1393,7 +1393,7 @@ proc captureExtIfc { eid node_id iface_id } {
 	}
     }
 
-    # if not direct link, just capture the iface in the experiment netns
+    # if no link or not a direct link, just capture the iface in the experiment netns
     if { $link_id == "" || ! [getLinkDirect $link_id] } {
 	captureExtIfcByName $eid $iface_name $node_id
 
@@ -1403,9 +1403,14 @@ proc captureExtIfc { eid node_id iface_id } {
     # if direct link, first create a macvlan/ipvlan
     lassign [logicalPeerByIfc $node_id $iface_id] peer_id peer_iface_id
 
+    set peer_type [getNodeType $peer_id]
     set peer_ns [getNodeNetns $eid $peer_id]
     set other_iface_name [getIfcName $peer_id $peer_iface_id]
     set full_virtual_ifc $eid-$peer_id-$other_iface_name
+
+    if { $peer_type in "ext extnat" } {
+	set other_iface_name "$eid-$peer_id"
+    }
 
     try {
 	exec test -d /sys/class/net/$iface_name/wireless
@@ -1428,8 +1433,12 @@ proc captureExtIfc { eid node_id iface_id } {
 
     pipesExec "$cmds" "hold"
 
+    if { $peer_type in "ext extnat" } {
+	return
+    }
+
     # if peer is NATIVE, just set it as master
-    if { [[getNodeType $peer_id].virtlayer] == "NATIVE" } {
+    if { [$peer_type.virtlayer] == "NATIVE" } {
 	setNsIfcMaster $peer_ns $other_iface_name $peer_id "up"
     }
 }
@@ -1486,6 +1495,10 @@ proc releaseExtIfc { eid node_id iface_id } {
     }
 
     lassign [logicalPeerByIfc $node_id $iface_id] peer_id peer_iface_id
+    if { [getNodeType $peer_id] in "ext extnat" } {
+	return
+    }
+
     pipesExec "ip -n [getNodeNetns $eid $peer_id] link del [getIfcName $peer_id $peer_iface_id]" "hold"
 }
 

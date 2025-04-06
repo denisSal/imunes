@@ -621,15 +621,17 @@ proc pipesCreate {} {
     set last_inst_pipe 0
 }
 
-proc pipesExecLog { line args } {
-    if { $line == "" } {
-	return
+proc pipesExec { line args } {
+    global debug
+
+    if { $debug } {
+	set logfile "/tmp/[getFromRunning "eid"].log"
+
+	pipesExecNoLog "printf \"RUN: \" >> $logfile ; cat >> $logfile 2>&1 <<\"IMUNESEOF\"\n$line\nIMUNESEOF" "hold"
+	pipesExecNoLog "$line >> $logfile 2>&1" "$args"
+    } else {
+	pipesExecNoLog $line {*}$args
     }
-
-    set logfile "/tmp/[getFromRunning "eid"].log"
-
-    pipesExec "printf \"RUN: \" >> $logfile ; cat >> $logfile 2>&1 <<\"IMUNESEOF\"\n$line\nIMUNESEOF" "hold"
-    pipesExec "$line >> $logfile 2>&1" "$args"
 }
 
 #****f* exec.tcl/pipesExec
@@ -643,7 +645,7 @@ proc pipesExecLog { line args } {
 #   * line -- shell command
 #   * args -- if empty, increment last pipe
 #****
-proc pipesExec { line args } {
+proc pipesExecNoLog { line args } {
     global inst_pipes last_inst_pipe
 
     set pipe $inst_pipes($last_inst_pipe)
