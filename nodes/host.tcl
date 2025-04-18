@@ -170,8 +170,10 @@ proc $MODULE.generateConfig { node_id } {
 
     lappend cfg ""
 
-    lappend cfg "rpcbind"
-    lappend cfg "inetd"
+    if { [getCustomEnabled $node_id] != true || [getCustomConfigSelected $node_id "NODE_CONFIG"] in "\"\" DISABLED" } {
+	lappend cfg "rpcbind"
+	lappend cfg "inetd"
+    }
 
     return $cfg
 }
@@ -189,9 +191,10 @@ proc $MODULE.generateUnconfig { node_id } {
 
     lappend cfg ""
 
-    # TODO: check
-    lappend cfg "killall rpcbind"
-    lappend cfg "killall inetd"
+    if { [getCustomEnabled $node_id] != true || [getCustomConfigSelected $node_id "NODE_CONFIG"] in "\"\" DISABLED" } {
+	lappend cfg "killall rpcbind"
+	lappend cfg "killall inetd"
+    }
 
     return $cfg
 }
