@@ -3166,8 +3166,6 @@ proc configGUI_externalIfcsApply { wi node_id } {
 #****
 proc customConfigGUI { parent_wi node_id } {
     set wi .cfgEditor
-    set o $wi.options
-    set b $wi.bottom.buttons
 
     catch { destroy $wi }
     tk::toplevel $wi
@@ -3181,42 +3179,98 @@ proc customConfigGUI { parent_wi node_id } {
 
     global custom_node_cfg custom_config_hooks selected_hook
 
+    set note_message ""
     switch -exact -- $selected_hook {
 	"IFACES_CONFIG" {
-	    set wm_title "Custom interface configurations (node $node_id)"
+	    set wm_title "Custom interfaces configurations (node $node_id)"
+
+	    set note_message "If enabled, custom interfaces configuration will override the following configuration values:\n"
+	    append note_message " - 'Interfaces' tab -> all settings.\n"
+
+	    set node_type [getNodeType $node_id]
+	    switch -exact -- $node_type {
+		"pc" {}
+		"host" {}
+		"router" {
+		    append note_message " - 'Configuration' tab -> 'Protocols' routing configurations.\n"
+		}
+	    }
 	}
 	"NODE_CONFIG" {
 	    set wm_title "Custom node configurations (node $node_id)"
+
+	    set note_message "If enabled, custom node configuration will override the following configuration values:\n"
+	    append note_message " - 'Configuration' tab -> 'Custom static routes' field.\n"
+
+	    set node_type [getNodeType $node_id]
+	    switch -exact -- $node_type {
+		"host" {
+		    append note_message " - Automatic startup of 'rpcbind' and 'inetd' daemons will be disabled.\n"
+		}
+		"nat64" -
+		"router" {
+		    append note_message " - 'Configuration' tab -> enabled 'Protocols' routing configurations.\n"
+		}
+	    }
+	    append note_message "\nNOTE: 'Configuration' -> 'Automatic default routes' are dynamically generated and will be appended to this configuration on runtime if enabled.\n"
 	}
     }
+
+    append note_message "\nUse 'Fill defaults' to see the currently applied configuration that would run on startup."
+
     wm title $wi "$wm_title"
 
-    wm minsize $wi 584 445
+    wm minsize $wi 584 684
     wm resizable $wi 0 1
 
-    ttk::frame $wi.options -height 50 -borderwidth 3
-    ttk::notebook $wi.nb -height 200
-    bind $wi.nb <<NotebookTabChanged>> \
+    set options_frame $wi.options
+    ttk::frame $options_frame -height 50 -borderwidth 3
+
+    set note_frame $wi.note
+    ttk::frame $note_frame -height 50 -borderwidth 3 -relief solid
+
+    set note_padx 10
+    ttk::label $note_frame.label -wraplength [expr [lindex [wm minsize $wi] 0] - $note_padx*2] \
+	-foreground "#dd2200" -justify left -text \
+	"$note_message"
+
+    set notebook_elem $wi.nb
+    ttk::notebook $notebook_elem -height 200
+    bind $notebook_elem <<NotebookTabChanged>> \
 	"global selected_hook ; customConfigGUI_Apply $wi $node_id \$selected_hook"
 
-    ttk::frame $wi.bottom
-    ttk::frame $wi.bottom.buttons -borderwidth 2
+    set bottom_frame $wi.bottom
+    ttk::frame $bottom_frame
 
-    ttk::label $o.l -text "Create new configuration:"
-    ttk::entry $o.e -width 24
-    ttk::button $o.b -text "Create" \
+    set buttons_frame $bottom_frame.buttons
+    ttk::frame $buttons_frame -borderwidth 2
+
+    ttk::label $options_frame.l -text "Create new configuration:"
+    ttk::entry $options_frame.e -width 24
+    ttk::button $options_frame.b -width 10 -text "Create" \
 	-command "createNewConfiguration $wi $node_id"
 
-    ttk::label $o.ld -text "Default configuration:"
-    ttk::combobox $o.cb -height 10 -width 22 -state readonly
-    $o.cb configure -values "DISABLED [_getCustomConfigIDs $custom_node_cfg $selected_hook]"
+    ttk::button $options_frame.note_button -width 10 -text "Toggle help" -command \
+    "
+	if { \[pack content $note_frame] == {} } {
+	    $note_frame configure -height 50
+	    pack $note_frame.label -fill both -padx $note_padx -pady 2
+	} else {
+	    $note_frame configure -height 2
+	    pack forget $note_frame.label
+	}
+    "
+
+    ttk::label $options_frame.ld -text "Default configuration:"
+    ttk::combobox $options_frame.cb -height 10 -width 22 -state readonly
+    $options_frame.cb configure -values "DISABLED [_getCustomConfigIDs $custom_node_cfg $selected_hook]"
     set defaultConfig [_getCustomConfigSelected $custom_node_cfg $selected_hook]
     if { $defaultConfig == "" } {
 	set defaultConfig "DISABLED"
     }
-    $o.cb set $defaultConfig
+    $options_frame.cb set $defaultConfig
 
-    ttk::button $b.apply -text "Apply" -command \
+    ttk::button $buttons_frame.apply -text "Apply" -command \
     "
     	global selected_hook
 
@@ -3224,7 +3278,7 @@ proc customConfigGUI { parent_wi node_id } {
 	resetCustomConfigFields $parent_wi $node_id
     "
 
-    ttk::button $b.applyClose -text "Apply and Close" -command \
+    ttk::button $buttons_frame.applyClose -text "Apply and Close" -command \
     "
     	global custom_node_cfg selected_hook
 
@@ -3235,7 +3289,7 @@ proc customConfigGUI { parent_wi node_id } {
 	destroy $wi
     "
 
-    ttk::button $b.cancel -text "Cancel" -command \
+    ttk::button $buttons_frame.cancel -text "Cancel" -command \
     "
     	global custom_node_cfg
 
@@ -3243,27 +3297,31 @@ proc customConfigGUI { parent_wi node_id } {
 	destroy $wi
     "
 
-    pack $wi.options -side top -fill both
-    pack $wi.nb -fill both -expand 1
-    pack $wi.bottom.buttons -pady 2
-    pack $wi.bottom -fill both -side bottom
+    pack $options_frame -side top -fill both
+    pack $note_frame -side top -fill both -pady 5 -padx 2
+    pack $notebook_elem -fill both -expand 1
+    pack $bottom_frame -fill both -side bottom
+    pack $buttons_frame -pady 2
 
-    grid $o.l -row 0 -column 0 -sticky w
-    grid $o.e -row 0 -column 1 -sticky w -padx 5 -sticky we
-    grid $o.b -row 0 -column 2 -padx 5
-    grid $o.ld -row 1 -column 0 -sticky w
-    grid $o.cb -row 1 -column 1 -sticky we -padx 5
+    pack $note_frame.label -fill both -padx $note_padx -pady 2
 
-    grid $b.apply -row 0 -column 1 -sticky swe -padx 2
-    grid $b.applyClose -row 0 -column 2 -sticky swe -padx 2
-    grid $b.cancel -row 0 -column 4 -sticky swe -padx 2
+    grid $options_frame.l -row 0 -column 0 -sticky w
+    grid $options_frame.e -row 0 -column 1 -sticky w -padx 5 -sticky we
+    grid $options_frame.b -row 0 -column 2 -padx 5
+    grid $options_frame.ld -row 1 -column 0 -sticky w
+    grid $options_frame.cb -row 1 -column 1 -sticky we -padx 5
+    grid $options_frame.note_button -row 1 -column 2 -padx 5
+
+    grid $buttons_frame.apply -row 0 -column 1 -sticky swe -padx 2
+    grid $buttons_frame.applyClose -row 0 -column 2 -sticky swe -padx 2
+    grid $buttons_frame.cancel -row 0 -column 4 -sticky swe -padx 2
 
     foreach cfg_id [_getCustomConfigIDs $custom_node_cfg $selected_hook] {
 	createTab $node_id $selected_hook $cfg_id
     }
 
     if { $defaultConfig ni "\"\" DISABLED" } {
-	$wi.nb select $wi.nb.$defaultConfig
+	$notebook_elem select $notebook_elem.$defaultConfig
     }
 }
 
@@ -3404,6 +3462,9 @@ proc customConfigGUIFillDefaults { wi node_id selected_hook } {
     set cfg_id [$wi.nb tab current -text]
     set node_type [_getNodeType $custom_node_cfg]
     set cmd [$node_type.bootcmd $node_id]
+
+    set tmp_status [getCustomEnabled $node_id]
+    setCustomEnabled $node_id false
     switch -exact -- $selected_hook {
 	"IFACES_CONFIG" {
 	    set cfg [$node_type.generateConfigIfaces $node_id "*"]
@@ -3412,8 +3473,9 @@ proc customConfigGUIFillDefaults { wi node_id selected_hook } {
 	    set cfg [$node_type.generateConfig $node_id]
 	}
     }
-    set w $wi.nb.$cfg_id
+    setCustomEnabled $node_id $tmp_status
 
+    set w $wi.nb.$cfg_id
     if { [$w.bootcmd_e get] != "" || [$w.editor get 1.0 {end -1c}] != "" } {
 	set answer [tk_messageBox -message \
 	    "Do you want to overwrite current values?" \
