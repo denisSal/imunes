@@ -133,6 +133,8 @@ bind . <F6> {
 	source "$ROOTDIR/$LIBDIR/runtime/terminate.tcl"
 
 	source "$ROOTDIR/$LIBDIR/config/annotationscfg.tcl"
+	source "$ROOTDIR/$LIBDIR/config/api.tcl"
+	source "$ROOTDIR/$LIBDIR/config/cli.tcl"
 	source "$ROOTDIR/$LIBDIR/config/filtercfg.tcl"
 	source "$ROOTDIR/$LIBDIR/config/ifaces.tcl"
 	source "$ROOTDIR/$LIBDIR/config/ipsec.tcl"
