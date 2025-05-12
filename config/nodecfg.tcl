@@ -2125,7 +2125,7 @@ proc nodeUncfggenAutoRoutes6 { node_id { vtysh 0 } } {
 	return $cfg
 }
 
-proc updateNode { node_id old_node_cfg new_node_cfg } {
+proc updateNode { node_id old_node_cfg new_node_cfg { modifier "" } } {
 	dputs ""
 	dputs "= /UPDATE NODE $node_id START ="
 
@@ -2133,11 +2133,12 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 		set old_node_cfg [cfgGet "nodes" $node_id]
 	}
 
-	set cfg_diff [dictDiff $old_node_cfg $new_node_cfg]
+	set cfg_diff [dictDiff $old_node_cfg $new_node_cfg $modifier]
 	dputs "= cfg_diff: '$cfg_diff'"
 	if { $cfg_diff == "" || [lsort -uniq [dict values $cfg_diff]] == "copy" } {
 		dputs "= NO CHANGE"
 		dputs "= /UPDATE NODE $node_id END ="
+
 		return $new_node_cfg
 	}
 
@@ -2207,7 +2208,7 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 			}
 
 			"custom_configs" {
-				set custom_configs_diff [dictDiff $old_value $new_value]
+				set custom_configs_diff [dictDiff $old_value $new_value $modifier]
 				dict for {custom_configs_key custom_configs_change} $custom_configs_diff {
 					if { $custom_configs_change == "copy" } {
 						continue
@@ -2224,7 +2225,7 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 						dputs "======== NEW: '$custom_configs_new_value'"
 					}
 
-					set hook_diff [dictDiff $custom_configs_old_value $custom_configs_new_value]
+					set hook_diff [dictDiff $custom_configs_old_value $custom_configs_new_value $modifier]
 					dict for {hook_key hook_change} $hook_diff {
 						if { $hook_change == "copy" } {
 							continue
@@ -2244,8 +2245,20 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 						if { $hook_change == "removed" } {
 							removeCustomConfig $node_id $custom_configs_key $hook_key
 						} else {
-							set cmd [dict get $hook_new_value "custom_command"]
-							set cfg [dict get $hook_new_value "custom_config"]
+							try {
+								dict get $hook_new_value "custom_command"
+							} on ok cmd {
+							} on error {} {
+								set cmd [dict get $hook_old_value "custom_command"]
+							}
+
+							try {
+								dict get $hook_new_value "custom_config"
+							} on ok cfg {
+							} on error {} {
+								set cfg [dict get $hook_old_value "custom_config"]
+							}
+
 							setCustomConfig $node_id $custom_configs_key $hook_key $cmd $cfg
 						}
 					}
@@ -2253,7 +2266,7 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 			}
 
 			"ipsec" {
-				set ipsec_diff [dictDiff $old_value $new_value]
+				set ipsec_diff [dictDiff $old_value $new_value $modifier]
 				dict for {ipsec_key ipsec_change} $ipsec_diff {
 					if { $ipsec_change == "copy" } {
 						continue
@@ -2279,7 +2292,7 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 						}
 
 						"ipsec_configs" {
-							set ipsec_configs_diff [dictDiff $ipsec_old_value $ipsec_new_value]
+							set ipsec_configs_diff [dictDiff $ipsec_old_value $ipsec_new_value $modifier]
 							dict for {ipsec_configs_key ipsec_configs_change} $ipsec_configs_diff {
 								if { $ipsec_configs_change == "copy" } {
 									continue
@@ -2313,7 +2326,7 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 			}
 
 			"nat64" {
-				set nat64_diff [dictDiff $old_value $new_value]
+				set nat64_diff [dictDiff $old_value $new_value $modifier]
 				dict for {nat64_key nat64_change} $nat64_diff {
 					if { $nat64_change == "copy" } {
 						continue
@@ -2363,7 +2376,7 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 			}
 
 			"custom_selected" {
-				set custom_selected_diff [dictDiff $old_value $new_value]
+				set custom_selected_diff [dictDiff $old_value $new_value $modifier]
 				dict for {custom_selected_key custom_selected_change} $custom_selected_diff {
 					if { $custom_selected_change == "copy" } {
 						continue
@@ -2405,7 +2418,7 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 			}
 
 			"ifaces" {
-				set ifaces_diff [dictDiff $old_value $new_value]
+				set ifaces_diff [dictDiff $old_value $new_value $modifier]
 				dict for {iface_key iface_change} $ifaces_diff {
 					if { $iface_change == "copy" } {
 						continue
@@ -2436,7 +2449,7 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 								set iface_id $iface_key
 							}
 
-							set iface_diff [dictDiff $iface_old_value $iface_new_value]
+							set iface_diff [dictDiff $iface_old_value $iface_new_value $modifier]
 							dict for {iface_prop_key iface_prop_change} $iface_diff {
 								if { $iface_prop_change == "copy" } {
 									continue
@@ -2597,7 +2610,7 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 			}
 
 			"packgen" {
-				set packgen_diff [dictDiff $old_value $new_value]
+				set packgen_diff [dictDiff $old_value $new_value $modifier]
 				dict for {packets_key packets_change} $packgen_diff {
 					if { $packets_change == "copy" } {
 						continue
@@ -2620,7 +2633,7 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 						continue
 					}
 
-					set packets_diff [dictDiff $packets_old_value $packets_new_value]
+					set packets_diff [dictDiff $packets_old_value $packets_new_value $modifier]
 					foreach {packet_key packet_change} $packets_diff {
 						if { $packet_change == "copy" } {
 							continue
@@ -2656,7 +2669,7 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 			}
 
 			"bridge" {
-				set bridge_diff [dictDiff $old_value $new_value]
+				set bridge_diff [dictDiff $old_value $new_value $modifier]
 				dict for {bridge_key bridge_change} $bridge_diff {
 					if { $bridge_change == "copy" } {
 						continue
@@ -2719,4 +2732,12 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 	dputs ""
 
 	return $new_node_cfg
+}
+
+proc modifyNode { node_id old_node_cfg new_node_cfg } {
+	return [updateNode $node_id $old_node_cfg $new_node_cfg "copy_removed"]
+}
+
+proc deleteInNode { node_id old_node_cfg new_node_cfg } {
+	return [updateNode $node_id $old_node_cfg $new_node_cfg "invert"]
 }
