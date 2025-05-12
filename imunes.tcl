@@ -96,11 +96,19 @@ set nodecreate_timeout 4
 set ifacesconf_timeout 3
 set nodeconf_timeout 3
 
+set ctl_mode 0
+set cli_fname ""
+set eid_base ""
+set cfg_deployed false
+
 set options {
 	{e.arg		"" "Specify experiment ID"}
 	{eid.arg	"" "Specify experiment ID"}
 	{b			"Turn on batch mode"}
 	{batch		"Turn on batch mode"}
+	{c			"Control mode"}
+	{ctl		"Control mode"}
+	{topo.arg	"" "Path to IMUNES topology"}
 	{d.secret	"Turn on debug mode"}
 	{p			"Prepare virtual root file system"}
 	{prepare	"Prepare virtual root file system"}
@@ -150,8 +158,12 @@ foreach file_path [glob -directory $ROOTDIR/$LIBDIR/runtime *.tcl] {
 	}
 }
 
-if { ! [info exists eid_base] } {
+if { $eid_base == "" } {
 	set eid_base [genExperimentId]
+}
+
+if { $execMode == "batch" } {
+	puts "Using experiment ID '$eid_base'."
 }
 
 # bases for naming new nodes
@@ -217,7 +229,7 @@ if { $initMode == 1 } {
 	exit
 }
 
-if { $execMode == "batch" } {
+if { $cfg_deployed && $execMode == "batch" } {
 	set err [checkSysPrerequisites]
 	if { $err != "" } {
 		puts stderr $err
@@ -329,9 +341,9 @@ if { $execMode == "interactive" } {
 	}
 
 	newProject
-	if { $argv != "" && [file exists $argv] } {
+	if { $cli_fname != "" && [file exists $cli_fname] } {
 		setToRunning "cwd" [pwd]
-		setToRunning "current_file" $argv
+		setToRunning "current_file" $cli_fname
 		openFile
 	}
 
@@ -341,14 +353,74 @@ if { $execMode == "interactive" } {
 	# Event scheduler - should be started / stopped on per-experiment base?
 	#evsched
 } else {
-	if { $argv != "" } {
-		if { ! [file exists $argv] } {
-			puts stderr "Error: file '$argv' doesn't exist"
-			exit
+	if { $ctl_mode } {
+		if { $cfg_deployed } {
+			set config_file "$runtimeDir/$eid_base/config.imn"
+			if { ! [file exists $config_file] } {
+				puts "No experiment with eid $eid_base"
+
+				exit 1
+			}
+		} else {
+			set config_file $cli_fname
+		}
+		set cli_args $argv
+
+		set curcfg [newObjectId $cfg_list "cfg"]
+		lappend cfg_list $curcfg
+
+		namespace eval ::cf::[set curcfg] {}
+		upvar 0 ::cf::[set ::curcfg]::dict_run dict_run
+		upvar 0 ::cf::[set ::curcfg]::execute_vars execute_vars
+		upvar 0 ::cf::[set ::curcfg]::dict_cfg dict_cfg
+		set dict_cfg [dict create]
+		setOption "version" $CFG_VERSION
+
+		set dict_run [dict create]
+		set execute_vars [dict create]
+
+		setToRunning "eid" $eid_base
+		setToRunning "oper_mode" "edit"
+		setToRunning "auto_execution" 1
+		setToRunning "cfg_deployed" false
+		setToRunning "stop_sched" true
+		setToRunning "undolevel" 0
+		setToRunning "redolevel" 0
+		setToRunning "zoom" $zoom
+		setToRunning "canvas_list" {}
+		setToRunning "current_file" $config_file
+		set currentFileBatch $config_file
+
+		readCfgJson $config_file
+		setToRunning "curcanvas" [lindex [getFromRunning "canvas_list"] 0]
+
+		if { $cfg_deployed } {
+			readRunningVarsFile $eid_base
+			setToRunning "cfg_deployed" true
 		}
 
+		try {
+			parseImnCtl {*}$cli_args
+		} on error err {
+			puts ""
+			puts "ERROR: $err"
+
+			return
+		}
+
+		if { $cfg_deployed } {
+			# must be done here because we do not remember vars states
+			API_redeployCfg
+
+			return
+		}
+
+		return
+	}
+
+	if { $cli_fname != "" } {
 		global currentFileBatch
-		set currentFileBatch $argv
+		set currentFileBatch $cli_fname
 
 		set curcfg [newObjectId $cfg_list "cfg"]
 		lappend cfg_list $curcfg

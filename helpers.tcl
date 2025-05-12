@@ -59,6 +59,7 @@ proc parseCmdArgs { options usage } {
 	global initMode execMode eid_base debug argv
 	global printVersion prepareFlag forceFlag
 	global nodecreate_timeout ifacesconf_timeout nodeconf_timeout
+	global ctl_mode cli_fname cfg_deployed
 
 	catch { array set params [::cmdline::getoptions argv $options $usage] } err
 	if { $err != "" || $params(h) } {
@@ -66,9 +67,35 @@ proc parseCmdArgs { options usage } {
 		exit 1
 	}
 
-	set fileName [lindex $argv 0]
-	if { ! [ string match "*.imn" $fileName ] && $fileName != "" } {
-		puts stderr "File '$fileName' is not an IMUNES .imn file"
+	set cli_fname $params(topo)
+	if { $params(c) || $params(ctl) } {
+		set ctl_mode 1
+		set execMode batch
+		if { $cli_fname == "" } {
+			set cfg_deployed true
+			if { $params(e) == "" && $params(eid) == "" } {
+				puts stderr "ERROR: Missing -eid or -topo"
+				puts stderr ""
+				puts stderr $usage
+
+				exit 1
+			}
+		}
+	} else {
+		if { $cli_fname == "" } {
+			set cli_fname [lindex $argv 0]
+		}
+	}
+
+	if { $cli_fname != "" && ! [file exists $cli_fname] } {
+		puts stderr "File '$cli_fname' does not exist."
+
+		exit 1
+	}
+
+	if { $cli_fname != "" && ! [ string match "*.imn" $cli_fname] } {
+		puts stderr "File '$cli_fname' is not an IMUNES .imn file"
+
 		exit 1
 	}
 
@@ -76,17 +103,20 @@ proc parseCmdArgs { options usage } {
 		set initMode 1
 	}
 
-	if { $params(b) || $params(batch) } {
-		if { $params(e) == "" && $params(eid) == "" && $fileName == "" } {
-			puts stderr $usage
-			exit 1
+	if { ! $ctl_mode } {
+		if { $params(b) || $params(batch) } {
+			if { $params(e) == "" && $params(eid) == "" && $cli_fname == "" } {
+				puts stderr $usage
+				exit 1
+			}
+			catch { exec id -u } uid
+			if { $uid != "0" } {
+				puts stderr "Error: To execute experiment, run IMUNES with root permissions."
+				exit 1
+			}
+			set execMode batch
+			set cfg_deployed true
 		}
-		catch { exec id -u } uid
-		if { $uid != "0" } {
-			puts stderr "Error: To execute experiment, run IMUNES with root permissions."
-			exit 1
-		}
-		set execMode batch
 	}
 
 	if { $params(d) } {
@@ -97,9 +127,6 @@ proc parseCmdArgs { options usage } {
 		set eid_base $params(e)
 		if { $params(eid) != "" } {
 			set eid_base $params(eid)
-		}
-		if { $params(b) || $params(batch) } {
-			puts "Using experiment ID '$eid_base'."
 		}
 
 		if { ! [regexp {^[[:alnum:]]+$} $eid_base] } {
