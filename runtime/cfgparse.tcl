@@ -1782,35 +1782,96 @@ proc createJson { value_type dictionary } {
 	return $retv
 }
 
-proc dictDiff { dict1 dict2 } {
-	if { $dict1 == "-" } {
-		return [dict map {key value} $dict2 {set value "new"}]
-	}
+proc dictDiff { dict1 dict2 { modifier "" } } {
+	if { $modifier == "invert" } {
+		if { $dict1 == "-" } {
+			return [dict map {key value} $dict2 {set value "new"}]
+		}
 
-	set diff_dict [dict map {key value} $dict1 {set value "removed"}]
+		set diff_dict [dict map {key value} $dict1 {set value "copy"}]
 
-	dict for {key value1} $dict1 {
-		try {
-			dict get $dict2 $key
-		} on ok value2 {
-			if { $value1 == $value2 } {
+		dict for {key value1} $dict1 {
+			try {
+				dict get $dict2 $key
+			} on ok value2 {
+				if { $value1 == $value2 } {
+					dict set diff_dict $key "removed"
+				} elseif { $value2 == "" } {
+					dict set diff_dict $key "removed"
+				} else {
+					dict set diff_dict $key "changed"
+				}
+			} on error {} {}
+		}
+
+		dict for {key value2} $dict2 {
+			try {
+				dict get $dict1 $key
+			} on ok value1 {
+			} on error {} {
 				dict set diff_dict $key "copy"
-			} elseif { $value2 == "" } {
-				dict set diff_dict $key "removed"
-			} else {
-				dict set diff_dict $key "changed"
 			}
-		} on error {} {}
-	}
+		}
+	} elseif { $modifier == "copy_removed" } {
+		if { $dict1 == "-" } {
+			return {}
+		}
 
-	dict for {key value2} $dict2 {
-		try {
-			dict get $dict1 $key
-		} on ok value1 {
-		} on error {} {
-			dict set diff_dict $key "new"
+		set diff_dict [dict map {key value} $dict1 {set value "copy"}]
+
+		dict for {key value1} $dict1 {
+			try {
+				dict get $dict2 $key
+			} on ok value2 {
+				if { $value1 == $value2 } {
+					dict set diff_dict $key "removed"
+				} elseif { $value2 == "" } {
+					dict set diff_dict $key "removed"
+				} else {
+					dict set diff_dict $key "changed"
+				}
+			} on error {} {}
+		}
+
+		dict for {key value2} $dict2 {
+			try {
+				dict get $dict1 $key
+			} on ok value1 {
+			} on error {} {
+				dict set diff_dict $key "new"
+			}
+		}
+	} else {
+		if { $dict1 == "-" } {
+			return [dict map {key value} $dict2 {set value "new"}]
+		}
+
+		set diff_dict [dict map {key value} $dict1 {set value "removed"}]
+
+		dict for {key value1} $dict1 {
+			try {
+				dict get $dict2 $key
+			} on ok value2 {
+				if { $value1 == $value2 } {
+					dict set diff_dict $key "copy"
+				} elseif { $value2 == "" } {
+					dict set diff_dict $key "removed"
+				} else {
+					dict set diff_dict $key "changed"
+				}
+			} on error {} {}
+		}
+
+		dict for {key value2} $dict2 {
+			try {
+				dict get $dict1 $key
+			} on ok value1 {
+			} on error {} {
+				dict set diff_dict $key "new"
+			}
 		}
 	}
 
+	dputs "= diff: '$diff_dict'"
 	return $diff_dict
 }
