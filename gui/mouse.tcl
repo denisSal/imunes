@@ -892,6 +892,24 @@ proc button3node { c x y } {
 					continue
 				}
 
+				if { $action in "node_recreate node_create node_destroy" } {
+					switch -exact $action {
+						"node_recreate" {
+							API_restartNode $node_id
+						}
+						"node_create" {
+							API_startNode $node_id
+						}
+						"node_destroy" {
+							API_stopNode $node_id
+						}
+					}
+
+					redrawAll
+
+					return
+				}
+
 				if {
 					[getFromRunning ${node_id}_running] != true &&
 					($action in "node_destroy" ||

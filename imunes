@@ -33,6 +33,9 @@ LIBDIR=""
 if [ "$1" = "--convert" ] ; then
 	shift 1
 	imunes=$ROOTDIR/$LIBDIR/scripts/convert_to_json.tcl
+elif [ "$1" = "--ctl" ] ; then
+	shift 1
+	imunes=$ROOTDIR/$LIBDIR/scripts/imnctl.tcl
 else
 	imunes=$ROOTDIR/$LIBDIR/imunes.tcl
 fi

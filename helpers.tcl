@@ -55,7 +55,7 @@ proc safeSourceFile { file } {
 	}
 }
 
-proc parseCmdArgs { options usage } {
+proc parseCmdArgs { options usage { skip_file "" } } {
 	global initMode execMode eid_base debug argv
 	global printVersion prepareFlag forceFlag
 	global nodecreate_timeout ifacesconf_timeout nodeconf_timeout
@@ -66,10 +66,12 @@ proc parseCmdArgs { options usage } {
 		exit 1
 	}
 
-	set fileName [lindex $argv 0]
-	if { ! [ string match "*.imn" $fileName ] && $fileName != "" } {
-		puts stderr "File '$fileName' is not an IMUNES .imn file"
-		exit 1
+	if { $skip_file == "" } {
+		set fileName [lindex $argv 0]
+		if { ! [ string match "*.imn" $fileName ] && $fileName != "" } {
+			puts stderr "File '$fileName' is not an IMUNES .imn file"
+			exit 1
+		}
 	}
 
 	if { $params(i) } {
