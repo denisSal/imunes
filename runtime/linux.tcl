@@ -2222,7 +2222,7 @@ proc startRoutingDaemons { node_id } {
     }
 
     foreach protocol { ldp bfd } {
-	if { [getNodeProtocol $node_id $protocol] != 1 } {
+	if { $protocol != "ldp" && [getNodeProtocol $node_id $protocol] != 1 } {
 	    continue
 	}
 
@@ -2230,7 +2230,7 @@ proc startRoutingDaemons { node_id } {
     }
 
     foreach protocol { bgp isis } {
-	if { [getNodeProtocol $node_id $protocol] != 1 } {
+	if { $protocol != "bgp" && [getNodeProtocol $node_id $protocol] != 1 } {
 	    continue
 	}
 
