@@ -1,11 +1,14 @@
-def targets = []
+def targets = ['arch', 'freebsd-14.2']
+
+def linuxAgents = ['arch', 'ubuntu-24.04', 'debian-12']
+def freebsdAgents = ['freebsd-14.2', 'freebsd-14.3', 'freebsd-15.0']
 
 properties([
   buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '10'))
 ])
 
 pipeline {
-	agent any
+	agent none
 
 	parameters {
 		string(name: 'IMUNES_REPO', defaultValue: 'https://github.com/imunes/imunes.git', description: 'IMUNES Git repository URL')
@@ -22,6 +25,7 @@ pipeline {
 
 	environment {
 		ENV_FILE = '/usr/local/etc/jenkins.env'
+		REPO_DIR = '/tmp/imunes_ci'
 		TEST_DIR = '/tmp/imunes-examples'
 	}
 
@@ -42,194 +46,129 @@ pipeline {
 			}
 		}
 
-		stage('Load Env') {
+		stage('Start All Tests') {
 			steps {
 				script {
-					def props = [:]
-					def filePath = "${env.ENV_FILE}"
+					def jobs = [:]
 
-					if (!fileExists(filePath)) {
-						error("Environment file '${filePath}' not found.")
-					}
+					for (int i = 0; i < targets.size(); i++) {
+						def label = targets[i]
+						jobs[label] = {
+							node(label) {
+								def platform = 'unknown'
 
-					def fileContent = readFile(filePath)
-					fileContent.split('\n').each { line ->
-						line = line.trim()
-						if (line && !line.startsWith('#') && line.contains('=')) {
-							def (key, value) = line.split('=', 2)
-							props[key.trim()] = value.trim()
-						}
-					}
-
-					props.each { k, v ->
-						echo "Overriding env: ${k} = ${v}"
-						env."${k}" = v
-					}
-
-					env.LINUX_DEFINED = (props.LINUX_USERNAME && props.LINUX_HOST && props.LINUX_PORT) ? 'true' : 'false'
-					env.FREEBSD_DEFINED = (props.FREEBSD_USERNAME && props.FREEBSD_HOST && props.FREEBSD_PORT) ? 'true' : 'false'
-
-					if (env.LINUX_DEFINED == 'true') {
-						env.LINUX_SSH = "${props.LINUX_USERNAME}@${props.LINUX_HOST}"
-						env.LINUX_PORT = props.LINUX_PORT
-					}
-					if (env.FREEBSD_DEFINED == 'true') {
-						env.FREEBSD_SSH = "${props.FREEBSD_USERNAME}@${props.FREEBSD_HOST}"
-						env.FREEBSD_PORT = props.FREEBSD_PORT
-					}
-				}
-			}
-		}
-
-		stage('Start Tests') {
-			steps {
-				script {
-					def localTargets = []
-
-					if (params.PLATFORM in ['Linux', 'both'] && env.LINUX_DEFINED == 'true') {
-						localTargets << [name: 'Linux', ssh: env.LINUX_SSH, port: env.LINUX_PORT]
-					} else if (params.PLATFORM in ['Linux', 'both']) {
-						echo "⚠️ Linux test config incomplete. Skipping."
-					}
-
-					if (params.PLATFORM in ['FreeBSD', 'both'] && env.FREEBSD_DEFINED == 'true') {
-						localTargets << [name: 'FreeBSD', ssh: env.FREEBSD_SSH, port: env.FREEBSD_PORT]
-					} else if (params.PLATFORM in ['FreeBSD', 'both']) {
-						echo "⚠️ FreeBSD test config incomplete. Skipping."
-					}
-
-					targets = localTargets  // save to shared script scope
-
-					for (target in targets) {
-						def testSet = target.name == 'Linux' ? env.LINUX_TESTS : env.FREEBSD_TESTS
-						def jobs = target.name == 'Linux' ? env.LINUX_JOBS : env.FREEBSD_JOBS
-						def logFile = "${env.TEST_DIR}/test_output_${target.name}.log"
-
-						echo "🚀 Starting tests on ${target.name} with TESTS='${testSet}'"
-						sh """
-						ssh -p ${target.port} ${target.ssh} '
-						rm -rf /tmp/imunes_ci &&
-						git clone --depth 1 --branch ${env.IMUNES_BRANCH} ${env.IMUNES_REPO} /tmp/imunes_ci &&
-						cd /tmp/imunes_ci && sudo make install &&
-						rm -rf ${env.TEST_DIR} &&
-						git clone --depth 1 --branch ${env.EXAMPLES_BRANCH} ${env.EXAMPLES_REPO} ${env.TEST_DIR} &&
-						cd ${env.TEST_DIR} &&
-						(
-							sudo DETAILS=1 LEGACY=1 TESTS="${testSet}" ./testAll.sh -j ${jobs} > ${logFile} 2>&1 < /dev/null &
-						)
-						'
-						"""
-					}
-				}
-			}
-		}
-
-		stage('Poll for Test Completion') {
-			steps {
-				script {
-					def failedTargets = []
-					def finishedTargets = [:]
-					for (target in targets) {
-						finishedTargets[target.name] = false
-					}
-
-					for (int attempt = 1; attempt <= 30; attempt++) {
-						echo "========================== Polling attempt ${attempt}..."
-
-						for (target in targets) {
-							if (finishedTargets.containsKey(target.name) && finishedTargets[target.name]) {
-
-								echo "${target.name} tests already finished. Skipping."
-								continue
-							}
-
-							def testSet = target.name == 'Linux' ? env.LINUX_TESTS : env.FREEBSD_TESTS
-							echo "${target.name} --- waiting for tests: ${testSet}..."
-
-							def logFile = "${env.TEST_DIR}/test_output_${target.name}.log"
-							def result = sh(
-								script: "ssh -p ${target.port} ${target.ssh} 'grep -q \"Finished\" ${logFile}'",
-								returnStatus: true
-							)
-
-							if (result == 0) {
-								echo "${target.name} tests finished ✅"
-
-								def passed = sh(
-									script: "ssh -p ${target.port} ${target.ssh} 'grep -q \"OK\" ${logFile}'",
-									returnStatus: true
-								)
-
-								if (passed == 0) {
-									echo "${target.name} tests passed ✅"
+								if (linuxAgents.contains(label)) {
+									platform = 'linux'
+								} else if (freebsdAgents.contains(label)) {
+									platform = 'freebsd'
 								} else {
-									echo "=== ${target.name} test log start ==="
-									sh "ssh -p ${target.port} ${target.ssh} 'cat ${env.TEST_DIR}/test_output_${target.name}.log'"
-									echo "=== ${target.name} test log end ==="
-									echo "${target.name} tests failed ❌"
-									failedTargets << target.name
+									echo "Unknown platform for label '${label}', skipping."
+									return
 								}
 
-								finishedTargets[target.name] = true
-							} else {
-								echo "${target.name} tests not finished yet."
+								echo "Running on agent: ${env.NODE_NAME} - Detected platform: ${platform}"
+								try {
+									stage("Setup on ${env.NODE_NAME} (${label} - ${platform})") {
+										echo "Running tests on ${label}"
+										sh '''
+										uname -a
+										'''
+
+										def props = [:]
+										def filePath = "${env.ENV_FILE}"
+
+										if (fileExists(filePath)) {
+											def fileContent = readFile(filePath)
+											fileContent.split('\n').each { line ->
+												line = line.trim()
+												if (line && !line.startsWith('#') && line.contains('=')) {
+													def (key, value) = line.split('=', 2)
+													props[key.trim()] = value.trim()
+												}
+											}
+
+											props.each { k, v ->
+												echo "Overriding env: ${k} = ${v}"
+												env."${k}" = v
+											}
+										}
+									}
+
+									stage("Install on ${env.NODE_NAME} (${label} - ${platform})") {
+										sh """
+											rm -rf ${env.REPO_DIR}
+											git clone --depth 1 --branch ${env.IMUNES_BRANCH} ${env.IMUNES_REPO} ${env.REPO_DIR}
+											cd ${env.REPO_DIR} && sudo make install
+
+											rm -rf ${env.TEST_DIR}
+											git clone --depth 1 --branch ${env.EXAMPLES_BRANCH} ${env.EXAMPLES_REPO} ${env.TEST_DIR}
+										"""
+									}
+
+									stage("Testing on ${env.NODE_NAME} (${label} - ${platform})") {
+										def dirName = sh(script: "basename ${env.TEST_DIR}", returnStdout: true).trim()
+										def logFile = "${env.TEST_DIR}/test_output_${label}.log"
+
+										def testSet = ""
+										def jobNums = ""
+										if (platform == 'linux') {
+											testSet = "${env.LINUX_TESTS}"
+											jobNums = "${env.LINUX_JOBS}"
+										} else if (platform == 'freebsd') {
+											testSet = "${env.FREEBSD_TESTS}"
+											jobNums = "${env.FREEBSD_JOBS}"
+										}
+
+										echo "Running tests on ${label} ($testSet)"
+										sh """
+											cd ${env.TEST_DIR}
+											sudo DETAILS=1 LEGACY=1 TESTS="${testSet}" ./testAll.sh -j ${jobNums} | tee ${logFile}
+										"""
+
+										sh "tar czf ${dirName}_${label}.tar.gz ${env.TEST_DIR}"
+										sh "cp ${logFile} ."
+
+										archiveArtifacts artifacts: "${dirName}_${label}.tar.gz,test_output_${label}.log", allowEmptyArchive: true
+
+										def passed = sh(script: "grep -q \"OK\" ${logFile}", returnStatus: true)
+										if (passed == 0) {
+											echo "${label} tests passed ✅"
+										} else {
+											echo "=== ${label} test log start ==="
+											sh "cat ${logFile}"
+											echo "=== ${label} test log end ==="
+											error "${label} tests failed ❌"
+										}
+									}
+								} finally {
+									// TODO: test
+									echo "🔧 Cleaning up remote machine: ${label}"
+									sh "rm -rf ${env.REPO_DIR} ${env.TEST_DIR}"
+									sh "sudo killall testAll.sh || true"
+									sh "sudo cleanupAll || true"
+
+									if (platform == 'linux') {
+										sh '''
+											sudo ip -all netns del || true
+											for d in $(docker ps -a | awk '{print $NF}'); do
+												sudo docker kill $d || true
+												sudo docker rm $d || true
+											done
+										'''
+									} else if (platform == 'freebsd') {
+										sh '''
+											for j in $(sudo jls -a | awk '{print $1}'); do
+												sudo jail -r $j || true
+											done
+										'''
+									}
+								}
 							}
 						}
-
-						if (finishedTargets.values().every { it }) {
-							echo "All tests finished."
-							break
-						}
-
-						sleep time: 30, unit: 'SECONDS'
 					}
 
-					if (!finishedTargets.values().every { it }) {
-						error "Test polling timed out after 30 attempts ⏱️"
-					}
-
-					if (failedTargets.size() > 0) {
-						for (failed in failedTargets) {
-							def target = targets.find { it.name == failed }
-							def remoteLog = "${env.TEST_DIR}/test_output_${failed}.log"
-							echo "=== ${failed} test log start ==="
-							sh "ssh -p ${target.port} ${target.ssh} 'cat ${remoteLog}'"
-							echo "=== ${failed} test log end ==="
-						}
-
-						error("One or more tests failed: ${failedTargets.join(', ')} ❌")
-					}
+					parallel jobs
 				}
-			}
-		}
-	}
-
-	post {
-		always {
-			script {
-				for (target in targets) {
-					def name = target.name
-					def remoteDir = "${env.TEST_DIR}"
-					def archiveName = "imunes-examples-${name}.tar.gz"
-					def localTar = "${archiveName}"
-					def localLog = "test_output_${name}.log"
-					def remoteLog = "${remoteDir}/test_output_${name}.log"
-
-					// Compress the directory remotely
-					sh "ssh -p ${target.port} ${target.ssh} 'tar -czf /tmp/${archiveName} -C /tmp imunes-examples'"
-
-					// Download compressed folder
-					sh "scp -P ${target.port} ${target.ssh}:/tmp/${archiveName} ${localTar}"
-
-					// Download test log separately
-					sh "scp -P ${target.port} ${target.ssh}:${remoteLog} ${localLog}"
-
-					// Optional: clean up remote archive
-					sh "ssh -p ${target.port} ${target.ssh} 'rm -f /tmp/${archiveName}'"
-				}
-
-				// Archive both sets
-				archiveArtifacts artifacts: '*.tar.gz,test_output_*.log', allowEmptyArchive: true
 			}
 		}
 	}
