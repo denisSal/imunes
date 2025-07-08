@@ -12,6 +12,7 @@ proc animateCursor {} {
 
 	if { [clock seconds] == $clock_seconds } {
 		update
+
 		return
 	}
 
@@ -684,14 +685,14 @@ proc button3node { c x y } {
 	.button3menu.connect.selected add command \
 		-label "Star" \
 		-command "Kb $node_id \[lsearch -all -inline -not -exact \
-		\[selectedRealNodes\] $node_id\]"
+			\[selectedRealNodes\] $node_id\]"
 	.button3menu.connect.selected add command \
 		-label "Cycle" -command "C \[selectedRealNodes\]"
 	.button3menu.connect.selected add command \
 		-label "Clique" -command "K \[selectedRealNodes\]"
 	.button3menu.connect.selected add command \
 		-label "Random" -command "R \[selectedRealNodes\] \
-		\[expr \[llength \[selectedRealNodes\]\] - 1\]"
+			\[expr \[llength \[selectedRealNodes\]\] - 1\]"
 	.button3menu.connect add separator
 
 	foreach canvas_id $canvas_list {
@@ -1335,7 +1336,7 @@ proc button1 { c x y button } {
 	set curtype [lindex [$c gettags current] 0]
 	set wasselected 0
 	if { $curtype in "node oval rectangle text freeform" || ( $curtype == "nodelabel" &&
-		 [getNodeType [lindex [$c gettags $curobj] 1]] == "pseudo") } {
+		[getNodeType [lindex [$c gettags $curobj] 1]] == "pseudo") } {
 
 		set node_id [lindex [$c gettags current] 1]
 		set wasselected [expr {$node_id in "[selectedNodes] [selectedAnnotations]"}]
@@ -2048,27 +2049,27 @@ proc button3background { c x y } {
 	# Show canvas background
 	#
 	.button3menu add checkbutton -label "Show background" \
-	-underline 5 -variable show_background_image \
-	-command { redrawAll }
+		-underline 5 -variable show_background_image \
+		-command { redrawAll }
 
 	.button3menu add separator
 	#
 	# Change canvas background
 	#
 	.button3menu add command -label "Change background" \
-			-command "changeBkgPopup"
+		-command "changeBkgPopup"
 
 	#
 	# Remove canvas background
 	#
 	.button3menu add command -label "Remove background" \
-			-command "removeCanvasBkg $curcanvas;
-					  if { \"[getCanvasBkg $curcanvas]\" !=\"\" } {
-						  removeImageReference [getCanvasBkg $curcanvas] $curcanvas
-					  }
-					  redrawAll;
-					  set changed 1;
-					  updateUndoLog"
+		-command "removeCanvasBkg $curcanvas;
+			if { \"[getCanvasBkg $curcanvas]\" !=\"\" } {
+				removeImageReference [getCanvasBkg $curcanvas] $curcanvas
+			}
+			redrawAll;
+			set changed 1;
+			updateUndoLog"
 
 	.button3menu.canvases delete 0 end
 
@@ -2086,11 +2087,11 @@ proc button3background { c x y } {
 		set othercanvsize [getCanvasSize $c]
 		if { $curcanvas != $c && $curcanvas_size == $othercanvsize } {
 			$m add command -label "$canv_name" \
-			-command "setCanvasBkg $curcanvas $canv_bkg;
-					  setImageReference $canv_bkg $curcanvas
-					  redrawAll;
-					  set changed 1;
-					  updateUndoLog"
+				-command "setCanvasBkg $curcanvas $canv_bkg;
+					setImageReference $canv_bkg $curcanvas
+					redrawAll;
+					set changed 1;
+					updateUndoLog"
 		}
 	}
 
