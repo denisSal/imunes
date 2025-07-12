@@ -217,9 +217,9 @@ proc selectNode { c obj } {
 #   Select all object on the canvas.
 #****
 proc selectAllObjects {} {
-	foreach obj [.panwin.f1.c find withtag "node || text || oval || rectangle \
-		|| freeform"] {
-
+	set all_objects [.panwin.f1.c find withtag \
+		"node || text || oval || rectangle || freeform"]
+	foreach obj $all_objects {
 		selectNode .panwin.f1.c $obj
 	}
 }
@@ -421,10 +421,12 @@ proc button3link { c x y } {
 		lassign [logicalPeerByIfc $peer2_id $peer2_iface] peer1_id peer1_iface
 	}
 
-	if { $oper_mode == "edit" || ! $isOSlinux || \
-		 ([getFromRunning "${peer1_id}|${peer1_iface}_running"] && \
-		 [getFromRunning "${peer2_id}|${peer2_iface}_running"]) } {
-
+	if {
+		! $isOSlinux ||
+		$oper_mode == "edit" ||
+		([getFromRunning "${peer1_id}|${peer1_iface}_running"] &&
+		[getFromRunning "${peer2_id}|${peer2_iface}_running"])
+	} {
 		.button3menu add checkbutton -label "Direct link" \
 			-underline 5 -variable linkDirect_$link_id \
 			-command "toggleDirectLink $c $link_id"
@@ -443,11 +445,12 @@ proc button3link { c x y } {
 	#
 	# Delete link (keep ifaces)
 	#
-	if { ($oper_mode == "edit" || ! $isOSlinux || ! [set linkDirect_$link_id]) || \
-		 ($oper_mode == "exec" && \
-		 ! [getFromRunning "${peer1_id}|${peer1_iface}_running"] && \
-		 ! [getFromRunning "${peer2_id}|${peer2_iface}_running"]) } {
-
+	if {
+		($oper_mode == "edit" || ! $isOSlinux || ! [set linkDirect_$link_id]) ||
+		($oper_mode == "exec" &&
+		! [getFromRunning "${peer1_id}|${peer1_iface}_running"] &&
+		! [getFromRunning "${peer2_id}|${peer2_iface}_running"])
+	} {
 		.button3menu add command -label "Delete (keep interfaces)" \
 			-command "removeLinkGUI $link_id atomic 1"
 	} else {
@@ -469,10 +472,11 @@ proc button3link { c x y } {
 	# Merge two pseudo nodes / links
 	#
 	set link_mirror_id [getLinkMirror $link_id]
-	if { $link_mirror_id != "" &&
+	if {
+		$link_mirror_id != "" &&
 		[getNodeCanvas [lindex [getLinkPeers $link_mirror_id] 0]] ==
-		[getFromRunning "curcanvas"] } {
-
+		[getFromRunning "curcanvas"]
+	} {
 		.button3menu add command -label "Merge" \
 			-command "mergeNodeGUI [lindex [getLinkPeers $link_id] 0]"
 	} else {
@@ -514,9 +518,10 @@ proc moveToCanvas { canvas_id } {
 		set link_id [lindex [.panwin.f1.c gettags $obj] 1]
 
 		lassign [getLinkPeers $link_id] peer1_id peer2_id
-		if { ($peer1_id ni $selected_nodes && $peer2_id in $selected_nodes) || \
-			($peer1_id in $selected_nodes && $peer2_id ni $selected_nodes) } {
-
+		if {
+			($peer1_id ni $selected_nodes && $peer2_id in $selected_nodes) ||
+			($peer1_id in $selected_nodes && $peer2_id ni $selected_nodes)
+		} {
 			# pseudo nodes are always peer1
 			if { [getNodeType $peer1_id] == "pseudo" } {
 				setNodeCanvas $peer1_id $canvas_id
@@ -857,14 +862,26 @@ proc button3node { c x y } {
 	#
 	# Delete selection (keep linked interfaces)
 	#
-	if { $oper_mode == "edit" || ! $isOSlinux || ! $has_direct_links } {
-		.button3menu add command -label "Delete (keep interfaces)" -command "deleteSelection 1"
+	if {
+		$oper_mode == "edit" ||
+		! $isOSlinux ||
+		! $has_direct_links
+	} {
+		.button3menu add command \
+			-label "Delete (keep interfaces)" \
+			-command "deleteSelection 1"
 	} else {
-		.button3menu add command -label "Delete (keep interfaces)" -command "deleteSelection 1" \
+		.button3menu add command \
+			-label "Delete (keep interfaces)" \
+			-command "deleteSelection 1" \
 			-state disabled
 	}
 
-	if { $type != "pseudo" && $oper_mode == "exec" && [getFromRunning "auto_execution"] } {
+	if {
+		$type != "pseudo" &&
+		$oper_mode == "exec" &&
+		[getFromRunning "auto_execution"]
+	} {
 		.button3menu add separator
 	}
 
@@ -936,7 +953,11 @@ proc button3node { c x y } {
 	# Node execution menu
 	#
 	.button3menu.node_execute delete 0 end
-	if { $type != "pseudo" && $oper_mode == "exec" && [getFromRunning "auto_execution"] } {
+	if {
+		$type != "pseudo" &&
+		$oper_mode == "exec" &&
+		[getFromRunning "auto_execution"]
+	} {
 		.button3menu add cascade -label "Node execution" \
 			-menu .button3menu.node_execute
 
@@ -952,7 +973,11 @@ proc button3node { c x y } {
 	# Node config menu
 	#
 	.button3menu.node_config delete 0 end
-	if { $type != "pseudo" && $oper_mode == "exec" && [getFromRunning "auto_execution"] } {
+	if {
+		$type != "pseudo" &&
+		$oper_mode == "exec" &&
+		[getFromRunning "auto_execution"]
+	} {
 		.button3menu add cascade -label "Node configuration" \
 			-menu .button3menu.node_config
 
@@ -968,7 +993,11 @@ proc button3node { c x y } {
 	# Ifaces config menu
 	#
 	.button3menu.ifaces_config delete 0 end
-	if { $type != "pseudo" && $oper_mode == "exec" && [getFromRunning "auto_execution"] } {
+	if {
+		$type != "pseudo" &&
+		$oper_mode == "exec" &&
+		[getFromRunning "auto_execution"]
+	} {
 		.button3menu add cascade -label "Ifaces configuration" \
 			-menu .button3menu.ifaces_config
 
@@ -988,9 +1017,11 @@ proc button3node { c x y } {
 	# Services menu
 	#
 	.button3menu.services delete 0 end
-	if { $oper_mode == "exec" && [$type.virtlayer] == "VIRTUALIZED" && \
-		[getFromRunning ${node_id}_running] == true } {
-
+	if {
+		$oper_mode == "exec" &&
+		[$type.virtlayer] == "VIRTUALIZED" &&
+		[getFromRunning ${node_id}_running] == true
+	} {
 		global all_services_list
 
 		.button3menu add cascade -label "Services" \
