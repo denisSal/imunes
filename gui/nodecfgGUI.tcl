@@ -255,10 +255,16 @@ proc configGUI_addTree { wi node_id } {
 			-text [join [lrange $column 1 end]]
 	}
 
-	$wi.panwin.f1.tree heading #0 -command \
-		"if { [lsearch [pack slaves .popup] .popup.nbook] != -1 } {
-			.popup.nbook configure -width 808
-		}"
+	set tmp_command [list apply {
+		{ present } {
+			if { $present != -1 } {
+				.popup.nbook configure -width 808
+			}
+		}
+	} \
+		[lsearch [pack slaves .popup] .popup.nbook]
+	]
+	$wi.panwin.f1.tree heading #0 -command $tmp_command
 	$wi.panwin.f1.tree heading #0 -text "(Expand)"
 
 	#Creating new items
