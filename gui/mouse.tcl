@@ -886,84 +886,26 @@ proc button3node { c x y } {
 	}
 
 	set tmp_command [list apply {
-		{ action } {
-			foreach node_id [selectedNodes] {
-				if { [getNodeType $node_id] == "pseudo" } {
-					continue
-				}
-
-				if { $action in "node_recreate node_create node_destroy" } {
-					switch -exact $action {
-						"node_recreate" {
-							API_restartNode $node_id
-						}
-						"node_create" {
-							API_startNode $node_id
-						}
-						"node_destroy" {
-							API_stopNode $node_id
-						}
-					}
-
-					redrawAll
-
-					return
-				}
-
-				if {
-					[getFromRunning ${node_id}_running] != true &&
-					($action in "node_destroy" ||
-					$action in "node_config node_unconfig node_reconfig" ||
-					$action in "ifaces_config ifaces_unconfig ifaces_reconfig")
-				} {
-					continue
-				}
-
-				switch -exact -- $action {
-					"node_create" {
-						if { [getFromRunning ${node_id}_running] != true } {
-							trigger_nodeCreate $node_id
-						}
-					}
-					"node_destroy" {
-						trigger_nodeDestroy $node_id
-					}
-					"node_recreate" {
-						trigger_nodeRecreate $node_id
-					}
-					"node_config" {
-						trigger_nodeConfig $node_id
-					}
-					"node_unconfig" {
-						trigger_nodeUnconfig $node_id
-					}
-					"node_reconfig" {
-						trigger_nodeReconfig $node_id
-					}
-					"ifaces_config" {
-						foreach iface_id [allIfcList $node_id] {
-							trigger_ifaceConfig $node_id $iface_id
-						}
-					}
-					"ifaces_unconfig" {
-						foreach iface_id [allIfcList $node_id] {
-							trigger_ifaceUnconfig $node_id $iface_id
-						}
-					}
-					"ifaces_reconfig" {
-						foreach iface_id [allIfcList $node_id] {
-							trigger_ifaceReconfig $node_id $iface_id
-						}
-					}
-				}
+		{ type action } {
+			set nodes [selectedNodes]
+			if { $nodes == {} } {
+				return
 			}
 
-			undeployCfg
-			deployCfg
+			if { $type == "iface" } {
+				set nodes_ifaces {}
+				foreach node_id $nodes {
+					lappend nodes_ifaces $node_id *
+				}
 
+				set nodes $nodes_ifaces
+			}
+
+			parseImnCtl $type $action {*}$nodes
 			redrawAll
 		}
 	} \
+		"" \
 		""
 	]
 
@@ -980,11 +922,11 @@ proc button3node { c x y } {
 			-menu .button3menu.node_execute
 
 		.button3menu.node_execute add command -label "Start" \
-			-command [lreplace $tmp_command end end "node_create"]
+			-command [lreplace $tmp_command end-1 end "node" "start"]
 		.button3menu.node_execute add command -label "Stop" \
-			-command [lreplace $tmp_command end end "node_destroy"]
+			-command [lreplace $tmp_command end-1 end "node" "stop"]
 		.button3menu.node_execute add command -label "Restart" \
-			-command [lreplace $tmp_command end end "node_recreate"]
+			-command [lreplace $tmp_command end-1 end "node" "restart"]
 	}
 
 	#
@@ -1000,11 +942,11 @@ proc button3node { c x y } {
 			-menu .button3menu.node_config
 
 		.button3menu.node_config add command -label "Configure" \
-			-command [lreplace $tmp_command end end "node_config"]
+			-command [lreplace $tmp_command end-1 end "node" "config"]
 		.button3menu.node_config add command -label "Unconfigure" \
-			-command [lreplace $tmp_command end end "node_unconfig"]
+			-command [lreplace $tmp_command end-1 end "node" "unconfig"]
 		.button3menu.node_config add command -label "Reconfigure" \
-			-command [lreplace $tmp_command end end "node_reconfig"]
+			-command [lreplace $tmp_command end-1 end "node" "reconfig"]
 	}
 
 	#
@@ -1020,11 +962,11 @@ proc button3node { c x y } {
 			-menu .button3menu.ifaces_config
 
 		.button3menu.ifaces_config add command -label "Configure" \
-			-command [lreplace $tmp_command end end "ifaces_config"]
+			-command [lreplace $tmp_command end-1 end "iface" "config"]
 		.button3menu.ifaces_config add command -label "Unconfigure" \
-			-command [lreplace $tmp_command end end "ifaces_unconfig"]
+			-command [lreplace $tmp_command end-1 end "iface" "unconfig"]
 		.button3menu.ifaces_config add command -label "Reconfigure" \
-			-command [lreplace $tmp_command end end "ifaces_reconfig"]
+			-command [lreplace $tmp_command end-1 end "iface" "reconfig"]
 	}
 
 	if { $type != "pseudo" && [$type.netlayer] != "LINK" } {

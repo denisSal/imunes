@@ -334,20 +334,11 @@ if { [file exists $configFile] } {
 	readRunningVarsFile $eid_base
 	setToRunning "cfg_deployed" true
 
-	set rest [lassign $argv command]
-	switch -exact $command {
-		"restart" {
-			set node_id [getNodeFromHostname [lindex $rest 0]]
-			API_restartNode $node_id
-		}
-		"start" {
-			set node_id [getNodeFromHostname [lindex $rest 0]]
-			API_startNode $node_id
-		}
-		"stop" {
-			set node_id [getNodeFromHostname [lindex $rest 0]]
-			API_stopNode $node_id
-		}
+	try {
+		parseImnCtl {*}$argv
+	} on error err {
+		puts ""
+		puts "ERROR: $err"
 	}
 } else {
 	puts "No experiment with eid $eid_base"
