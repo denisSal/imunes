@@ -1918,6 +1918,19 @@ proc getNodeFromHostname { hostname } {
 	return ""
 }
 
+proc getNodeIdFromHostname { node_id_name } {
+	if { $node_id_name in [getFromRunning "node_list"] } {
+		return $node_id_name
+	}
+
+	set node_id [getNodeFromHostname $node_id_name]
+	if { $node_id != "" } {
+		return $node_id
+	}
+
+	return ""
+}
+
 #****f* nodecfg.tcl/getAllIpAddresses
 # NAME
 #   getAllIpAddresses -- retreives all IP addresses for current node

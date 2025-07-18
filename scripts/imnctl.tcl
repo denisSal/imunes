@@ -115,7 +115,7 @@ set options {
 }
 
 set usage [getPrettyUsage $options]
-parseCmdArgs $options $usage
+parseCmdArgs $options $usage "skip_file"
 
 set baseTitle "IMUNES"
 set imunesVersion "Unknown"
@@ -145,10 +145,6 @@ foreach file [glob -directory $ROOTDIR/$LIBDIR/runtime *.tcl] {
 	if { [string match -nocase "*linux.tcl" $file] != 1 } {
 		safeSourceFile $file
 	}
-}
-
-if { ! [info exists eid_base] } {
-	set eid_base [genExperimentId]
 }
 
 # bases for naming new nodes
@@ -301,8 +297,16 @@ if { $execMode == "interactive" } {
 	set execMode "batch"
 }
 
-set configFile "$runtimeDir/$eid_base/config.imn"
-set configFile [lindex $argv 0]
+set cfg_deployed false
+if { ! [info exists eid_base] } {
+	set eid_base [genExperimentId]
+	set cli_args [lassign $argv configFile]
+} else {
+	set configFile "$runtimeDir/$eid_base/config.imn"
+	set cli_args $argv
+	set cfg_deployed true
+}
+
 if { [file exists $configFile] } {
 	set curcfg [newObjectId $cfg_list "cfg"]
 	lappend cfg_list $curcfg
@@ -332,14 +336,23 @@ if { [file exists $configFile] } {
 	readCfgJson $configFile
 	setToRunning "curcanvas" [lindex [getFromRunning "canvas_list"] 0]
 
-	#readRunningVarsFile $eid_base
-	#setToRunning "cfg_deployed" true
+	if { $cfg_deployed } {
+		readRunningVarsFile $eid_base
+		setToRunning "cfg_deployed" true
+	}
 
 	try {
-		parseImnCtl {*}[lrange $argv 1 end]
+		parseImnCtl {*}$cli_args
 	} on error err {
 		puts ""
 		puts "ERROR: $err"
+
+		return
+	}
+
+	if { $cfg_deployed } {
+		undeployCfg
+		deployCfg
 	}
 } else {
 	puts "No experiment with eid $eid_base"
