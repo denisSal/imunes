@@ -6,7 +6,7 @@ proc parseImnCtl { args } {
 	puts "ACTION: '$action'"
 	puts "REST: '$rest'"
 
-	switch -exact $type {
+	switch -exact -- $type {
 		"node" {
 			parseImnCtlNode $action {*}$rest
 		}
@@ -26,12 +26,83 @@ proc parseImnCtl { args } {
 }
 
 proc parseImnCtlNode { action args } {
+	set update_actions "update modify delete"
 	set execute_actions "start stop restart"
 	set config_actions "config unconfig reconfig"
+	set edit_actions "name"
 
-	set actions [concat $execute_actions $config_actions]
+	set actions [concat "edit" $update_actions $execute_actions $config_actions]
 	if { $action ni $actions } {
 		return -code error "Unknown node action '$action'"
+	}
+
+	if { $action in $update_actions } {
+		set json [lassign $args node_id]
+		puts "JSON: '$json'"
+		set json_dict [json::json2dict $json]
+		puts "JSON_DICT: '$json_dict'"
+
+		switch -exact -- $action {
+			"update" {
+				# node full update
+				updateNode $node_id "*" $json_dict
+			}
+
+			"modify" {
+				# node delta modify (no delete)
+				modifyNode $node_id "*" $json_dict
+			}
+
+			"delete" {
+				# node delta delete
+				deleteInNode $node_id "*" $json_dict
+			}
+
+			default {
+				return -code error "No node update action '$action'"
+			}
+		}
+
+		saveCfgJson [getFromRunning "current_file"]
+
+		return
+	}
+
+	if { $action == "edit" } {
+		set rest [lassign $args node_id command]
+		switch -exact -- $command {
+			"delete" -
+			"set" {
+				lassign $rest attribute new_value
+				if { $command == "delete" } {
+					set new_value ""
+				}
+
+				switch -exact -- $attribute {
+					"name" {
+						# validate name
+						setNodeName $node_id $new_value
+					}
+
+					default {
+						return -code error "No node attribute '$attribute'"
+					}
+				}
+
+				saveCfgJson [getFromRunning "current_file"]
+			}
+
+			"get" {
+				lassign $rest attribute
+				puts [getNodeName $node_id]
+			}
+
+			default {
+				return -code error "No command '$command'"
+			}
+		}
+
+		return
 	}
 
 	set node_list [getFromRunning "node_list"]
@@ -59,7 +130,7 @@ proc parseImnCtlNode { action args } {
 		return -code error "No nodes found!"
 	}
 
-	switch -exact $action {
+	switch -exact -- $action {
 		"start" {
 			API_startNodes $nodes
 		}
@@ -94,7 +165,7 @@ proc parseImnCtlLink { action args } {
 		return -code error "Unknown link action '$action'"
 	}
 
-	switch -exact $action {
+	switch -exact -- $action {
 	}
 
 	return
@@ -160,7 +231,7 @@ proc parseImnCtlIface { action args } {
 		return -code error "No nodes found!"
 	}
 
-	switch -exact $action {
+	switch -exact -- $action {
 		"config" {
 			API_configIfaces $nodes_ifaces_parsed
 		}

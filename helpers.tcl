@@ -66,6 +66,7 @@ proc parseCmdArgs { options usage { skip_file "" } } {
 		exit 1
 	}
 
+	set fileName ""
 	if { $skip_file == "" } {
 		set fileName [lindex $argv 0]
 		if { ! [ string match "*.imn" $fileName ] && $fileName != "" } {

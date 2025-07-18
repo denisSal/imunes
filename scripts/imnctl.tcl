@@ -115,7 +115,7 @@ set options {
 }
 
 set usage [getPrettyUsage $options]
-parseCmdArgs $options $usage "skip_file"
+parseCmdArgs $options $usage
 
 set baseTitle "IMUNES"
 set imunesVersion "Unknown"
@@ -302,6 +302,7 @@ if { $execMode == "interactive" } {
 }
 
 set configFile "$runtimeDir/$eid_base/config.imn"
+set configFile [lindex $argv 0]
 if { [file exists $configFile] } {
 	set curcfg [newObjectId $cfg_list "cfg"]
 	lappend cfg_list $curcfg
@@ -331,11 +332,11 @@ if { [file exists $configFile] } {
 	readCfgJson $configFile
 	setToRunning "curcanvas" [lindex [getFromRunning "canvas_list"] 0]
 
-	readRunningVarsFile $eid_base
-	setToRunning "cfg_deployed" true
+	#readRunningVarsFile $eid_base
+	#setToRunning "cfg_deployed" true
 
 	try {
-		parseImnCtl {*}$argv
+		parseImnCtl {*}[lrange $argv 1 end]
 	} on error err {
 		puts ""
 		puts "ERROR: $err"
