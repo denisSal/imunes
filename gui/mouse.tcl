@@ -886,66 +886,65 @@ proc button3node { c x y } {
 	}
 
 	set tmp_command [list apply {
-		{ action } {
-			foreach node_id [selectedNodes] {
-				if { [getNodeType $node_id] == "pseudo" } {
-					continue
-				}
+		{ type action } {
+			set nodes [selectedNodes]
+			if { $nodes == {} } {
+				return
+			}
 
-				if {
-					[getFromRunning ${node_id}_running] != true &&
-					($action in "node_destroy" ||
-					$action in "node_config node_unconfig node_reconfig" ||
-					$action in "ifaces_config ifaces_unconfig ifaces_reconfig")
-				} {
-					continue
+			if { $type == "iface" } {
+				set nodes_ifaces {}
+				foreach node_id $nodes {
+					lappend nodes_ifaces "$node_id [list [allIfcList $node_id]]"
 				}
 
 				switch -exact -- $action {
-					"node_create" {
-						if { [getFromRunning ${node_id}_running] != true } {
-							trigger_nodeCreate $node_id
-						}
+					"config" {
+						API_configIfaces $nodes_ifaces
 					}
-					"node_destroy" {
-						trigger_nodeDestroy $node_id
+
+					"unconfig" {
+						API_unconfigIfaces $nodes_ifaces
 					}
-					"node_recreate" {
-						trigger_nodeRecreate $node_id
+
+					"reconfig" {
+						API_reconfigIfaces $nodes_ifaces
 					}
-					"node_config" {
-						trigger_nodeConfig $node_id
+				}
+			} else {
+				switch -exact -- $action {
+					"start" {
+						API_startNodes $nodes
 					}
-					"node_unconfig" {
-						trigger_nodeUnconfig $node_id
+
+					"stop" {
+						API_stopNodes $nodes
 					}
-					"node_reconfig" {
-						trigger_nodeReconfig $node_id
+
+					"restart" {
+						API_restartNodes $nodes
 					}
-					"ifaces_config" {
-						foreach iface_id [allIfcList $node_id] {
-							trigger_ifaceConfig $node_id $iface_id
-						}
+
+					"config" {
+						API_configNodes $nodes
 					}
-					"ifaces_unconfig" {
-						foreach iface_id [allIfcList $node_id] {
-							trigger_ifaceUnconfig $node_id $iface_id
-						}
+
+					"unconfig" {
+						API_unconfigNodes $nodes
 					}
-					"ifaces_reconfig" {
-						foreach iface_id [allIfcList $node_id] {
-							trigger_ifaceReconfig $node_id $iface_id
-						}
+
+					"reconfig" {
+						API_reconfigNodes $nodes
 					}
 				}
 			}
 
-			undeployCfg
-			deployCfg
+			API_redeployCfg
 
 			redrawAll
 		}
 	} \
+		"" \
 		""
 	]
 
@@ -962,11 +961,11 @@ proc button3node { c x y } {
 			-menu .button3menu.node_execute
 
 		.button3menu.node_execute add command -label "Start" \
-			-command [lreplace $tmp_command end end "node_create"]
+			-command [lreplace $tmp_command end-1 end "node" "start"]
 		.button3menu.node_execute add command -label "Stop" \
-			-command [lreplace $tmp_command end end "node_destroy"]
+			-command [lreplace $tmp_command end-1 end "node" "stop"]
 		.button3menu.node_execute add command -label "Restart" \
-			-command [lreplace $tmp_command end end "node_recreate"]
+			-command [lreplace $tmp_command end-1 end "node" "restart"]
 	}
 
 	#
@@ -982,11 +981,11 @@ proc button3node { c x y } {
 			-menu .button3menu.node_config
 
 		.button3menu.node_config add command -label "Configure" \
-			-command [lreplace $tmp_command end end "node_config"]
+			-command [lreplace $tmp_command end-1 end "node" "config"]
 		.button3menu.node_config add command -label "Unconfigure" \
-			-command [lreplace $tmp_command end end "node_unconfig"]
+			-command [lreplace $tmp_command end-1 end "node" "unconfig"]
 		.button3menu.node_config add command -label "Reconfigure" \
-			-command [lreplace $tmp_command end end "node_reconfig"]
+			-command [lreplace $tmp_command end-1 end "node" "reconfig"]
 	}
 
 	#
@@ -1002,11 +1001,11 @@ proc button3node { c x y } {
 			-menu .button3menu.ifaces_config
 
 		.button3menu.ifaces_config add command -label "Configure" \
-			-command [lreplace $tmp_command end end "ifaces_config"]
+			-command [lreplace $tmp_command end-1 end "iface" "config"]
 		.button3menu.ifaces_config add command -label "Unconfigure" \
-			-command [lreplace $tmp_command end end "ifaces_unconfig"]
+			-command [lreplace $tmp_command end-1 end "iface" "unconfig"]
 		.button3menu.ifaces_config add command -label "Reconfigure" \
-			-command [lreplace $tmp_command end end "ifaces_reconfig"]
+			-command [lreplace $tmp_command end-1 end "iface" "reconfig"]
 	}
 
 	if { $type != "pseudo" && [$type.netlayer] != "LINK" } {
