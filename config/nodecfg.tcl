@@ -970,7 +970,7 @@ proc setNodeSnapshot { node_id snapshot } {
 #   * coords -- coordinates of the node's icon in form of {Xcoord Ycoord}
 #****
 proc getNodeCoords { node_id } {
-	return [cfgGet "nodes" $node_id "iconcoords"]
+	return [cfgGet "gui" "nodes" $node_id "iconcoords"]
 }
 
 #****f* nodecfg.tcl/setNodeCoords
@@ -994,7 +994,7 @@ proc setNodeCoords { node_id coords } {
 		set roundcoords "0 0"
 	}
 
-	cfgSet "nodes" $node_id "iconcoords" $roundcoords
+	cfgSet "gui" "nodes" $node_id "iconcoords" $roundcoords
 }
 
 #****f* nodecfg.tcl/getNodeLabelCoords
@@ -1010,7 +1010,7 @@ proc setNodeCoords { node_id coords } {
 #   * coords -- coordinates of the node's label in form of {Xcoord Ycoord}
 #****
 proc getNodeLabelCoords { node_id } {
-	return [cfgGet "nodes" $node_id "labelcoords"]
+	return [cfgGet "gui" "nodes" $node_id "labelcoords"]
 }
 
 #****f* nodecfg.tcl/setNodeLabelCoords
@@ -1034,7 +1034,7 @@ proc setNodeLabelCoords { node_id coords } {
 		set roundcoords "0 0"
 	}
 
-	cfgSet "nodes" $node_id "labelcoords" $roundcoords
+	cfgSet "gui" "nodes" $node_id "labelcoords" $roundcoords
 }
 
 #****f* nodecfg.tcl/getNodeCPUConf
@@ -1134,7 +1134,7 @@ proc removeNode { node_id { keep_other_ifaces 0 } } {
 #   * canvas_id -- canvas id
 #****
 proc getNodeCanvas { node_id } {
-	return [cfgGet "nodes" $node_id "canvas"]
+	return [cfgGet "gui" "nodes" $node_id "canvas"]
 }
 
 #****f* nodecfg.tcl/setNodeCanvas
@@ -1149,7 +1149,7 @@ proc getNodeCanvas { node_id } {
 #   * canvas_id -- canvas id
 #****
 proc setNodeCanvas { node_id canvas_id } {
-	cfgSet "nodes" $node_id "canvas" $canvas_id
+	cfgSet "gui" "nodes" $node_id "canvas" $canvas_id
 }
 
 #****f* editor.tcl/setNodeCustomIcon
@@ -1164,7 +1164,7 @@ proc setNodeCanvas { node_id canvas_id } {
 #   * icon_name -- icon name
 #****
 proc setNodeCustomIcon { node_id icon_name } {
-	cfgSet "nodes" $node_id "custom_icon" $icon_name
+	cfgSet "gui" "nodes" $node_id "custom_icon" $icon_name
 }
 
 #****f* editor.tcl/getNodeCustomIcon
@@ -1178,7 +1178,7 @@ proc setNodeCustomIcon { node_id icon_name } {
 #   * node_id -- node to get the icon from
 #****
 proc getNodeCustomIcon { node_id } {
-	return [cfgGet "nodes" $node_id "custom_icon"]
+	return [cfgGet "gui" "nodes" $node_id "custom_icon"]
 }
 
 #****f* editor.tcl/removeNodeCustomIcon
@@ -1192,7 +1192,7 @@ proc getNodeCustomIcon { node_id } {
 #   * node_id -- node to remove the icon from
 #****
 proc removeNodeCustomIcon { node_id } {
-	cfgUnset "nodes" $node_id "custom_icon"
+	cfgUnset "gui" "nodes" $node_id "custom_icon"
 }
 
 #****f* nodecfg.tcl/newNode
@@ -1252,7 +1252,7 @@ proc newNode { type } {
 #   * mirror_node_id -- node id of a mirror node
 #****
 proc getNodeMirror { node_id } {
-	return [cfgGet "nodes" $node_id "mirror"]
+	return [cfgGet "gui" "nodes" $node_id "mirror"]
 }
 
 #****f* nodecfg.tcl/setNodeMirror
@@ -1271,7 +1271,7 @@ proc getNodeMirror { node_id } {
 #   * value -- node id of a mirror node
 #****
 proc setNodeMirror { node_id value } {
-	cfgSet "nodes" $node_id "mirror" $value
+	cfgSet "gui" "nodes" $node_id "mirror" $value
 }
 
 #****f* nodecfg.tcl/getNodeProtocol
@@ -2184,6 +2184,8 @@ proc updateNode { node_id old_node_cfg new_node_cfg { modifier "" } } {
 		switch -exact $key {
 			"name" {
 				setNodeName $node_id $new_value
+				# TODO: move to GUI updateNode proc
+				setNodeLabel $node_id $new_value
 			}
 
 			"custom_image" {
