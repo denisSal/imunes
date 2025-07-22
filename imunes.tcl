@@ -355,12 +355,14 @@ if { $execMode == "interactive" } {
 
 		namespace eval ::cf::[set curcfg] {}
 		upvar 0 ::cf::[set ::curcfg]::dict_run dict_run
+		upvar 0 ::cf::[set ::curcfg]::dict_run_gui dict_run_gui
 		upvar 0 ::cf::[set ::curcfg]::execute_vars execute_vars
 		upvar 0 ::cf::[set ::curcfg]::dict_cfg dict_cfg
 		set dict_cfg [dict create]
 		setOption "version" $CFG_VERSION
 
 		set dict_run [dict create]
+		set dict_run_gui [dict create]
 		set execute_vars [dict create]
 
 		setToRunning "eid" ""
@@ -370,11 +372,13 @@ if { $execMode == "interactive" } {
 		setToRunning "stop_sched" true
 		setToRunning "undolevel" 0
 		setToRunning "redolevel" 0
-		setToRunning "zoom" $zoom
+		setToRunning_gui "zoom" $zoom
+		setToRunning_gui "canvas_list" {}
+		setToRunning "current_file" $currentFileBatch
 
 		readCfgJson $currentFileBatch
 
-		setToRunning "curcanvas" [lindex [getFromRunning "canvas_list"] 0]
+		setToRunning_gui "curcanvas" [lindex [getFromRunning_gui "canvas_list"] 0]
 		setToRunning "cwd" [pwd]
 		setToRunning "current_file" $argv
 
@@ -401,12 +405,14 @@ if { $execMode == "interactive" } {
 
 			namespace eval ::cf::[set curcfg] {}
 			upvar 0 ::cf::[set ::curcfg]::dict_run dict_run
+			upvar 0 ::cf::[set ::curcfg]::dict_run_gui dict_run_gui
 			upvar 0 ::cf::[set ::curcfg]::execute_vars execute_vars
 			upvar 0 ::cf::[set ::curcfg]::dict_cfg dict_cfg
 			set dict_cfg [dict create]
 			setOption "version" $CFG_VERSION
 
 			set dict_run [dict create]
+			set dict_run_gui [dict create]
 			set execute_vars [dict create]
 
 			setToRunning "eid" $eid_base
@@ -416,12 +422,12 @@ if { $execMode == "interactive" } {
 			setToRunning "stop_sched" true
 			setToRunning "undolevel" 0
 			setToRunning "redolevel" 0
-			setToRunning "zoom" $zoom
-			setToRunning "canvas_list" {}
+			setToRunning_gui "zoom" $zoom
+			setToRunning_gui "canvas_list" {}
 			setToRunning "current_file" $configFile
 
 			readCfgJson $configFile
-			setToRunning "curcanvas" [lindex [getFromRunning "canvas_list"] 0]
+			setToRunning_gui "curcanvas" [lindex [getFromRunning_gui "canvas_list"] 0]
 
 			readRunningVarsFile $eid_base
 			setToRunning "cfg_deployed" true

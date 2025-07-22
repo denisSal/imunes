@@ -71,7 +71,7 @@ proc copySelection {} {
 	clipboardSet "annotation_list" {}
 	foreach annotation_id $selected_annotations {
 		clipboardLappend "annotation_list" $annotation_id
-		clipboardSet "annotations" $annotation_id [cfgGet "annotations" $annotation_id]
+		clipboardSet "gui" "annotations" $annotation_id [cfgGet "gui" "annotations" $annotation_id]
 	}
 
 	# Copy selected nodes and interconnecting links to the clipboard
@@ -118,19 +118,19 @@ proc paste {} {
 
 	# Nothing to do if clipboards are empty
 	set clipboard_node_list [clipboardGet "node_list"]
-	set clipboard_annotations [clipboardGet "annotations"]
+	set clipboard_annotations [clipboardGet "gui" "annotations"]
 	if { $clipboard_node_list == {} && $clipboard_annotations == {} } {
 		return
 	}
 
 	set new_annotations {}
-	set curcanvas [getFromRunning "curcanvas"]
+	set curcanvas [getFromRunning_gui "curcanvas"]
 	# Paste annotations from the clipboard and rename them on the fly
 	foreach {annotation_orig annotation_orig_cfg} $clipboard_annotations {
-		set new_annotation_id [newObjectId [getFromRunning "annotation_list"] "a"]
+		set new_annotation_id [newObjectId [getFromRunning_gui "annotation_list"] "a"]
 
-		cfgSet "annotations" $new_annotation_id $annotation_orig_cfg
-		lappendToRunning "annotation_list" $new_annotation_id
+		cfgSet "gui" "annotations" $new_annotation_id $annotation_orig_cfg
+		lappendToRunning_gui "annotation_list" $new_annotation_id
 		lappend new_annotations $new_annotation_id
 
 		setAnnotationCanvas $new_annotation_id $curcanvas
