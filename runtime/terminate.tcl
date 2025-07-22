@@ -98,19 +98,6 @@ proc terminate_linksDestroy { eid links links_count w } {
 		lassign [getLinkPeersIfaces $link_id] iface1_id iface2_id
 
 		set msg "Destroying link $link_id"
-		set mirror_link_id [getLinkMirror $link_id]
-		if { $mirror_link_id != "" } {
-			lappend skipLinks $mirror_link_id
-
-			set msg "Destroying link $link_id/$mirror_link_id"
-
-			# switch direction for mirror links
-			lassign "$node2_id [lindex [getLinkPeers $mirror_link_id] 1]" node1_id node2_id
-			lassign "$iface2_id [lindex [getLinkPeersIfaces $mirror_link_id] 1]" iface1_id iface2_id
-
-			setToRunning "${mirror_link_id}_running" false
-		}
-
 		if { [getFromRunning "${link_id}_running"] == true } {
 			try {
 				destroyLinkBetween $eid $node1_id $node2_id $iface1_id $iface2_id $link_id
@@ -148,7 +135,6 @@ proc terminate_nodesDestroy { eid nodes nodes_count w } {
 		displayBatchProgress $batchStep $nodes_count
 
 		if {
-			[getNodeType $node_id] != "pseudo" &&
 			[getFromRunning "${node_id}_running"] in "true delete"
 		} {
 			try {
@@ -296,31 +282,25 @@ proc undeployCfg { { eid "" } { terminate 0 } } {
 	set native_nodes {}
 	set virtualized_nodes {}
 	set all_nodes {}
-	set pseudoNodesCount 0
 	foreach node_id $terminate_nodes {
 		set node_type [getNodeType $node_id]
-		if { $node_type != "pseudo" } {
-			if { [$node_type.virtlayer] == "NATIVE" } {
-				if { $node_type == "rj45" } {
-					lappend extifcs $node_id
-					lappend native_nodes $node_id
-				} elseif { $node_type == "ext" && [getNodeNATIface $node_id] != "UNASSIGNED" } {
-					lappend virtualized_nodes $node_id
-				} else {
-					lappend native_nodes $node_id
-				}
-			} else {
+		if { [$node_type.virtlayer] == "NATIVE" } {
+			if { $node_type == "rj45" } {
+				lappend extifcs $node_id
+				lappend native_nodes $node_id
+			} elseif { $node_type == "ext" && [getNodeNATIface $node_id] != "UNASSIGNED" } {
 				lappend virtualized_nodes $node_id
+			} else {
+				lappend native_nodes $node_id
 			}
 		} else {
-			incr pseudoNodesCount
+			lappend virtualized_nodes $node_id
 		}
 	}
 	set native_nodes_count [llength $native_nodes]
 	set virtualized_nodes_count [llength $virtualized_nodes]
 	set all_nodes [concat $native_nodes $virtualized_nodes]
 	set all_nodes_count [llength $all_nodes]
-	incr links_count [expr -$pseudoNodesCount/2]
 
 	set destroy_nodes_ifaces_count 0
 	set destroy_nodes_extifaces {}

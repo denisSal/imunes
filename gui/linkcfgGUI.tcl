@@ -61,19 +61,15 @@ proc toggleDirectLink { c link_id } {
 		set link_id [lindex [$c gettags current] 1]
 	}
 
+	lassign [linkFromPseudoLink $link_id] real_link_id - -
+
 	if { [getFromRunning "cfg_deployed"] && [getFromRunning "auto_execution"] } {
 		setToExecuteVars "terminate_cfg" [cfgGet]
 	}
 
-	set new_value [expr [getLinkDirect $link_id] ^ 1]
-	setLinkDirect $link_id $new_value
-
-	set mirror_link_id [getLinkMirror $link_id]
-	if { $mirror_link_id != "" } {
-		setLinkDirect $mirror_link_id $new_value
-		updateLinkLabel $mirror_link_id
-	}
-	updateLinkLabel $link_id
+	set new_value [expr [getLinkDirect $real_link_id] ^ 1]
+	setLinkDirect $real_link_id $new_value
+	updateLinkLabel $real_link_id
 
 	undeployCfg
 	deployCfg
@@ -544,12 +540,8 @@ proc configGUI_linkConfigApply { wi link_id } {
 proc configGUI_linkColorApply { wi link_id } {
 	global changed link_color
 
-	set mirror [getLinkMirror $link_id]
 	if { $link_color != [getLinkColor $link_id] } {
 		setLinkColor $link_id $link_color
-		if { $mirror != "" } {
-			setLinkColor $mirror $link_color
-		}
 
 		set changed 1
 	}
