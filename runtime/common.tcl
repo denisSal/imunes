@@ -988,6 +988,8 @@ proc refreshRunningExperimentGUI {} {
 	try {
 		refreshRunningExperiment
 	} on ok eid {
+		toggleAutoExecutionGUI [getFromRunning "auto_execution"]
+
 		return $eid
 	} on error err {
 		statline $err
@@ -1024,7 +1026,6 @@ proc refreshRunningExperiment {} {
 	readRunningVarsFile $eid
 	setToRunning "cfg_deployed" true
 	setOperMode exec
-	toggleAutoExecutionGUI [getFromRunning "auto_execution"]
 
 	return -code ok $eid
 }
