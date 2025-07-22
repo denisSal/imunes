@@ -96,13 +96,6 @@ proc removeLink { link_id { keep_ifaces 0 } } {
 		removeLink $mirror_link_id $keep_ifaces
 	}
 
-	foreach node_id "$node1_id $node2_id" {
-		if { [getNodeType $node_id] == "pseudo" } {
-			setToRunning "node_list" [removeFromList [getFromRunning "node_list"] $node_id]
-			cfgUnset "nodes" $node_id
-		}
-	}
-
 	setToRunning "link_list" [removeFromList [getFromRunning "link_list"] $link_id]
 
 	cfgUnset "links" $link_id

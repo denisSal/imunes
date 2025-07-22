@@ -118,8 +118,8 @@ proc splitLink { orig_link_id } {
 	set links "$orig_link_id $mirror_link_id"
 
 	# create pseudo nodes
-	set pseudo_nodes [newNode "pseudo"]
-	lappend pseudo_nodes [newNode "pseudo"]
+	set pseudo_nodes [newPseudoNode $orig_node1_id]
+	lappend pseudo_nodes [newPseudoNode $orig_node2_id]
 
 	foreach orig_node_id $orig_nodes orig_node_iface_id $orig_ifaces pseudo_node_id $pseudo_nodes link_id $links {
 		set other_orig_node_id [removeFromList $orig_nodes $orig_node_id "keep_doubles"]
@@ -192,3 +192,4 @@ proc mergeLink { link_id } {
 
 	return $link_id
 }
+

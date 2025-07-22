@@ -166,7 +166,7 @@ proc getSubnetData { this_node_id this_iface_id subnet_gws nodes_l2data subnet_i
 	dict set nodes_l2data $this_node_id $this_iface_id $subnet_idx
 
 	set this_type [getNodeType $this_node_id]
-	if { $this_type in "\"\" pseudo" } {
+	if { $this_type in "" } {
 		return [list $subnet_gws $nodes_l2data]
 	}
 
@@ -436,9 +436,7 @@ proc newNode { type } {
 	}
 
 	setNodeType $node_id $type
-	if { $type != "pseudo" } {
-		setToRunning "${node_id}_running" false
-	}
+	setToRunning "${node_id}_running" false
 
 	lappendToRunning "node_list" $node_id
 

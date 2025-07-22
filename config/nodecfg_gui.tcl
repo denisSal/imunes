@@ -26,30 +26,11 @@
 # and Technology through the research contract #IP-2003-143.
 #
 
-#****f* nodecfg_gui.tcl/pseudo.netlayer
-# NAME
-#   pseudo.netlayer -- pseudo layer
-# SYNOPSIS
-#   set layer [pseudo.netlayer]
-# FUNCTION
-#   Returns the layer on which the pseudo node operates
-#   i.e. returns no layer.
-# RESULT
-#   * layer -- returns an empty string
-#****
-proc pseudo.netlayer {} {
-}
+proc newPseudoNode { orig_node } {
+	global viewid
+	catch { unset viewid }
 
-#****f* nodecfg_gui.tcl/pseudo.virtlayer
-# NAME
-#   pseudo.virtlayer -- pseudo virtlayer
-# SYNOPSIS
-#   set virtlayer [pseudo.virtlayer]
-# FUNCTION
-#   Returns the virtlayer on which the pseudo node operates
-#   i.e. returns no layer.
-# RESULT
-#   * virtlayer -- returns an empty string
-#****
-proc pseudo.virtlayer {} {
+	set pseudo_node_id [string map {"n" "p"} $orig_node]
+
+	return $pseudo_node_id
 }

@@ -2041,13 +2041,6 @@ proc execSetLinkParams { eid link_id } {
 	lassign [getLinkPeers $link_id] node1_id node2_id
 	lassign [getLinkPeersIfaces $link_id] iface1_id iface2_id
 
-	set mirror_link_id [getLinkMirror $link_id]
-	if { $mirror_link_id != "" } {
-		# pseudo nodes are always peer1
-		set node1_id [lindex [getLinkPeers $mirror_link_id] 1]
-		set iface1_id [lindex [getLinkPeersIfaces $mirror_link_id] 1]
-	}
-
 	set bandwidth [expr [getLinkBandwidth $link_id] + 0]
 	set delay [expr [getLinkDelay $link_id] + 0]
 	set ber [expr [getLinkBER $link_id] + 0]
