@@ -340,9 +340,7 @@ proc reloadSources {} {
 		}
 	}
 
-	if { $debug } {
-		safeSourceFile "$ROOTDIR/$LIBDIR/gui/debug.tcl"
-	}
+	safeSourceFile "$ROOTDIR/$LIBDIR/gui/debug.tcl"
 
 	applyOptions
 
