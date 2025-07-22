@@ -460,10 +460,6 @@ proc execSetIfcQDisc { eid node_id iface_id qdisc } {
 		DRR { set qdisc drr }
 	}
 
-	if { [getNodeType $node1_id] == "pseudo" } {
-		set link_id [getLinkMirror $link_id]
-	}
-
 	pipesExec "jexec $eid ngctl msg $link_id: setcfg \"{ $direction={ $qdisc=1 } }\"" "hold"
 }
 
@@ -492,10 +488,6 @@ proc execSetIfcQDrop { eid node_id iface_id qdrop } {
 		drop-tail { set qdrop droptail }
 	}
 
-	if { [getNodeType $node1_id] == "pseudo" } {
-		set link_id [getLinkMirror $link_id]
-	}
-
 	pipesExec "jexec $eid ngctl msg $link_id: setcfg \"{ $direction={ $qdrop=1 } }\"" "hold"
 }
 
@@ -520,10 +512,6 @@ proc execSetIfcQLen { eid node_id iface_id qlen } {
 
 	if { $qlen == 0 } {
 		set qlen -1
-	}
-
-	if { [getNodeType $node1_id] == "pseudo" } {
-		set link_id [getLinkMirror $link_id]
 	}
 
 	pipesExec "jexec $eid ngctl msg $link_id: setcfg \"{ $direction={ queuelen=$qlen } }\"" "hold"
