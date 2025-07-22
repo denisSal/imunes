@@ -92,6 +92,7 @@ proc newProject {} {
 
 	namespace eval ::cf::[set curcfg] {}
 	upvar 0 ::cf::[set ::curcfg]::dict_run dict_run
+	upvar 0 ::cf::[set ::curcfg]::dict_run_gui dict_run_gui
 	upvar 0 ::cf::[set ::curcfg]::dict_cfg dict_cfg
 	upvar 0 ::cf::[set ::curcfg]::execute_vars execute_vars
 
@@ -99,6 +100,7 @@ proc newProject {} {
 	setOption "version" $CFG_VERSION
 
 	set dict_run [dict create]
+	set dict_run_gui [dict create]
 	set execute_vars [dict create]
 
 	setToRunning "eid" ""
@@ -108,9 +110,9 @@ proc newProject {} {
 	setToRunning "stop_sched" true
 	setToRunning "undolevel" 0
 	setToRunning "redolevel" 0
-	setToRunning "zoom" $zoom
-	setToRunning "canvas_list" {}
-	setToRunning "curcanvas" [newCanvas ""]
+	setToRunning_gui "zoom" $zoom
+	setToRunning_gui "canvas_list" {}
+	setToRunning_gui "curcanvas" [newCanvas ""]
 	setToRunning "current_file" ""
 	saveToUndoLevel 0
 
@@ -201,7 +203,7 @@ proc openFile {} {
 
 	readCfgJson [getFromRunning "current_file"]
 
-	setToRunning "curcanvas" [lindex [getFromRunning "canvas_list"] 0]
+	setToRunning_gui "curcanvas" [lindex [getFromRunning_gui "canvas_list"] 0]
 	applyOptions
 
 	switchCanvas none
@@ -224,7 +226,7 @@ proc openFile {} {
 
 proc saveOptions {} {
 	global option_defaults gui_option_defaults
-	set running_zoom [getFromRunning "zoom"]
+	set running_zoom [getFromRunning_gui "zoom"]
 
 	foreach {option default_value} $option_defaults {
 		global $option
@@ -284,7 +286,7 @@ proc applyOptions {} {
 		}
 	}
 
-	setToRunning "zoom" $zoom
+	setToRunning_gui "zoom" $zoom
 }
 
 #****f* filemgmt.tcl/saveFile
@@ -391,7 +393,7 @@ proc closeFile {} {
 		}
 		set curcfg [lindex $cfg_list $idx]
 
-		setToRunning "curcanvas" [lindex [getFromRunning "canvas_list"] 0]
+		setToRunning_gui "curcanvas" [lindex [getFromRunning_gui "canvas_list"] 0]
 		switchCanvas none
 		setToRunning "undolevel" 0
 		setToRunning "redolevel" 0

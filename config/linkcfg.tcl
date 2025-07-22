@@ -282,6 +282,10 @@ proc getLinkPeers { link_id } {
 	return [cfgGet "links" $link_id "peers"]
 }
 
+proc getLinkPeers_gui { link_id } {
+	return [cfgGet "gui" "links" $link_id "peers"]
+}
+
 #****f* linkcfg.tcl/setLinkPeers
 # NAME
 #   setLinkPeers -- set link's peer nodes
@@ -295,6 +299,10 @@ proc getLinkPeers { link_id } {
 #****
 proc setLinkPeers { link_id peers } {
 	cfgSet "links" $link_id "peers" $peers
+}
+
+proc setLinkPeers_gui { link_id peers } {
+	cfgSet "gui" "links" $link_id "peers" $peers
 }
 
 #****f* linkcfg.tcl/getLinkPeersIfaces
@@ -419,7 +427,7 @@ proc setLinkBandwidth { link_id bandwidth } {
 proc getLinkColor { link_id } {
 	global defLinkColor
 
-	return [cfgGetWithDefault $defLinkColor "links" $link_id "color"]
+	return [cfgGetWithDefault $defLinkColor "gui" "links" $link_id "color"]
 }
 
 #****f* linkcfg.tcl/setLinkColor
@@ -438,7 +446,7 @@ proc setLinkColor { link_id color } {
 		set color ""
 	}
 
-	cfgSet "links" $link_id "color" $color
+	cfgSet "gui" "links" $link_id "color" $color
 }
 
 #****f* linkcfg.tcl/getLinkWidth
@@ -454,7 +462,7 @@ proc setLinkColor { link_id color } {
 proc getLinkWidth { link_id } {
 	global defLinkWidth
 
-	return [cfgGetWithDefault $defLinkWidth "links" $link_id "width"]
+	return [cfgGetWithDefault $defLinkWidth "gui" "links" $link_id "width"]
 }
 
 #****f* linkcfg.tcl/setLinkWidth
@@ -475,7 +483,7 @@ proc setLinkWidth { link_id width } {
 		set width ""
 	}
 
-	cfgSet "links" $link_id "width" $width
+	cfgSet "gui" "links" $link_id "width" $width
 }
 
 #****f* linkcfg.tcl/getLinkDelay
@@ -948,7 +956,7 @@ proc linkResetConfig { link_id } {
 #   * mirror_link_id -- mirror link id
 #****
 proc getLinkMirror { link_id } {
-	return [cfgGet "links" $link_id "mirror"]
+	return [cfgGet "gui" "links" $link_id "mirror"]
 }
 
 #****f* linkcfg.tcl/setLinkMirror
@@ -965,7 +973,7 @@ proc getLinkMirror { link_id } {
 #   * mirror -- mirror link's id
 #****
 proc setLinkMirror { link_id mirror } {
-	cfgSet "links" $link_id "mirror" $mirror
+	cfgSet "gui" "links" $link_id "mirror" $mirror
 }
 
 #****f* linkcfg.tcl/splitLink

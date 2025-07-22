@@ -366,7 +366,7 @@ proc setZoom { x y } {
 	bind $w <Key-Return> "setZoomApply $w"
 
 	ttk::entry $w.setzoom.e1
-	$w.setzoom.e1 insert 0 [expr {int([getFromRunning "zoom"] * 100)}]
+	$w.setzoom.e1 insert 0 [expr {int([getFromRunning_gui "zoom"] * 100)}]
 	pack $w.setzoom.e1 -side top -pady 5 -padx 10 -fill x
 }
 
@@ -383,8 +383,8 @@ proc setZoom { x y } {
 #****
 proc setZoomApply { w } {
 	set newzoom [expr [$w.setzoom.e1 get] / 100.0]
-	if { $newzoom != [getFromRunning "zoom"] } {
-		setToRunning "zoom" $newzoom
+	if { $newzoom != [getFromRunning_gui "zoom"] } {
+		setToRunning_gui "zoom" $newzoom
 		redrawAll
 	}
 
@@ -481,8 +481,8 @@ proc selectZoomApply { w } {
 	}
 
 	set newzoom [ expr $tempzoom / 100.0]
-	if { $newzoom != [getFromRunning "zoom"] } {
-		setToRunning "zoom" $newzoom
+	if { $newzoom != [getFromRunning_gui "zoom"] } {
+		setToRunning_gui "zoom" $newzoom
 
 		redrawAll
 		set changed 1
@@ -559,7 +559,7 @@ proc routerDefaultsApply { wi } {
 #   * icon_name -- icon name
 #****
 proc setCustomIcon { node_id icon_name } {
-	cfgSet "nodes" $node_id "custom_icon" $icon_name
+	cfgSet "gui" "nodes" $node_id "custom_icon" $icon_name
 }
 
 #****f* editor.tcl/getCustomIcon
@@ -573,7 +573,7 @@ proc setCustomIcon { node_id icon_name } {
 #   * node_id -- node to get the icon from
 #****
 proc getCustomIcon { node_id } {
-	return [cfgGet "nodes" $node_id "custom_icon"]
+	return [cfgGet "gui" "nodes" $node_id "custom_icon"]
 }
 
 #****f* editor.tcl/removeCustomIcon
@@ -587,7 +587,7 @@ proc getCustomIcon { node_id } {
 #   * node_id -- node to remove the icon from
 #****
 proc removeCustomIcon { node_id } {
-	cfgUnset "nodes" $node_id "custom_icon"
+	cfgUnset "gui" "nodes" $node_id "custom_icon"
 }
 
 #****f* editor.tcl/getMostDistantNodeCoordinates
@@ -869,7 +869,7 @@ proc bindEventsToTree {} {
 #   Selects icon of the node selected in the topology tree.
 #****
 proc selectNodeFromTree { node_id } {
-	setToRunning "curcanvas" [getNodeCanvas $node_id]
+	setToRunning_gui "curcanvas" [getNodeCanvas $node_id]
 	switchCanvas none
 
 	.panwin.f1.c dtag node selected
@@ -890,7 +890,7 @@ proc selectNodeFromTree { node_id } {
 #****
 proc selectLinkPeersFromTree { link_id } {
 	lassign [getLinkPeers $link_id] node1_id node2_id
-	setToRunning "curcanvas" [getNodeCanvas $node1_id]
+	setToRunning_gui "curcanvas" [getNodeCanvas $node1_id]
 	switchCanvas none
 
 	.panwin.f1.c dtag node selected

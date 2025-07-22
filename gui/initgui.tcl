@@ -382,8 +382,8 @@ menu .menubar.canvas -tearoff 0
 .menubar.canvas add command -label "Rename" -underline 0 \
 	-command { renameCanvasPopup }
 .menubar.canvas add command -label "Delete" -underline 0 -command {
-	set canvas_list [getFromRunning "canvas_list"]
-	set curcanvas [getFromRunning "curcanvas"]
+	set canvas_list [getFromRunning_gui "canvas_list"]
+	set curcanvas [getFromRunning_gui "curcanvas"]
 
 	if { [llength $canvas_list] == 1 } {
 		return
@@ -393,14 +393,14 @@ menu .menubar.canvas -tearoff 0
 	deleteSelection
 
 	set i [lsearch $canvas_list $curcanvas]
-	cfgUnset "canvases" $curcanvas
+	cfgUnset "gui" "canvases" $curcanvas
 	set canvas_list [getCanvasList]
-	setToRunning "canvas_list" $canvas_list
+	setToRunning_gui "canvas_list" $canvas_list
 	set curcanvas [lindex $canvas_list $i]
 	if { $curcanvas == "" } {
 		set curcanvas [lindex $canvas_list end]
 	}
-	setToRunning "curcanvas" $curcanvas
+	setToRunning_gui "curcanvas" $curcanvas
 
 	switchCanvas none
 	set changed 1
@@ -1133,8 +1133,8 @@ bind $mf.hframe.t <1> {
 	global mf
 
 	set canvas [lindex [$mf.hframe.t gettags current] 1]
-	if { $canvas != "" && $canvas != [getFromRunning "curcanvas"] } {
-		setToRunning "curcanvas" $canvas
+	if { $canvas != "" && $canvas != [getFromRunning_gui "curcanvas"] } {
+		setToRunning_gui "curcanvas" $canvas
 		switchCanvas none
 	}
 }
@@ -1144,8 +1144,8 @@ bind $mf.hframe.t <Double-1> {
 
 	set canvas [lindex [$mf.hframe.t gettags current] 1]
 	if { $canvas != "" } {
-		if { $canvas != [getFromRunning "curcanvas"] } {
-			setToRunning "curcanvas" $canvas
+		if { $canvas != [getFromRunning_gui "curcanvas"] } {
+			setToRunning_gui "curcanvas" $canvas
 			switchCanvas none
 		} else {
 			renameCanvasPopup
