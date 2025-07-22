@@ -1105,6 +1105,8 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 		switch -exact $key {
 			"name" {
 				setNodeName $node_id $new_value
+				# TODO: move to GUI updateNode proc
+				setNodeLabel $node_id $new_value
 			}
 
 			"custom_image" {
