@@ -55,7 +55,6 @@
 #  * lanswitch
 #  * hub
 #  * rj45
-#  * pseudo
 #
 #  The following node types are to be implemented in the future:
 #  * frswitch
@@ -487,7 +486,7 @@ proc getSubnetData { this_node_id this_iface_id subnet_gws nodes_l2data subnet_i
 	dict set nodes_l2data $this_node_id $this_iface_id $subnet_idx
 
 	set this_type [getNodeType $this_node_id]
-	if { $this_type in "\"\" pseudo" } {
+	if { $this_type in "" } {
 		return [list $subnet_gws $nodes_l2data]
 	}
 
@@ -794,10 +793,6 @@ proc setNodeName { node_id name } {
 	cfgSet "nodes" $node_id "name" $name
 
 	set node_type [getNodeType $node_id]
-	if { $node_type == "pseudo" } {
-		return
-	}
-
 	if { $node_type in [array names nodeNamingBase] } {
 		recalculateNumType $node_type $nodeNamingBase($node_type)
 	}
@@ -883,10 +878,6 @@ proc getNodeType { node_id } {
 #****
 proc setNodeType { node_id type } {
 	cfgSet "nodes" $node_id "type" $type
-
-	if { $type == "pseudo" } {
-		return
-	}
 
 	trigger_nodeRecreate $node_id
 }
@@ -1211,10 +1202,6 @@ proc newNode { type } {
 	}
 
 	setNodeType $node_id $type
-	if { $type != "pseudo" } {
-		setToRunning "${node_id}_running" false
-	}
-
 	lappendToRunning "node_list" $node_id
 
 	if { [info procs $type.confNewNode] == "$type.confNewNode" } {
@@ -1222,6 +1209,15 @@ proc newNode { type } {
 	}
 
 	return $node_id
+}
+
+proc newPseudoNode { orig_node } {
+	global viewid
+	catch { unset viewid }
+
+	set pseudo_node_id [string map {"n" "p"} $orig_node]
+
+	return $pseudo_node_id
 }
 
 #****f* nodecfg.tcl/getNodeMirror
@@ -1965,34 +1961,6 @@ proc getAllIpAddresses { node_id } {
 	}
 
 	return "\"$ipv4_list\" \"$ipv6_list\""
-}
-
-#****f* nodecfg.tcl/pseudo.netlayer
-# NAME
-#   pseudo.netlayer -- pseudo layer
-# SYNOPSIS
-#   set layer [pseudo.netlayer]
-# FUNCTION
-#   Returns the layer on which the pseudo node operates
-#   i.e. returns no layer.
-# RESULT
-#   * layer -- returns an empty string
-#****
-proc pseudo.netlayer {} {
-}
-
-#****f* nodecfg.tcl/pseudo.virtlayer
-# NAME
-#   pseudo.virtlayer -- pseudo virtlayer
-# SYNOPSIS
-#   set virtlayer [pseudo.virtlayer]
-# FUNCTION
-#   Returns the virtlayer on which the pseudo node operates
-#   i.e. returns no layer.
-# RESULT
-#   * virtlayer -- returns an empty string
-#****
-proc pseudo.virtlayer {} {
 }
 
 proc nodeCfggenStaticRoutes4 { node_id { vtysh 0 } } {
