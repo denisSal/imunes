@@ -56,18 +56,13 @@ proc getLinkDirect { link_id } {
 proc setLinkDirect { link_id direct } {
 	global isOSlinux
 
+	lassign [linkFromPseudoLink $link_id] link_id - -
+
 	cfgSet "links" $link_id "direct" $direct
 
 	if { $isOSlinux } {
 		lassign [getLinkPeers $link_id] node1_id node2_id
 		lassign [getLinkPeersIfaces $link_id] iface1_id iface2_id
-
-		set mirror_link_id [getLinkMirror $link_id]
-		if { $mirror_link_id != "" } {
-			# switch direction for mirror links
-			lassign "$node2_id [lindex [getLinkPeers $mirror_link_id] 1]" node1_id node2_id
-			lassign "$iface2_id [lindex [getLinkPeersIfaces $mirror_link_id] 1]" iface1_id iface2_id
-		}
 
 		trigger_ifaceRecreate $node1_id $iface1_id
 		if { [getNodeAutoDefaultRoutesStatus $node1_id] == "enabled" } {
@@ -178,11 +173,6 @@ proc setLinkBandwidth { link_id bandwidth } {
 	}
 
 	cfgSet "links" $link_id "bandwidth" $bandwidth
-
-	set mirror_link_id [getLinkMirror $link_id]
-	if { $mirror_link_id != "" } {
-		cfgSet "links" $mirror_link_id "bandwidth" $bandwidth
-	}
 }
 
 #****f* links.tcl/getLinkDelay
@@ -218,11 +208,6 @@ proc setLinkDelay { link_id delay } {
 	}
 
 	cfgSet "links" $link_id "delay" $delay
-
-	set mirror_link_id [getLinkMirror $link_id]
-	if { $mirror_link_id != "" } {
-		cfgSet "links" $mirror_link_id "delay" $delay
-	}
 }
 
 #****f* links.tcl/getLinkJitterUpstream
@@ -258,11 +243,6 @@ proc setLinkJitterUpstream { link_id jitter_upstream } {
 	}
 
 	cfgSet "links" $link_id "jitter_upstream" $jitter_upstream
-
-	set mirror_link_id [getLinkMirror $link_id]
-	if { $mirror_link_id != "" } {
-		cfgSet "links" $mirror_link_id "jitter_upstream" $jitter_upstream
-	}
 }
 
 #****f* links.tcl/getLinkJitterModeUpstream
@@ -298,11 +278,6 @@ proc setLinkJitterModeUpstream { link_id jitter_upstream_mode } {
 	}
 
 	cfgSet "links" $link_id "jitter_upstream_mode" $jitter_upstream_mode
-
-	set mirror_link_id [getLinkMirror $link_id]
-	if { $mirror_link_id != "" } {
-		cfgSet "links" $mirror_link_id "jitter_upstream_mode" $jitter_upstream_mode
-	}
 }
 
 #****f* links.tcl/getLinkJitterHoldUpstream
@@ -338,11 +313,6 @@ proc setLinkJitterHoldUpstream { link_id jitter_upstream_hold } {
 	}
 
 	cfgSet "links" $link_id "jitter_upstream_hold" $jitter_upstream_hold
-
-	set mirror_link_id [getLinkMirror $link_id]
-	if { $mirror_link_id != "" } {
-		cfgSet "links" $mirror_link_id "jitter_upstream_hold" $jitter_upstream_hold
-	}
 }
 
 #****f* links.tcl/getLinkJitterDownstream
@@ -379,11 +349,6 @@ proc setLinkJitterDownstream { link_id jitter_downstream } {
 	}
 
 	cfgSet "links" $link_id "jitter_downstream" $jitter_downstream
-
-	set mirror_link_id [getLinkMirror $link_id]
-	if { $mirror_link_id != "" } {
-		cfgSet "links" $mirror_link_id "jitter_downstream" $jitter_downstream
-	}
 }
 
 #****f* links.tcl/getLinkJitterModeDownstream
@@ -419,11 +384,6 @@ proc setLinkJitterModeDownstream { link_id jitter_downstream_mode } {
 	}
 
 	cfgSet "links" $link_id "jitter_downstream_mode" $jitter_downstream_mode
-
-	set mirror_link_id [getLinkMirror $link_id]
-	if { $mirror_link_id != "" } {
-		cfgSet "links" $mirror_link_id "jitter_downstream_mode" $jitter_downstream_mode
-	}
 }
 
 #****f* links.tcl/getLinkJitterHoldDownstream
@@ -459,11 +419,6 @@ proc setLinkJitterHoldDownstream { link_id jitter_downstream_hold } {
 	}
 
 	cfgSet "links" $link_id "jitter_downstream_hold" $jitter_downstream_hold
-
-	set mirror_link_id [getLinkMirror $link_id]
-	if { $mirror_link_id != "" } {
-		cfgSet "links" $mirror_link_id "jitter_downstream_hold" $jitter_downstream_hold
-	}
 }
 
 #****f* links.tcl/getLinkBER
@@ -499,11 +454,6 @@ proc setLinkBER { link_id ber } {
 	}
 
 	cfgSet "links" $link_id "ber" $ber
-
-	set mirror_link_id [getLinkMirror $link_id]
-	if { $mirror_link_id != "" } {
-		cfgSet "links" $mirror_link_id "ber" $ber
-	}
 }
 
 #****f* links.tcl/getLinkLoss
@@ -539,11 +489,6 @@ proc setLinkLoss { link_id loss } {
 	}
 
 	cfgSet "links" $link_id "loss" $loss
-
-	set mirror_link_id [getLinkMirror $link_id]
-	if { $mirror_link_id != "" } {
-		cfgSet "links" $mirror_link_id "loss" $loss
-	}
 }
 
 #****f* links.tcl/getLinkDup
@@ -579,9 +524,4 @@ proc setLinkDup { link_id duplicate } {
 	}
 
 	cfgSet "links" $link_id "duplicate" $duplicate
-
-	set mirror_link_id [getLinkMirror $link_id]
-	if { $mirror_link_id != "" } {
-		cfgSet "links" $mirror_link_id "duplicate" $duplicate
-	}
 }

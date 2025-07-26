@@ -26,11 +26,24 @@
 # and Technology through the research contract #IP-2003-143.
 #
 
-proc newPseudoNode { orig_node } {
-	global viewid
-	catch { unset viewid }
+proc getPseudoNodeFromNodeIface { node_id iface_id } {
+	set pseudo_id "${node_id}.${iface_id}"
+	
+	if { [cfgGet "gui" "nodes" $pseudo_id] != "" } {
+		return $pseudo_id
+	}
 
-	set pseudo_node_id [string map {"n" "p"} $orig_node]
+	return ""
+}
 
-	return $pseudo_node_id
+proc getPseudoNodeLink { pseudo_id } {
+	return [cfgGet "gui" "nodes" $pseudo_id "link"]
+}
+
+proc setPseudoNodeLink { pseudo_id link_id } {
+	cfgSet "gui" "nodes" $pseudo_id "link" $link_id
+}
+
+proc nodeFromPseudoNode { pseudo_id } {
+	return [split $pseudo_id "."]
 }

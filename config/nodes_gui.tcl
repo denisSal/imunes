@@ -66,6 +66,14 @@ proc setNodeCoords { node_id coords } {
 	cfgSet "gui" "nodes" $node_id "iconcoords" $roundcoords
 }
 
+proc getNodeLabel { node_id } {
+	return [cfgGet "gui" "nodes" $node_id "label"]
+}
+
+proc setNodeLabel { node_id label_str } {
+	cfgSet "gui" "nodes" $node_id "label" $label_str
+}
+
 #****f* nodes_gui.tcl/getNodeLabelCoords
 # NAME
 #   getNodeLabelCoords -- get node's label coordinates.
@@ -178,6 +186,14 @@ proc getNodeCustomIcon { node_id } {
 #****
 proc removeNodeCustomIcon { node_id } {
 	cfgUnset "gui" "nodes" $node_id "custom_icon"
+}
+
+proc getPseudoNodeLink { pseudo_id } {
+	return [cfgGet "gui" "nodes" $pseudo_id "link"]
+}
+
+proc setPseudoNodeLink { pseudo_id link_id } {
+	cfgSet "gui" "nodes" $pseudo_id "link" $link_id
 }
 
 #****f* nodes_gui.tcl/getNodeMirror

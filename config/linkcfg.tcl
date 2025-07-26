@@ -67,6 +67,7 @@ proc linksByPeers { node1_id node2_id } {
 proc removeLink { link_id { keep_ifaces 0 } } {
 	trigger_linkDestroy $link_id
 
+	lassign [linkFromPseudoLink $link_id] link_id - -
 	lassign [getLinkPeers $link_id] node1_id node2_id
 	lassign [getLinkPeersIfaces $link_id] iface1_id iface2_id
 
@@ -88,12 +89,6 @@ proc removeLink { link_id { keep_ifaces 0 } } {
 		}
 
 		removeIface $node_id $iface_id
-	}
-
-	set mirror_link_id [getLinkMirror $link_id]
-	if { $mirror_link_id != "" } {
-		setLinkMirror $mirror_link_id ""
-		removeLink $mirror_link_id $keep_ifaces
 	}
 
 	setToRunning "link_list" [removeFromList [getFromRunning "link_list"] $link_id]
@@ -168,6 +163,8 @@ proc removeLink { link_id { keep_ifaces 0 } } {
 #   * link_id -- link id
 #****
 proc linkResetConfig { link_id } {
+	lassign [linkFromPseudoLink $link_id] link_id - -
+
 	setLinkBandwidth $link_id ""
 	setLinkBER $link_id ""
 	setLinkLoss $link_id ""
@@ -224,9 +221,6 @@ proc newLink { node1_id node2_id } {
 proc newLinkWithIfaces { node1_id iface1_id node2_id iface2_id } {
 	foreach node_id "$node1_id $node2_id" iface_id "\"$iface1_id\" \"$iface2_id\"" {
 		set type [getNodeType $node_id]
-		if { $type == "pseudo" } {
-			return
-		}
 
 		# maximum number of ifaces on a node
 		if { $iface_id == "" } {

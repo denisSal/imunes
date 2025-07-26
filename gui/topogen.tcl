@@ -137,6 +137,7 @@ proc newNodes { node_num } {
 		setNodeCoords $new_node_id "$x $y"
 		setNodeLabelCoords $new_node_id "$x [expr {$y + $dy}]"
 		setNodeCanvas $new_node_id [getFromRunning_gui "curcanvas"]
+		setNodeLabel $new_node_id [getNodeName $new_node_id]
 
 		lappend new_nodes $new_node_id
 	}
@@ -184,7 +185,10 @@ proc P { nodes } {
 
 	set node_num [llength $nodes]
 	for { set i 0 } { $i < [expr {$node_num - 1}] } { incr i } {
-		newLink [lindex $nodes $i] [lindex $nodes [expr {($i + 1) % $node_num}]]
+		set node1_id [lindex $nodes $i]
+		set node2_id [lindex $nodes [expr {($i + 1) % $node_num}]]
+		set link_id [newLink $node1_id $node2_id]
+		setLinkPeers_gui $link_id "$node1_id $node2_id"
 	}
 
 	topoGenDone $nodes
@@ -208,7 +212,10 @@ proc C { nodes } {
 
 	set node_num [llength $nodes]
 	for { set i 0 } { $i < $node_num } { incr i } {
-		newLink [lindex $nodes $i] [lindex $nodes [expr {($i + 1) % $node_num}]]
+		set node1_id [lindex $nodes $i]
+		set node2_id [lindex $nodes [expr {($i + 1) % $node_num}]]
+		set link_id [newLink $node1_id $node2_id]
+		setLinkPeers_gui $link_id "$node1_id $node2_id"
 	}
 
 	topoGenDone $nodes
@@ -234,8 +241,15 @@ proc W { nodes } {
 	set vr [lindex $nodes 0]
 	set vt "$nodes [lindex $nodes 1]"
 	for { set i 1 } { $i < $node_num } { incr i } {
-		newLink $vr [lindex $nodes $i]
-		newLink [lindex $nodes $i] [lindex $vt [expr {$i + 1}]]
+		set node1_id $vr
+		set node2_id [lindex $nodes $i]
+		set link_id [newLink $node1_id $node2_id]
+		setLinkPeers_gui $link_id "$node1_id $node2_id"
+
+		set node1_id [lindex $nodes $i]
+		set node2_id [lindex $vt [expr {$i + 1}]]
+		set link_id [newLink $node1_id $node2_id]
+		setLinkPeers_gui $link_id "$node1_id $node2_id"
 	}
 
 	topoGenDone $nodes
@@ -262,7 +276,10 @@ proc Q { nodes } {
 		set d [expr {int(pow(2, $i))}]
 		for { set j 0 } { $j < $node_num } { incr j } {
 			if { [llength [ifcList [lindex $nodes $j]]] <= $i } {
-				newLink [lindex $nodes $j] [lindex $nodes [expr {($j + $d) % $node_num}]]
+				set node1_id [lindex $nodes $j]
+				set node2_id [lindex $nodes [expr {($j + $d) % $node_num}]]
+				set link_id [newLink $node1_id $node2_id]
+				setLinkPeers_gui $link_id "$node1_id $node2_id"
 			}
 		}
 	}
@@ -288,7 +305,10 @@ proc K { nodes } {
 	for { set i 0 } { $i < [expr {$node_num - 1}] } { incr i } {
 		animateCursor
 		for { set j [expr {$i + 1}] } { $j < $node_num } { incr j } {
-			newLink [lindex $nodes $i] [lindex $nodes $j]
+			set node1_id [lindex $nodes $i]
+			set node2_id [lindex $nodes $j]
+			set link_id [newLink $node1_id $node2_id]
+			setLinkPeers_gui $link_id "$node1_id $node2_id"
 		}
 	}
 
@@ -315,7 +335,10 @@ proc Kb { v1 v2 } {
 	for { set i 0 } { $i < $n1 } { incr i } {
 		animateCursor
 		for { set j 0 } { $j < $n2 } { incr j } {
-			newLink [lindex $v1 $i] [lindex $v2 $j]
+			set node1_id [lindex $v1 $i]
+			set node2_id [lindex $v2 $j]
+			set link_id [newLink $node1_id $node2_id]
+			setLinkPeers_gui $link_id "$node1_id $node2_id"
 		}
 	}
 
@@ -364,6 +387,7 @@ proc R { nodes m } {
 			set node2_id [lindex $dn $node2_idx]
 
 			set link_id [newLink $node1_id $node2_id]
+			setLinkPeers_gui $link_id "$node1_id $node2_id"
 
 			lappend cn $node2_id
 			set dn [lreplace $dn $node2_idx $node2_idx]
@@ -373,6 +397,7 @@ proc R { nodes m } {
 			set node2_id [lindex $nodes [expr int(rand() * [llength $nodes])]]
 			if { $node1_id != $node2_id && [llength [linksByPeers $node1_id $node2_id]] == 0 } {
 				set link_id [newLink $node1_id $node2_id]
+				setLinkPeers_gui $link_id "$node1_id $node2_id"
 
 				incr i
 			}

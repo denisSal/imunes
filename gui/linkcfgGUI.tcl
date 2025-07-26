@@ -544,12 +544,8 @@ proc configGUI_linkConfigApply { wi link_id } {
 proc configGUI_linkColorApply { wi link_id } {
 	global changed link_color
 
-	set mirror [getLinkMirror $link_id]
 	if { $link_color != [getLinkColor $link_id] } {
 		setLinkColor $link_id $link_color
-		if { $mirror != "" } {
-			setLinkColor $mirror $link_color
-		}
 
 		set changed 1
 	}

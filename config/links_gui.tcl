@@ -56,7 +56,9 @@ proc getLinkColor { link_id } {
 #   * color -- link color
 #****
 proc setLinkColor { link_id color } {
-	if { $color == "Red" } {
+	global default_link_color
+
+	if { $color == $default_link_color } {
 		set color ""
 	}
 
@@ -133,4 +135,12 @@ proc getLinkMirror { link_id } {
 #****
 proc setLinkMirror { link_id mirror } {
 	cfgSet "gui" "links" $link_id "mirror" $mirror
+}
+
+proc getLinkPeers_gui { link_id } {
+	return [cfgGet "gui" "links" $link_id "peers"]
+}
+
+proc setLinkPeers_gui { link_id peers } {
+	cfgSet "gui" "links" $link_id "peers" $peers
 }

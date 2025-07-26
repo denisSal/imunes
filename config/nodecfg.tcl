@@ -386,10 +386,6 @@ proc removeNode { node_id { keep_other_ifaces 0 } } {
 
 	global nodeNamingBase
 
-	if { [getNodeCustomIcon $node_id] != "" } {
-		removeImageReference [getNodeCustomIcon $node_id] $node_id
-	}
-
 	foreach iface_id [ifcList $node_id] {
 		removeIface $node_id $iface_id
 	}
