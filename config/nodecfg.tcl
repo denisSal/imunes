@@ -804,6 +804,14 @@ proc setNodeName { node_id name } {
 	trigger_nodeRecreate $node_id
 }
 
+proc getNodeLabel { node_id } {
+	return [cfgGet "gui" "nodes" $node_id "label"]
+}
+
+proc setNodeLabel { node_id label_str } {
+	cfgSet "gui" "nodes" $node_id "label" $label_str
+}
+
 #****f* nodecfg.tcl/setNodeNATIface
 # NAME
 #   setNodeNATIface -- set node NAT interface.
@@ -1121,10 +1129,6 @@ proc removeNode { node_id { keep_other_ifaces 0 } } {
 
 	global nodeNamingBase
 
-	if { [getCustomIcon $node_id] != "" } {
-		removeImageReference [getCustomIcon $node_id] $node_id
-	}
-
 	foreach iface_id [ifcList $node_id] {
 		removeIface $node_id $iface_id
 	}
@@ -1211,13 +1215,26 @@ proc newNode { type } {
 	return $node_id
 }
 
-proc newPseudoNode { orig_node } {
-	global viewid
-	catch { unset viewid }
+proc getPseudoNodeFromNodeIface { node_id iface_id } {
+	set pseudo_id "${node_id}.${iface_id}"
+	
+	if { [cfgGet "gui" "nodes" $pseudo_id] != "" } {
+		return $pseudo_id
+	}
 
-	set pseudo_node_id [string map {"n" "p"} $orig_node]
+	return ""
+}
 
-	return $pseudo_node_id
+proc getPseudoNodeLink { pseudo_id } {
+	return [cfgGet "gui" "nodes" $pseudo_id "link"]
+}
+
+proc setPseudoNodeLink { pseudo_id link_id } {
+	cfgSet "gui" "nodes" $pseudo_id "link" $link_id
+}
+
+proc nodeFromPseudoNode { pseudo_id } {
+	return [split $pseudo_id "."]
 }
 
 #****f* nodecfg.tcl/getNodeMirror
