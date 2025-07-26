@@ -79,11 +79,13 @@ proc copySelection {} {
 	set clipboard_link_list {}
 	foreach node_id $selected_nodes {
 		clipboardSet "nodes" $node_id [cfgGet "nodes" $node_id]
+		clipboardSet "gui" "nodes" $node_id [cfgGet "gui" "nodes" $node_id]
 
 		foreach iface_id [ifcList $node_id] {
 			set peer_id [getIfcPeer $node_id $iface_id]
 			if { $peer_id != "" && $peer_id ni $selected_nodes } {
 				clipboardUnset "nodes" $node_id "ifaces" $iface_id
+				clipboardUnset "gui" "nodes" $node_id "ifaces" $iface_id
 				continue
 			}
 
@@ -91,6 +93,7 @@ proc copySelection {} {
 				if { $link_id ni $clipboard_link_list } {
 					lappend clipboard_link_list $link_id
 					clipboardSet "links" $link_id [cfgGet "links" $link_id]
+					clipboardSet "gui" "links" $link_id [cfgGet "gui" "links" $link_id]
 				}
 			}
 		}
@@ -154,8 +157,6 @@ proc paste {} {
 		lappendToRunning "node_list" $new_node_id
 		lappend copypaste_list $new_node_id
 
-		setNodeCanvas $new_node_id $curcanvas
-
 		set node_type [getNodeType $new_node_id]
 		if { $node_type ni [array names nodeNamingBase] } {
 			# fallback
@@ -202,6 +203,15 @@ proc paste {} {
 				lappendToRunning "ipv6_used_list" [getIfcIPv6addrs $new_node_id $iface_id]
 			}
 		}
+	}
+
+	# node GUI stuff
+	foreach node_orig $clipboard_node_list {
+		set new_node_id $node_map($node_orig)
+		cfgSet "gui" "nodes" $new_node_id [clipboardGet "gui" "nodes" $node_orig]
+
+		setNodeCanvas $new_node_id $curcanvas
+		setNodeLabel $new_node_id [getNodeName $new_node_id]
 
 		set nodecoords [getNodeCoords $new_node_id]
 		if { [lindex $nodecoords 0] >= $sizex || [lindex $nodecoords 1] >= $sizey } {
@@ -220,6 +230,7 @@ proc paste {} {
 	foreach {link_orig link_orig_cfg} [clipboardGet "links"] {
 		set new_link_id [newObjectId [getFromRunning "link_list"] "l"]
 		cfgSet "links" $new_link_id $link_orig_cfg
+		cfgSet "gui" "links" $new_link_id [cfgGet "gui" "links" $link_orig]
 		lappendToRunning "link_list" $new_link_id
 		setToRunning "${new_link_id}_running" false
 
@@ -232,6 +243,7 @@ proc paste {} {
 		}
 
 		cfgSet "links" $new_link_id "peers" $new_peers
+		cfgSet "gui" "links" $new_link_id "peers" $new_peers
 	}
 
 	updateCustomIconReferences
