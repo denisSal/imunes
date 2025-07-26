@@ -119,7 +119,9 @@ proc loadCfgLegacy { cfg } {
 				set value [lindex $line 1]
 				set line [lreplace $line 0 1]
 
-				if { $object != "annotation_list" } {
+				if { $class in "canvas annotation image" } {
+					cfgSet "gui" {*}$dict_object $object $field $value
+				} elseif { $object != "annotation_list" } {
 					cfgSet {*}$dict_object $object $field $value
 				}
 				if { "$class" == "node" } {
@@ -440,6 +442,7 @@ proc loadCfgLegacy { cfg } {
 								switch -glob -- $zline {
 									"hostname *" {
 										cfgSet $dict_object $object "name" [lindex $zline end]
+										cfgSet "gui" $dict_object $object "label" [lindex $zline end]
 									}
 									"interface *" {
 										set ifname [lindex $zline end]
@@ -632,7 +635,8 @@ proc loadCfgLegacy { cfg } {
 								lappend new_value [expr int($v)]
 							}
 							set value $new_value
-							cfgSet $dict_object $object $field $value
+							cfgUnset $dict_object $object $field
+							cfgSet "gui" $dict_object $object $field $value
 							lappend $object "iconcoords {$value}"
 						}
 						labelcoords {
@@ -641,13 +645,16 @@ proc loadCfgLegacy { cfg } {
 								lappend new_value [expr int($v)]
 							}
 							set value $new_value
-							cfgSet $dict_object $object $field $value
+							cfgUnset $dict_object $object $field
+							cfgSet "gui" $dict_object $object $field $value
 							lappend $object "labelcoords {$value}"
 						}
 						auto_default_routes {
 							lappend $object "auto_default_routes $value"
 						}
 						canvas {
+							cfgUnset $dict_object $object $field
+							cfgSet "gui" $dict_object $object $field $value
 							lappend $object "canvas $value"
 						}
 						services {
@@ -680,7 +687,7 @@ proc loadCfgLegacy { cfg } {
 						}
 						customIcon {
 							cfgUnset $dict_object $object $field
-							cfgSet $dict_object $object "custom_icon" $value
+							cfgSet "gui" $dict_object $object "custom_icon" $value
 							lappend $object "customIcon $value"
 						}
 					}
@@ -692,6 +699,7 @@ proc loadCfgLegacy { cfg } {
 						nodes {
 							cfgUnset $dict_object $object $field
 							cfgSet $dict_object $object "peers" $value
+							cfgSet "gui" $dict_object $object "peers" $value
 
 							set ifaces {}
 							foreach node_id $value {
@@ -721,6 +729,8 @@ proc loadCfgLegacy { cfg } {
 							lappend $object "ifaces {$value}"
 						}
 						mirror {
+							cfgUnset $dict_object $object $field
+							cfgSet "gui" $dict_object $object $field $value
 							lappend $object "mirror $value"
 						}
 						bandwidth {
@@ -769,9 +779,13 @@ proc loadCfgLegacy { cfg } {
 							lappend $object "duplicate $value"
 						}
 						color {
+							cfgUnset $dict_object $object $field
+							cfgSet "gui" $dict_object $object $field $value
 							lappend $object "color $value"
 						}
 						width {
+							cfgUnset $dict_object $object $field
+							cfgSet "gui" $dict_object $object $field $value
 							lappend $object "width $value"
 						}
 						events {
@@ -796,7 +810,6 @@ proc loadCfgLegacy { cfg } {
 							lappend $object "size {$value}"
 						}
 						bkgImage {
-							cfgSet $dict_object $object "bkg_image" $value
 							lappend $object "bkgImage {$value}"
 						}
 					}
@@ -809,7 +822,7 @@ proc loadCfgLegacy { cfg } {
 							} elseif { $value == "yes" } {
 								set show_interface_names 1
 							}
-							cfgSet $dict_object "show_interface_names" $show_interface_names
+							cfgSet "gui" $dict_object "show_interface_names" $show_interface_names
 						}
 						ip_addresses {
 							if { $value == "no" } {
@@ -817,7 +830,7 @@ proc loadCfgLegacy { cfg } {
 							} elseif { $value == "yes" } {
 								set show_interface_ipv4 1
 							}
-							cfgSet $dict_object "show_interface_ipv4" $show_interface_ipv4
+							cfgSet "gui" $dict_object "show_interface_ipv4" $show_interface_ipv4
 						}
 						ipv6_addresses {
 							if { $value == "no" } {
@@ -825,7 +838,7 @@ proc loadCfgLegacy { cfg } {
 							} elseif { $value == "yes" } {
 								set show_interface_ipv6 1
 							}
-							cfgSet $dict_object "show_interface_ipv6" $show_interface_ipv6
+							cfgSet "gui" $dict_object "show_interface_ipv6" $show_interface_ipv6
 						}
 						node_labels {
 							if { $value == "no" } {
@@ -833,7 +846,7 @@ proc loadCfgLegacy { cfg } {
 							} elseif { $value == "yes" } {
 								set show_node_labels 1
 							}
-							cfgSet $dict_object "show_node_labels" $show_node_labels
+							cfgSet "gui" $dict_object "show_node_labels" $show_node_labels
 						}
 						link_labels {
 							if { $value == "no" } {
@@ -841,7 +854,7 @@ proc loadCfgLegacy { cfg } {
 							} elseif { $value == "yes" } {
 								set show_link_labels 1
 							}
-							cfgSet $dict_object "show_link_labels" $show_link_labels
+							cfgSet "gui" $dict_object "show_link_labels" $show_link_labels
 						}
 						background_images {
 							if { $value == "no" } {
@@ -849,7 +862,7 @@ proc loadCfgLegacy { cfg } {
 							} elseif { $value == "yes" } {
 								set show_background_image 1
 							}
-							cfgSet $dict_object "show_background_image" $show_background_image
+							cfgSet "gui" $dict_object "show_background_image" $show_background_image
 						}
 						annotations {
 							if { $value == "no" } {
@@ -857,7 +870,7 @@ proc loadCfgLegacy { cfg } {
 							} elseif { $value == "yes" } {
 								set show_annotations 1
 							}
-							cfgSet $dict_object "show_annotations" $show_annotations
+							cfgSet "gui" $dict_object "show_annotations" $show_annotations
 						}
 						grid {
 							if { $value == "no" } {
@@ -865,7 +878,7 @@ proc loadCfgLegacy { cfg } {
 							} elseif { $value == "yes" } {
 								set show_grid 1
 							}
-							cfgSet $dict_object "show_grid" $show_grid
+							cfgSet "gui" $dict_object "show_grid" $show_grid
 						}
 						hostsAutoAssign {
 							if { $value == "no" } {
@@ -877,11 +890,11 @@ proc loadCfgLegacy { cfg } {
 						}
 						zoom {
 							set zoom $value
-							cfgSet $dict_object "zoom" $zoom
+							cfgSet "gui" $dict_object "zoom" $zoom
 						}
 						iconSize {
 							set icon_size $value
-							cfgSet $dict_object "icon_size" $icon_size
+							cfgSet "gui" $dict_object "icon_size" $icon_size
 						}
 					}
 				} elseif { "$class" == "annotation" } {
@@ -895,7 +908,7 @@ proc loadCfgLegacy { cfg } {
 								lappend new_value [expr int($v)]
 							}
 							set value $new_value
-							cfgSet $dict_object $object $field $value
+							cfgSet "gui" $dict_object $object $field $value
 							lappend $object "iconcoords {$value}"
 						}
 						color {
@@ -950,7 +963,7 @@ proc loadCfgLegacy { cfg } {
 							set enc [string map { "\n" {} } $enc]
 							set data [base64::decode $enc]
 							set enc_data [base64::encode -maxlen 0 $data]
-							cfgSet $dict_object $object $field $enc_data
+							cfgSet "gui" $dict_object $object $field $enc_data
 
 							lappend $object "data {$value}"
 						}
@@ -992,6 +1005,10 @@ proc loadCfgLegacy { cfg } {
 
 		if { $node_type == "pseudo" } {
 			unsetRunning "${node_id}_running"
+			cfgUnset "gui" "nodes" $node_id
+			cfgUnset "nodes" $node_id
+
+			continue
 		}
 
 		if {
@@ -1081,26 +1098,50 @@ proc loadCfgLegacy { cfg } {
 		}
 	}
 
-	setToRunning "ipv4_used_list" $ipv4_used_list
-	setToRunning "ipv6_used_list" $ipv6_used_list
-	setToRunning "mac_used_list" $mac_used_list
-
-	# reverse order of pseudo peers/ifaces
 	foreach link_id $link_list {
 		set mirror_link_id [getLinkMirror $link_id]
 		if { $mirror_link_id == "" } {
 			continue
 		}
 
-		lassign [getLinkPeers $link_id] peer1 peer2
-		if { [getNodeMirror $peer1] != "" } {
-			continue
+		set peer1_id [lindex [getLinkPeers $link_id] 0]
+		set peer2_id [lindex [getLinkPeers $mirror_link_id] 0]
+
+		cfgUnset "links" $mirror_link_id
+		cfgUnset "gui" "links" $mirror_link_id
+
+		setLinkMirror $link_id ""
+		setLinkPeers $link_id "$peer1_id $peer2_id"
+		setLinkPeers_gui $link_id "$peer1_id $peer2_id"
+
+		foreach iface_id [ifcList $peer2_id] {
+			if { [getIfcLink $peer2_id $iface_id] == $mirror_link_id } {
+				setIfcLink $peer2_id $iface_id $link_id
+				setLinkPeersIfaces $link_id "[lindex [getLinkPeersIfaces $link_id] 0] $iface_id"
+			}
 		}
+	}
 
-		lassign [getLinkPeersIfaces $link_id] peer1_iface peer2_iface
+	setToRunning "ipv4_used_list" $ipv4_used_list
+	setToRunning "ipv6_used_list" $ipv6_used_list
+	setToRunning "mac_used_list" $mac_used_list
 
-		setLinkPeers $link_id "$peer2 $peer1"
-		setLinkPeersIfaces $link_id "$peer2_iface $peer1_iface"
+	# reverse order of pseudo peers/ifaces
+	foreach link_id $link_list {
+		lassign [getLinkPeers $link_id] peer1_id peer2_id
+
+		set peer1_canvas_id [getNodeCanvas $peer1_id]
+		set peer2_canvas_id [getNodeCanvas $peer2_id]
+		if { $peer1_canvas_id != $peer2_canvas_id } {
+			lassign [splitLink $link_id] new_node1_id new_node2_id
+			setNodeCoords $new_node1_id [getNodeCoords $peer2_id]
+			setNodeCoords $new_node2_id [getNodeCoords $peer1_id]
+			setNodeLabelCoords $new_node1_id [getNodeCoords $new_node1_id]
+			setNodeLabelCoords $new_node2_id [getNodeCoords $new_node2_id]
+
+			setNodeCanvas $new_node1_id $peer1_canvas_id
+			setNodeCanvas $new_node2_id $peer2_canvas_id
+		}
 	}
 }
 
