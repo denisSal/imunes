@@ -244,9 +244,9 @@ proc saveOptions {} {
 
 		set value [set $option]
 		if { $value != $default_value } {
-			setOption $option $value
+			setOption_gui $option $value
 		} else {
-			unsetOption $option
+			unsetOption_gui $option
 		}
 	}
 
@@ -255,9 +255,9 @@ proc saveOptions {} {
 	}
 
 	if { $running_zoom != [dictGet $gui_option_defaults "zoom"] } {
-		setOption "zoom" $running_zoom
+		setOption_gui "zoom" $running_zoom
 	} else {
-		unsetOption "zoom"
+		unsetOption_gui "zoom"
 	}
 }
 
@@ -278,7 +278,7 @@ proc applyOptions {} {
 	foreach {option default_value} $gui_option_defaults {
 		global $option
 
-		set value [getOption $option]
+		set value [getOption_gui $option]
 		if { $value != "" } {
 			set $option $value
 		} else {

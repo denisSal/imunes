@@ -125,8 +125,8 @@ proc removeNodeGUI { node_id { keep_other_ifaces 0 } } {
 		}
 	}
 
-	if { [getCustomIcon $node_id] != "" } {
-		removeImageReference [getCustomIcon $node_id] $node_id
+	if { [getNodeCustomIcon $node_id] != "" } {
+		removeImageReference [getNodeCustomIcon $node_id] $node_id
 	}
 
 	removeNode $node_id $keep_other_ifaces
