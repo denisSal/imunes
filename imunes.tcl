@@ -242,11 +242,14 @@ foreach file [glob -directory $ROOTDIR/$LIBDIR/config *.tcl] {
 	safeSourceFile $file
 }
 
+foreach file [glob -directory $ROOTDIR/$LIBDIR/config/nodes *.tcl] {
+	safeSourceFile $file
+}
+
 # The following files need to be sourced in this particular order. If not
 # the placement of the toolbar icons will be altered.
 foreach file $node_types {
 	safeSourceFile "$ROOTDIR/$LIBDIR/nodes/$file.tcl"
-	safeSourceFile "$ROOTDIR/$LIBDIR/gui/$file.tcl"
 }
 
 # additional nodes
@@ -313,6 +316,10 @@ readConfigFile
 #
 
 if { $execMode == "interactive" } {
+	foreach file $node_types {
+		safeSourceFile "$ROOTDIR/$LIBDIR/gui/nodes/$file.tcl"
+	}
+
 	safePackageRequire Tk "To run the IMUNES GUI, Tk must be installed."
 
 	set gui_files "canvas copypaste drawing editor help theme linkcfgGUI \

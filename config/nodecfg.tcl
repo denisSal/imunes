@@ -804,14 +804,6 @@ proc setNodeName { node_id name } {
 	trigger_nodeRecreate $node_id
 }
 
-proc getNodeLabel { node_id } {
-	return [cfgGet "gui" "nodes" $node_id "label"]
-}
-
-proc setNodeLabel { node_id label_str } {
-	cfgSet "gui" "nodes" $node_id "label" $label_str
-}
-
 #****f* nodecfg.tcl/setNodeNATIface
 # NAME
 #   setNodeNATIface -- set node NAT interface.
@@ -1116,80 +1108,6 @@ proc removeNode { node_id { keep_other_ifaces 0 } } {
 	}
 }
 
-#****f* nodecfg.tcl/getNodeCanvas
-# NAME
-#   getNodeCanvas -- get node canvas id
-# SYNOPSIS
-#   set canvas_id [getNodeCanvas $node_id]
-# FUNCTION
-#   Returns node's canvas affinity.
-# INPUTS
-#   * node_id -- node id
-# RESULT
-#   * canvas_id -- canvas id
-#****
-proc getNodeCanvas { node_id } {
-	return [cfgGet "gui" "nodes" $node_id "canvas"]
-}
-
-#****f* nodecfg.tcl/setNodeCanvas
-# NAME
-#   setNodeCanvas -- set node canvas
-# SYNOPSIS
-#   setNodeCanvas $node_id $canvas
-# FUNCTION
-#   Sets node's canvas affinity.
-# INPUTS
-#   * node_id -- node id
-#   * canvas_id -- canvas id
-#****
-proc setNodeCanvas { node_id canvas_id } {
-	cfgSet "gui" "nodes" $node_id "canvas" $canvas_id
-}
-
-#****f* editor.tcl/setNodeCustomIcon
-# NAME
-#   setNodeCustomIcon -- set custom icon
-# SYNOPSIS
-#   setNodeCustomIcon $node_id $icon_name
-# FUNCTION
-#   Sets the custom icon to a node.
-# INPUTS
-#   * node_id -- node to change
-#   * icon_name -- icon name
-#****
-proc setNodeCustomIcon { node_id icon_name } {
-	cfgSet "gui" "nodes" $node_id "custom_icon" $icon_name
-}
-
-#****f* editor.tcl/getNodeCustomIcon
-# NAME
-#   getNodeCustomIcon -- get custom icon
-# SYNOPSIS
-#   getNodeCustomIcon $node_id
-# FUNCTION
-#   Returns the custom icon from a node.
-# INPUTS
-#   * node_id -- node to get the icon from
-#****
-proc getNodeCustomIcon { node_id } {
-	return [cfgGet "gui" "nodes" $node_id "custom_icon"]
-}
-
-#****f* editor.tcl/removeNodeCustomIcon
-# NAME
-#   removeNodeCustomIcon -- remove custom icon
-# SYNOPSIS
-#   removeNodeCustomIcon $node_id
-# FUNCTION
-#   Removes the custom icon from a node.
-# INPUTS
-#   * node_id -- node to remove the icon from
-#****
-proc removeNodeCustomIcon { node_id } {
-	cfgUnset "gui" "nodes" $node_id "custom_icon"
-}
-
 #****f* nodecfg.tcl/newNode
 # NAME
 #   newNode -- new node
@@ -1226,67 +1144,6 @@ proc newNode { type } {
 	}
 
 	return $node_id
-}
-
-proc getPseudoNodeFromNodeIface { node_id iface_id } {
-	set pseudo_id "${node_id}.${iface_id}"
-	
-	if { [cfgGet "gui" "nodes" $pseudo_id] != "" } {
-		return $pseudo_id
-	}
-
-	return ""
-}
-
-proc getPseudoNodeLink { pseudo_id } {
-	return [cfgGet "gui" "nodes" $pseudo_id "link"]
-}
-
-proc setPseudoNodeLink { pseudo_id link_id } {
-	cfgSet "gui" "nodes" $pseudo_id "link" $link_id
-}
-
-proc nodeFromPseudoNode { pseudo_id } {
-	return [split $pseudo_id "."]
-}
-
-#****f* nodecfg.tcl/getNodeMirror
-# NAME
-#   getNodeMirror -- get node mirror
-# SYNOPSIS
-#   set mirror_node_id [getNodeMirror $node_id]
-# FUNCTION
-#   Returns the node id of a mirror pseudo node of the node. Mirror node is
-#   the corresponding pseudo node. The pair of pseudo nodes, node and his
-#   mirror node, are introduced to form a split in a link. This split can be
-#   used for avoiding crossed links or for displaying a link between the nodes
-#   on a different canvas.
-# INPUTS
-#   * node_id -- node id
-# RESULT
-#   * mirror_node_id -- node id of a mirror node
-#****
-proc getNodeMirror { node_id } {
-	return [cfgGet "gui" "nodes" $node_id "mirror"]
-}
-
-#****f* nodecfg.tcl/setNodeMirror
-# NAME
-#   setNodeMirror -- set node mirror
-# SYNOPSIS
-#   setNodeMirror $node_id $value
-# FUNCTION
-#   Sets the node id of a mirror pseudo node of the specified node. Mirror
-#   node is the corresponding pseudo node. The pair of pseudo nodes, node and
-#   his mirror node, are introduced to form a split in a link. This split can
-#   be used for avoiding crossed links or for displaying a link between the
-#   nodes on a different canvas.
-# INPUTS
-#   * node_id -- node id
-#   * value -- node id of a mirror node
-#****
-proc setNodeMirror { node_id value } {
-	cfgSet "gui" "nodes" $node_id "mirror" $value
 }
 
 #****f* nodecfg.tcl/getNodeProtocol
