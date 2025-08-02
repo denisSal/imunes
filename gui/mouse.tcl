@@ -2213,8 +2213,8 @@ proc setDefaultIcon {} {
 	set nodelist [selectedNodes]
 
 	foreach node_id $nodelist {
-		set icon [getCustomIcon $node_id]
-		removeCustomIcon $node_id
+		set icon [getNodeCustomIcon $node_id]
+		removeNodeCustomIcon $node_id
 		removeImageReference $icon $node_id
 	}
 
@@ -2379,8 +2379,8 @@ proc removeIPv4Nodes { nodes all_ifaces } {
 
 	set removed_addrs {}
 	foreach node_id $nodes {
-		if { [getStatIPv4routes $node_id] != "" } {
-			setStatIPv4routes $node_id ""
+		if { [getNodeStatIPv4routes $node_id] != "" } {
+			setNodeStatIPv4routes $node_id ""
 		}
 
 		set ifaces [dictGet $nodes_ifaces $node_id]
@@ -2447,8 +2447,8 @@ proc removeIPv6Nodes { nodes all_ifaces } {
 
 	set removed_addrs {}
 	foreach node_id $nodes {
-		if { [getStatIPv6routes $node_id] != "" } {
-			setStatIPv6routes $node_id ""
+		if { [getNodeStatIPv6routes $node_id] != "" } {
+			setNodeStatIPv6routes $node_id ""
 		}
 
 		set ifaces [dictGet $nodes_ifaces $node_id]
@@ -2490,7 +2490,7 @@ proc matchSubnet4 { node_id iface_id } {
 	set IPv4autoAssign $tmp
 
 
-	if { [getAutoDefaultRoutesStatus $node_id] == "enabled" } {
+	if { [getNodeAutoDefaultRoutesStatus $node_id] == "enabled" } {
 		trigger_nodeReconfig $node_id
 	}
 
@@ -2516,7 +2516,7 @@ proc matchSubnet6 { node_id iface_id } {
 	autoIPv6addr $node_id $iface_id
 	set IPv6autoAssign $tmp
 
-	if { [getAutoDefaultRoutesStatus $node_id] == "enabled" } {
+	if { [getNodeAutoDefaultRoutesStatus $node_id] == "enabled" } {
 		trigger_nodeReconfig $node_id
 	}
 

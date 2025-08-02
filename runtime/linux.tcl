@@ -1017,10 +1017,10 @@ proc runConfOnNode { node_id } {
 
 	set docker_id "$eid.$node_id"
 
-	set custom_selected [getCustomConfigSelected $node_id "NODE_CONFIG"]
-	if { [getCustomEnabled $node_id] == true && $custom_selected ni "\"\" DISABLED" } {
-		set bootcmd [getCustomConfigCommand $node_id "NODE_CONFIG" $custom_selected]
-		set bootcfg [getCustomConfig $node_id "NODE_CONFIG" $custom_selected]
+	set custom_selected [getNodeCustomConfigSelected $node_id "NODE_CONFIG"]
+	if { [getNodeCustomEnabled $node_id] == true && $custom_selected ni "\"\" DISABLED" } {
+		set bootcmd [getNodeCustomConfigCommand $node_id "NODE_CONFIG" $custom_selected]
+		set bootcfg [getNodeCustomConfig $node_id "NODE_CONFIG" $custom_selected]
 		set bootcfg "$bootcfg\n[join [[getNodeType $node_id].generateConfig $node_id] "\n"]"
 		set confFile "custom.conf"
 	} else {
@@ -1047,10 +1047,10 @@ proc startNodeIfaces { node_id ifaces } {
 
 	set docker_id "$eid.$node_id"
 
-	set custom_selected [getCustomConfigSelected $node_id "IFACES_CONFIG"]
-	if { [getCustomEnabled $node_id] == true && $custom_selected ni "\"\" DISABLED" } {
-		set bootcmd [getCustomConfigCommand $node_id "IFACES_CONFIG" $custom_selected]
-		set bootcfg [getCustomConfig $node_id "IFACES_CONFIG" $custom_selected]
+	set custom_selected [getNodeCustomConfigSelected $node_id "IFACES_CONFIG"]
+	if { [getNodeCustomEnabled $node_id] == true && $custom_selected ni "\"\" DISABLED" } {
+		set bootcmd [getNodeCustomConfigCommand $node_id "IFACES_CONFIG" $custom_selected]
+		set bootcfg [getNodeCustomConfig $node_id "IFACES_CONFIG" $custom_selected]
 		set confFile "custom_ifaces.conf"
 	} else {
 		set bootcfg [join [[getNodeType $node_id].generateConfigIfaces $node_id $ifaces] "\n"]
@@ -1072,8 +1072,8 @@ proc startNodeIfaces { node_id ifaces } {
 proc unconfigNode { eid node_id } {
 	set docker_id "$eid.$node_id"
 
-	set custom_selected [getCustomConfigSelected $node_id "NODE_CONFIG"]
-	if { [getCustomEnabled $node_id] == true && $custom_selected ni "\"\" DISABLED" } {
+	set custom_selected [getNodeCustomConfigSelected $node_id "NODE_CONFIG"]
+	if { [getNodeCustomEnabled $node_id] == true && $custom_selected ni "\"\" DISABLED" } {
 		return
 	}
 
@@ -1095,8 +1095,8 @@ proc unconfigNode { eid node_id } {
 proc unconfigNodeIfaces { eid node_id ifaces } {
 	set docker_id "$eid.$node_id"
 
-	set custom_selected [getCustomConfigSelected $node_id "IFACES_CONFIG"]
-	if { [getCustomEnabled $node_id] == true && $custom_selected ni "\"\" DISABLED" } {
+	set custom_selected [getNodeCustomConfigSelected $node_id "IFACES_CONFIG"]
+	if { [getNodeCustomEnabled $node_id] == true && $custom_selected ni "\"\" DISABLED" } {
 		return
 	}
 

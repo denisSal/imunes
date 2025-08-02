@@ -10,9 +10,9 @@ foreach elem_type "node link canvas annotation" {
 	}
 }
 
-set node_set_attributes "Name Model CustomImage {Protocol rip} {Protocol ripng} {Protocol ospf} {Protocol ospf6} IPsec DockerAttach VlanFiltering NATIface Services"
-set node_get_attributes "Dir Type $node_set_attributes"
-set node_set_attributes_gui "Canvas Coords LabelCoords"
+set node_set_attributes "Name Model CustomEnabled CustomConfigSelected CustomConfig CustomImage StatIPv4routes StatIPv6routes AutoDefaultRoutesStatus {Protocol rip} {Protocol ripng} {Protocol ospf} {Protocol ospf6} IPsec DockerAttach VlanFiltering NATIface Services"
+set node_get_attributes "Dir Type CustomConfigCommand CustomConfigIDs $node_set_attributes"
+set node_set_attributes_gui "Canvas Coords LabelCoords CustomIcon"
 set node_get_attributes_gui "$node_set_attributes_gui"
 
 proc parseImnCtl { args } {

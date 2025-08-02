@@ -78,7 +78,7 @@ proc $MODULE.confNewNode { node_id } {
 	setNodeProtocol $node_id "bgp" $bgpEnable
 	setNodeProtocol $node_id "ldp" $ldpEnable
 
-	setAutoDefaultRoutesStatus $node_id "enabled"
+	setNodeAutoDefaultRoutesStatus $node_id "enabled"
 
 	set logiface_id [newLogIface $node_id "lo"]
 	setIfcIPv4addrs $node_id $logiface_id "127.0.0.1/8"
@@ -167,8 +167,8 @@ proc $MODULE.generateUnconfigIfaces { node_id ifaces } {
 proc $MODULE.generateConfig { node_id } {
 	set cfg {}
 	if {
-		[getCustomEnabled $node_id] != true ||
-		[getCustomConfigSelected $node_id "NODE_CONFIG"] in "\"\" DISABLED"
+		[getNodeCustomEnabled $node_id] != true ||
+		[getNodeCustomConfigSelected $node_id "NODE_CONFIG"] in "\"\" DISABLED"
 	} {
 		foreach protocol { rip ripng ospf ospf6 } {
 			set cfg [concat $cfg [getRouterProtocolCfg $node_id $protocol]]
@@ -177,7 +177,7 @@ proc $MODULE.generateConfig { node_id } {
 
 	set subnet_gws {}
 	set nodes_l2data [dict create]
-	if { [getAutoDefaultRoutesStatus $node_id] == "enabled" } {
+	if { [getNodeAutoDefaultRoutesStatus $node_id] == "enabled" } {
 		lassign [getDefaultGateways $node_id $subnet_gws $nodes_l2data] my_gws subnet_gws nodes_l2data
 		lassign [getDefaultRoutesConfig $node_id $my_gws] all_routes4 all_routes6
 
@@ -196,7 +196,7 @@ proc $MODULE.generateConfig { node_id } {
 proc $MODULE.generateUnconfig { node_id } {
 	set cfg {}
 
-	if { [getCustomEnabled $node_id] != true } {
+	if { [getNodeCustomEnabled $node_id] != true } {
 		foreach protocol { rip ripng ospf ospf6 } {
 			set cfg [concat $cfg [getRouterProtocolUnconfig $node_id $protocol]]
 		}
