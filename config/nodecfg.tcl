@@ -1060,6 +1060,9 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 		set old_node_cfg [cfgGet "nodes" $node_id]
 	}
 
+	dputs "OLD : '$old_node_cfg'"
+	dputs "NEW : '$new_node_cfg'"
+
 	set cfg_diff [dictDiff $old_node_cfg $new_node_cfg]
 	dputs "= cfg_diff: '$cfg_diff'"
 	if { $cfg_diff == "" || [lsort -uniq [dict values $cfg_diff]] == "copy" } {
@@ -1067,10 +1070,6 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 		dputs "= /UPDATE NODE $node_id END ="
 		return $new_node_cfg
 	}
-
-	set eid [getFromRunning "eid"]
-
-	set commands {}
 
 	if { $new_node_cfg == "" } {
 		return $old_node_cfg
@@ -1099,8 +1098,6 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 		switch -exact $key {
 			"name" {
 				setNodeName $node_id $new_value
-				# TODO: move to GUI updateNode proc
-				setNodeLabel $node_id $new_value
 			}
 
 			"custom_image" {
@@ -1325,24 +1322,8 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 				}
 			}
 
-			"canvas" {
-				setNodeCanvas $node_id $new_value
-			}
-
-			"iconcoords" {
-				setNodeCoords $node_id $new_value
-			}
-
-			"labelcoords" {
-				setNodeLabelCoords $node_id $new_value
-			}
-
 			"events" {
-				# TODO
-			}
-
-			"custom_icon" {
-				setNodeCustomIcon $node_id $new_value
+				setElementEvents $node_id $new_value
 			}
 
 			"ifaces" {
@@ -1657,6 +1638,78 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 	}
 
 	dputs "= /UPDATE NODE $node_id END ="
+	dputs ""
+
+	return $new_node_cfg
+}
+
+proc updateNodeGUI { node_id old_node_cfg new_node_cfg } {
+	dputs ""
+	dputs "= /UPDATE NODE GUI $node_id START ="
+
+	if { $old_node_cfg == "*" } {
+		set old_node_cfg [cfgGet "gui" "nodes" $node_id]
+	}
+
+	dputs "OLD : '$old_node_cfg'"
+	dputs "NEW : '$new_node_cfg'"
+
+	set cfg_diff [dictDiff $old_node_cfg $new_node_cfg]
+	dputs "= cfg_diff: '$cfg_diff'"
+	if { $cfg_diff == "" || [lsort -uniq [dict values $cfg_diff]] == "copy" } {
+		dputs "= NO CHANGE"
+		dputs "= /UPDATE NODE $node_id END ="
+		return $new_node_cfg
+	}
+
+	if { $new_node_cfg == "" } {
+		return $old_node_cfg
+	}
+
+	dict for {key change} $cfg_diff {
+		if { $change == "copy" } {
+			continue
+		}
+
+		dputs "==== $change: '$key'"
+
+		set old_value [_cfgGet $old_node_cfg $key]
+		set new_value [_cfgGet $new_node_cfg $key]
+		if { $change in "changed" } {
+			dputs "==== OLD: '$old_value'"
+		}
+		if { $change in "new changed" } {
+			dputs "==== NEW: '$new_value'"
+		}
+
+		switch -exact $key {
+			"label" {
+				setNodeLabel $node_id $new_value
+			}
+
+			"canvas" {
+				setNodeCanvas $node_id $new_value
+			}
+
+			"iconcoords" {
+				setNodeCoords $node_id $new_value
+			}
+
+			"labelcoords" {
+				setNodeLabelCoords $node_id $new_value
+			}
+
+			"custom_icon" {
+				setNodeCustomIcon $node_id $new_value
+			}
+
+			default {
+				# do nothing
+			}
+		}
+	}
+
+	dputs "= /UPDATE NODE GUI $node_id END ="
 	dputs ""
 
 	return $new_node_cfg

@@ -1243,9 +1243,10 @@ proc configGUI_buttonsACNode { wi node_id } {
 }
 
 proc cancelNodeUpdate { node_id } {
-	global node_cfg node_existing_mac node_existing_ipv4 node_existing_ipv6
+	global node_cfg node_cfg_gui node_existing_mac node_existing_ipv4 node_existing_ipv6
 
 	set node_cfg ""
+	set node_cfg_gui ""
 	set node_existing_mac {}
 	set node_existing_ipv4 {}
 	set node_existing_ipv6 {}
@@ -1348,7 +1349,10 @@ proc configGUI_applyButtonNode { wi node_id phase } {
 
 	if { $apply } {
 		global node_existing_mac node_existing_ipv4 node_existing_ipv6
-		global node_cfg
+		global node_cfg node_cfg_gui
+
+		updateNodeGUI $node_id "*" $node_cfg_gui
+		set node_cfg_gui [cfgGet "gui" "nodes" $node_id]
 
 		updateNode $node_id "*" $node_cfg
 		undeployCfg
@@ -1400,9 +1404,10 @@ proc configGUI_applyButtonNode { wi node_id phase } {
 	}
 
 	if { $close } {
-		global node_cfg node_existing_mac node_existing_ipv4 node_existing_ipv6
+		global node_cfg node_cfg_gui node_existing_mac node_existing_ipv4 node_existing_ipv6
 
 		set node_cfg ""
+		set node_cfg_gui ""
 		set node_existing_mac {}
 		set node_existing_ipv4 {}
 		set node_existing_ipv6 {}
@@ -2569,7 +2574,7 @@ proc configGUI_externalIfcs { wi node_id } {
 #****
 proc configGUI_nodeNameApply { wi node_id } {
 	global changed showTree
-	global node_cfg
+	global node_cfg node_cfg_gui
 
 	set name [string trim [$wi.name.nodename get]]
 	if { [_getNodeType $node_cfg] ni "rj45" && [regexp {^[A-Za-z_][0-9A-Za-z_-]*$} $name ] == 0 } {
@@ -2579,6 +2584,7 @@ proc configGUI_nodeNameApply { wi node_id } {
 			info 0 Dismiss
 	} elseif { $name != [_getNodeName $node_cfg] } {
 		set node_cfg [_setNodeName $node_cfg $name]
+		set node_cfg_gui [_setNodeLabel $node_cfg_gui $name]
 		if { $showTree == 1 } {
 			refreshTopologyTree
 		}
@@ -6395,7 +6401,7 @@ proc configGUI_applyFilterNode {} {
 
 	configGUI_nodeNameApply .popup $curnode
 
-	global node_cfg
+	global node_cfg node_cfg_gui
 
 	set sel [configGUI_ifcRuleConfigApply 0 0]
 	if { $changed == 1 } {
@@ -6412,6 +6418,9 @@ proc configGUI_applyFilterNode {} {
 	}
 
 	global node_existing_mac node_existing_ipv4 node_existing_ipv6
+
+	updateNodeGUI $curnode "*" $node_cfg_gui
+	set node_cfg_gui [cfgGet "gui" "nodes" $curnode]
 
 	updateNode $curnode "*" $node_cfg
 	undeployCfg
@@ -7218,7 +7227,7 @@ proc configGUI_applyPackgenNode { } {
 
 	configGUI_nodeNameApply .popup $curnode
 
-	global node_cfg
+	global node_cfg node_cfg_gui
 
 	configGUI_packetRateApply
 	set sel [configGUI_packetConfigApply 0 0]
@@ -7236,6 +7245,9 @@ proc configGUI_applyPackgenNode { } {
 	}
 
 	global node_existing_mac node_existing_ipv4 node_existing_ipv6
+
+	updateNodeGUI $curnode "*" $node_cfg_gui
+	set node_cfg_gui [cfgGet "gui" "nodes" $curnode]
 
 	updateNode $curnode "*" $node_cfg
 	undeployCfg
@@ -7944,6 +7956,14 @@ proc _getNodeName { node_cfg } {
 
 proc _setNodeName { node_cfg name } {
 	return [_cfgSet $node_cfg "name" $name]
+}
+
+proc _getNodeLabel { node_cfg } {
+	return [_cfgGet $node_cfg "label"]
+}
+
+proc _setNodeLabel { node_cfg label_str } {
+	return [_cfgSet $node_cfg "label" $label_str]
 }
 
 proc _setNodeNATIface { node_cfg interface } {
