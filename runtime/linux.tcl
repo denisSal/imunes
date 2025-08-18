@@ -313,7 +313,7 @@ proc spawnShell { node_id cmd } {
 #   current system.
 #****
 proc allSnapshotsAvailable {} {
-	global VROOT_MASTER execMode
+	global VROOT_MASTER execMode gui
 
 	set snapshots $VROOT_MASTER
 	foreach node_id [getFromRunning "node_list"] {
@@ -349,7 +349,7 @@ proc allSnapshotsAvailable {} {
 				set msg "Docker image for some virtual nodes:\n$template\nis missing.\n"
 				append msg "Run 'docker pull $template' to pull the template."
 
-				if { $execMode == "batch" } {
+				if { ! $gui || $execMode == "batch" } {
 					puts stderr $msg
 				} else {
 					tk_dialog .dialog1 "IMUNES error" \
@@ -401,7 +401,7 @@ proc getHostIfcList {} {
 #   * check -- 1 if interface exists, 0 otherwise
 #****
 proc getHostIfcVlanExists { node_id iface_name } {
-	global execMode
+	global execMode gui
 
 	# check if VLAN ID is already taken
 	# this can be only done by trying to create it, as it's possible that the same
@@ -419,7 +419,7 @@ proc getHostIfcVlanExists { node_id iface_name } {
 			assigned to another VLAN interface, potentially in a different namespace."
 	}
 
-	if { $execMode == "batch" } {
+	if { ! $gui || $execMode == "batch" } {
 		puts stderr $msg
 	} else {
 		after idle { .dialog1.msg configure -wraplength 4i }
@@ -1434,7 +1434,7 @@ proc getExtIfcs {} {
 #   * iface_id -- interface id
 #****
 proc captureExtIfc { eid node_id iface_id } {
-	global execMode
+	global execMode gui
 
 	set nsstrx ""
 	set iface_name [getIfcName $node_id $iface_id]
@@ -1459,7 +1459,7 @@ proc captureExtIfc { eid node_id iface_id } {
 				set msg "Error: VLAN $vlan on external interface $iface_name can't be\
 					created.\n($err)"
 
-				if { $execMode == "batch" } {
+				if { ! $gui || $execMode == "batch" } {
 					puts stderr $msg
 				} else {
 					after idle { .dialog1.msg configure -wraplength 4i }
