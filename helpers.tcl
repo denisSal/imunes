@@ -56,7 +56,7 @@ proc safeSourceFile { file } {
 }
 
 proc parseCmdArgs { options usage } {
-	global initMode execMode eid_base debug argv selected_experiment
+	global initMode execMode eid_base debug argv selected_experiment gui
 	global printVersion prepareFlag forceFlag
 	global nodecreate_timeout ifacesconf_timeout nodeconf_timeout
 
@@ -76,6 +76,10 @@ proc parseCmdArgs { options usage } {
 		set initMode 1
 	}
 
+	if { $params(c) || $params(cli) } {
+		set gui 0
+	}
+
 	if { $params(b) || $params(batch) } {
 		if { $params(e) == "" && $params(eid) == "" && $fileName == "" } {
 			puts stderr $usage
@@ -87,6 +91,7 @@ proc parseCmdArgs { options usage } {
 			exit 1
 		}
 		set execMode batch
+		set gui 0
 	}
 
 	if { $params(d) } {
@@ -279,7 +284,7 @@ proc reloadSources {} {
 	global ROOTDIR LIBDIR
 	global all_modules_list node_types execMode
 	global isOSlinux isOSfreebsd
-	global debug
+	global debug gui
 
 	set all_modules_list {}
 	set runnable_node_types {}
@@ -320,7 +325,9 @@ proc reloadSources {} {
 	safeSourceFile "$ROOTDIR/$LIBDIR/nodes/localnodes.tcl"
 
 	if { $execMode == "interactive" } {
-		safePackageRequire Tk "To run the IMUNES GUI, Tk must be installed."
+		if { $gui } {
+			safePackageRequire Tk "To run the IMUNES GUI, Tk must be installed."
+		}
 
 		# Node GUI base libraries
 		foreach node_type $node_types {
@@ -344,8 +351,10 @@ proc reloadSources {} {
 
 	applyOptions
 
-	redrawAll
-	refreshToolBarNodes
+	if { $gui } {
+		redrawAll
+		refreshToolBarNodes
+	}
 
 	dputs "Reloaded all sources."
 }

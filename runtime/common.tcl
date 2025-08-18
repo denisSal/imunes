@@ -605,9 +605,9 @@ proc trigger_ifaceReconfig { node_id iface_id } {
 #   * line -- line to be displayed
 #****
 proc statline { line } {
-	global execMode
+	global execMode gui
 
-	if { $execMode == "batch" } {
+	if { ! $gui || $execMode == "batch" } {
 		puts $line
 		flush stdout
 	} else {
@@ -630,9 +630,9 @@ proc statline { line } {
 #   * total -- total number of steps
 #****
 proc displayBatchProgress { prgs tot } {
-	global execMode debug
+	global execMode debug gui
 
-	if { $execMode == "batch" } {
+	if { ! $gui || $execMode == "batch" } {
 		puts -nonewline "\r                                                "
 		puts -nonewline "\r> $prgs/$tot "
 		flush stdout
@@ -739,35 +739,54 @@ proc pipesClose {} {
 #   * new_oper_mode -- the new operating mode. Can be edit or exec.
 #****
 proc setOperMode { new_oper_mode } {
-	global editor_only isOSfreebsd isOSlinux
+	global editor_only isOSfreebsd isOSlinux gui
 
 	if {
 		! [getFromRunning "cfg_deployed"] &&
 		$new_oper_mode == "exec"
 	} {
 		if { ! $isOSlinux && ! $isOSfreebsd } {
-			after idle { .dialog1.msg configure -wraplength 4i }
-			tk_dialog .dialog1 "IMUNES error" \
-				"Error: To execute experiment, run IMUNES on FreeBSD or Linux." \
-				info 0 Dismiss
+			set err "Error: To execute experiment, run IMUNES on FreeBSD or Linux."
+
+			if { $gui } {
+				after idle { .dialog1.msg configure -wraplength 4i }
+				tk_dialog .dialog1 "IMUNES error" \
+					$err \
+					info 0 Dismiss
+			} else {
+				puts stderr $err
+			}
+
 			return
 		}
 
 		catch { exec id -u } uid
 		if { $uid != "0" } {
-			after idle { .dialog1.msg configure -wraplength 4i }
-			tk_dialog .dialog1 "IMUNES error" \
-				"Error: To execute experiment, run IMUNES with root permissions." \
-				info 0 Dismiss
+			set err "Error: To execute experiment, run IMUNES with root permissions."
+
+			if { $gui } {
+				after idle { .dialog1.msg configure -wraplength 4i }
+				tk_dialog .dialog1 "IMUNES error" \
+					$err \
+					info 0 Dismiss
+			} else {
+				puts stderr $err
+			}
+
 			return
 		}
 
 		set err [checkSysPrerequisites]
 		if { $err != "" } {
-			after idle { .dialog1.msg configure -wraplength 4i }
-			tk_dialog .dialog1 "IMUNES error" \
-				"$err" \
-				info 0 Dismiss
+			if { $gui } {
+				after idle { .dialog1.msg configure -wraplength 4i }
+				tk_dialog .dialog1 "IMUNES error" \
+					"$err" \
+					info 0 Dismiss
+			} else {
+				puts stderr $err
+			}
+
 			return
 		}
 
@@ -788,18 +807,22 @@ proc setOperMode { new_oper_mode } {
 
 	#.panwin.f1.left.select configure -state active
 	if { "$new_oper_mode" == "exec" && [exec id -u] == 0 } {
-		.menubar.experiment entryconfigure "Execute" -state disabled
-		.menubar.experiment entryconfigure "Terminate" -state normal
-		.menubar.experiment entryconfigure "Restart" -state normal
-		.menubar.experiment entryconfigure "Refresh running experiment" -state normal
-		.menubar.edit entryconfigure "Undo" -state disabled
-		.menubar.edit entryconfigure "Redo" -state disabled
-		.panwin.f1.c bind node <Double-1> "spawnShellExec"
-		.panwin.f1.c bind nodelabel <Double-1> "spawnShellExec"
+		if { $gui } {
+			.menubar.experiment entryconfigure "Execute" -state disabled
+			.menubar.experiment entryconfigure "Terminate" -state normal
+			.menubar.experiment entryconfigure "Restart" -state normal
+			.menubar.experiment entryconfigure "Refresh running experiment" -state normal
+			.menubar.edit entryconfigure "Undo" -state disabled
+			.menubar.edit entryconfigure "Redo" -state disabled
+			.panwin.f1.c bind node <Double-1> "spawnShellExec"
+			.panwin.f1.c bind nodelabel <Double-1> "spawnShellExec"
+		}
 
 		setToRunning "oper_mode" "exec"
 
-		wm protocol . WM_DELETE_WINDOW {
+		if { $gui } {
+			wm protocol . WM_DELETE_WINDOW {
+			}
 		}
 
 		if { ! [getFromRunning "cfg_deployed"] } {
@@ -815,21 +838,25 @@ proc setOperMode { new_oper_mode } {
 			setToRunning "cfg_deployed" true
 		}
 
-		wm protocol . WM_DELETE_WINDOW {
-			exit
-		}
+		if { $gui } {
+			wm protocol . WM_DELETE_WINDOW {
+				exit
+			}
 
-		.bottom.experiment_id configure -text "Experiment ID = [getFromRunning "eid"]"
-		if { [getFromRunning "auto_execution"] } {
-			set oper_mode_text "exec mode"
-			set oper_mode_color "black"
-		} else {
-			set oper_mode_text "paused"
-			set oper_mode_color "red"
+			.bottom.experiment_id configure -text "Experiment ID = [getFromRunning "eid"]"
+			if { [getFromRunning "auto_execution"] } {
+				set oper_mode_text "exec mode"
+				set oper_mode_color "black"
+			} else {
+				set oper_mode_text "paused"
+				set oper_mode_color "red"
+			}
 		}
 	} else {
 		if { [getFromRunning "oper_mode"] != "edit" } {
-			wm protocol . WM_DELETE_WINDOW {
+			if { $gui } {
+				wm protocol . WM_DELETE_WINDOW {
+				}
 			}
 
 			set eid [getFromRunning "eid"]
@@ -849,47 +876,56 @@ proc setOperMode { new_oper_mode } {
 			setToExecuteVars "terminate_cfg" [cfgGet]
 			setToRunning "cfg_deployed" false
 
-			wm protocol . WM_DELETE_WINDOW {
-				exit
+			if { $gui } {
+				wm protocol . WM_DELETE_WINDOW {
+					exit
+				}
 			}
 		}
 
-		if { $editor_only } {
-			.menubar.experiment entryconfigure "Execute" -state disabled
-		} else {
-			.menubar.experiment entryconfigure "Execute" -state normal
+		if { $gui } {
+			if { $editor_only } {
+				.menubar.experiment entryconfigure "Execute" -state disabled
+			} else {
+				.menubar.experiment entryconfigure "Execute" -state normal
+			}
+
+			.menubar.experiment entryconfigure "Terminate" -state disabled
+			.menubar.experiment entryconfigure "Restart" -state disabled
+			.menubar.experiment entryconfigure "Refresh running experiment" -state disabled
+
+			if { [getFromRunning "undolevel"] > 0 } {
+				.menubar.edit entryconfigure "Undo" -state normal
+			} else {
+				.menubar.edit entryconfigure "Undo" -state disabled
+			}
+
+			if { [getFromRunning "redolevel"] > [getFromRunning "undolevel"] } {
+				.menubar.edit entryconfigure "Redo" -state normal
+			} else {
+				.menubar.edit entryconfigure "Redo" -state disabled
+			}
+
+			.panwin.f1.c bind node <Double-1> "nodeConfigGUI .panwin.f1.c {}"
+			.panwin.f1.c bind nodelabel <Double-1> "nodeConfigGUI .panwin.f1.c {}"
 		}
-
-		.menubar.experiment entryconfigure "Terminate" -state disabled
-		.menubar.experiment entryconfigure "Restart" -state disabled
-		.menubar.experiment entryconfigure "Refresh running experiment" -state disabled
-
-		if { [getFromRunning "undolevel"] > 0 } {
-			.menubar.edit entryconfigure "Undo" -state normal
-		} else {
-			.menubar.edit entryconfigure "Undo" -state disabled
-		}
-
-		if { [getFromRunning "redolevel"] > [getFromRunning "undolevel"] } {
-			.menubar.edit entryconfigure "Redo" -state normal
-		} else {
-			.menubar.edit entryconfigure "Redo" -state disabled
-		}
-
-		.panwin.f1.c bind node <Double-1> "nodeConfigGUI .panwin.f1.c {}"
-		.panwin.f1.c bind nodelabel <Double-1> "nodeConfigGUI .panwin.f1.c {}"
 
 		setToRunning "oper_mode" "edit"
-		.bottom.experiment_id configure -text ""
-		set oper_mode_text "edit mode"
-		set oper_mode_color "black"
+
+		if { $gui } {
+			.bottom.experiment_id configure -text ""
+			set oper_mode_text "edit mode"
+			set oper_mode_color "black"
+		}
 	}
 
-	.bottom.oper_mode configure -text "$oper_mode_text"
-	.bottom.oper_mode configure -foreground $oper_mode_color
+	if { $gui } {
+		.bottom.oper_mode configure -text "$oper_mode_text"
+		.bottom.oper_mode configure -foreground $oper_mode_color
 
-	catch { redrawAll }
-	.panwin.f1.c config -cursor left_ptr
+		catch { redrawAll }
+		.panwin.f1.c config -cursor left_ptr
+	}
 }
 
 #****f* exec.tcl/spawnShellExec
