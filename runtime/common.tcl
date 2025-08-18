@@ -791,6 +791,7 @@ proc setOperMode { new_oper_mode } {
 		.menubar.experiment entryconfigure "Execute" -state disabled
 		.menubar.experiment entryconfigure "Terminate" -state normal
 		.menubar.experiment entryconfigure "Restart" -state normal
+		.menubar.experiment entryconfigure "Refresh running experiment" -state normal
 		.menubar.edit entryconfigure "Undo" -state disabled
 		.menubar.edit entryconfigure "Redo" -state disabled
 		.panwin.f1.c bind node <Double-1> "spawnShellExec"
@@ -861,6 +862,7 @@ proc setOperMode { new_oper_mode } {
 
 		.menubar.experiment entryconfigure "Terminate" -state disabled
 		.menubar.experiment entryconfigure "Restart" -state disabled
+		.menubar.experiment entryconfigure "Refresh running experiment" -state disabled
 
 		if { [getFromRunning "undolevel"] > 0 } {
 			.menubar.edit entryconfigure "Undo" -state normal
@@ -991,6 +993,40 @@ proc resumeSelectedExperiment { exp } {
 	setToRunning "eid" $exp
 	setToRunning "cfg_deployed" true
 	setOperMode exec
+}
+
+proc refreshRunningExperimentGUI {} {
+	try {
+		refreshRunningExperiment
+	} on ok eid {
+		return $eid
+	} on error err {
+		statline $err
+
+		return ""
+	}
+}
+
+proc refreshRunningExperiment {} {
+	if { ! [getFromRunning "cfg_deployed"] } {
+		return
+	}
+
+	set eid [getFromRunning "eid"]
+
+	setToRunning "current_file" [getExperimentConfigurationFromFile $eid]
+	if { [getFromRunning "current_file"] == "" } {
+		closeFile
+
+		return -code error "Experiment with EID $eid not running anymore."
+	}
+
+	openFile
+	readRunningVarsFile $eid
+	setToRunning "cfg_deployed" true
+	setOperMode exec
+
+	return -code ok $eid
 }
 
 #****f* exec.tcl/dumpLinksToFile
