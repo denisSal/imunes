@@ -901,6 +901,8 @@ set tmp_command {
 .menubar.experiment add separator
 .menubar.experiment add command -label "Attach to experiment" -underline 0 \
 	-command "attachToExperimentPopup"
+.menubar.experiment add command -label "Refresh running experiment" -underline 17 \
+	-command "refreshRunningExperimentGUI"
 
 #
 # Help
