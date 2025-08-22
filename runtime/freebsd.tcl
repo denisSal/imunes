@@ -13,7 +13,7 @@
 proc moveFileFromNode { node_id path ext_path } {
 	set node_dir [getNodeDir $node_id]
 
-	catch { exec mv $node_dir$path $ext_path }
+	catch { rexec mv $node_dir$path $ext_path }
 }
 
 #****f* freebsd.tcl/writeDataToNodeFile
@@ -30,7 +30,7 @@ proc moveFileFromNode { node_id path ext_path } {
 #****
 proc writeDataToNodeFile { node_id path data } {
 	set node_dir [getNodeDir $node_id]
-	if { ! [file exists $node_dir] } {
+	if { [catch { rexec test -d $node_dir}] } {
 		return
 	}
 
@@ -51,7 +51,7 @@ proc writeDataToNodeFile { node_id path data } {
 #   * returns the execution output
 #****
 proc execCmdNode { node_id cmd } {
-	catch { eval [concat "exec jexec " [getFromRunning "eid"].$node_id $cmd] } output
+	catch { eval [concat "rexec jexec " [getFromRunning "eid"].$node_id $cmd] } output
 
 	return $output
 }
@@ -112,7 +112,7 @@ proc checkForExternalApps { app_list } {
 #****
 proc checkForApplications { node_id app_list } {
 	foreach app $app_list {
-		set status [ catch { exec jexec [getFromRunning "eid"].$node_id which $app } err ]
+		set status [ catch { rexec jexec [getFromRunning "eid"].$node_id which $app } err ]
 		if { $status } {
 			return 1
 		}
@@ -133,16 +133,30 @@ proc checkForApplications { node_id app_list } {
 #   * ifc -- virtual node interface
 #****
 proc startWiresharkOnNodeIfc { node_id ifc } {
+	global remote escalation_comm rescalation_comm
+
 	set eid [getFromRunning "eid"]
 
 	if {
+		$remote == "" &&
 		[checkForExternalApps "startxcmd"] == 0 &&
 		[checkForApplications $node_id "wireshark"] == 0
 	} {
 		startXappOnNode $node_id "wireshark -ki $ifc"
 	} else {
-		exec jexec $eid.$node_id tcpdump -s 0 -U -w - -i $ifc 2>/dev/null |\
-			wireshark -o "gui.window_title:$ifc@[getNodeName $node_id] ($eid)" -k -i - &
+		if { $remote != "" } {
+			set wireshark_comm "$escalation_comm wireshark"
+
+			# XXX fix for socat
+			set tmprcmd "ssh $remote $rescalation_comm"
+			exec -- echo -e "jexec $eid.$node_id tcpdump -s 0 -U -w - -i $ifc 2>/dev/null" | {*}$tmprcmd | \
+				{*}$wireshark_comm -o "gui.window_title:$ifc@[getNodeName $node_id] ($eid)" -k -i - &
+		} else {
+			set wireshark_comm "wireshark"
+
+			exec jexec $eid.$node_id tcpdump -s 0 -U -w - -i $ifc 2>/dev/null |\
+				{*}$wireshark_comm -o "gui.window_title:$ifc@[getNodeName $node_id] ($eid)" -k -i - &
+		}
 	}
 }
 
@@ -165,9 +179,9 @@ proc captureOnExtIfc { node_id command } {
 
 	set eid [getFromRunning "eid"]
 	if { $command == "tcpdump" } {
-		exec xterm -name imunes-terminal -T "Capturing $eid-$node_id" -e "tcpdump -ni $eid-$node_id" 2> /dev/null &
+		rexec xterm -name imunes-terminal -T "Capturing $eid-$node_id" -e "tcpdump -ni $eid-$node_id" 2> /dev/null &
 	} else {
-		exec $command -o "gui.window_title:[getNodeName $node_id] ($eid)" -k -i $eid-$node_id 2> /dev/null &
+		rexec $command -o "gui.window_title:[getNodeName $node_id] ($eid)" -k -i $eid-$node_id 2> /dev/null &
 	}
 }
 #****f* freebsd.tcl/startXappOnNode
@@ -182,7 +196,13 @@ proc captureOnExtIfc { node_id command } {
 #   * app -- application to start
 #****
 proc startXappOnNode { node_id app } {
-	global debug
+	global debug remote
+
+	if { $remote != "" } {
+		puts stderr "Running X applications in nodes on remote host is not supported."
+
+		return
+	}
 
 	if { [checkForExternalApps "socat"] != 0 } {
 		puts stderr "To run X applications on the node, install socat on your host."
@@ -231,7 +251,7 @@ proc startTcpdumpOnNodeIfc { node_id ifc } {
 proc existingShells { shells node_id { first_only "" } } {
 	set cmd "jexec [getFromRunning "eid"].$node_id which $shells"
 
-	set err [catch { exec {*}$cmd } res]
+	set err [catch { rexec {*}$cmd } res]
 	if { $err } {
 		return ""
 	}
@@ -256,11 +276,13 @@ proc existingShells { shells node_id { first_only "" } } {
 #   * cmd -- the path to the shell.
 #****
 proc spawnShell { node_id cmd } {
+	global ttyrcmd
+
 	set jail_id "[getFromRunning "eid"].$node_id"
 
 	exec xterm -name imunes-terminal -sb -rightbar \
 		-T "IMUNES: [getNodeName $node_id] (console) [lindex [split $cmd /] end]" \
-		-e "jexec $jail_id $cmd" &
+		-e {*}$ttyrcmd "jexec $jail_id $cmd" &
 }
 
 #****f* freebsd.tcl/allSnapshotsAvailable
@@ -310,7 +332,7 @@ proc allSnapshotsAvailable {} {
 
 	return 1
 
-	catch { exec zfs list -t snapshot | awk {{print $1}} | sed "1 d" } out
+	catch { rexec zfs list -t snapshot | awk {{print $1}} | sed "1 d" } out
 	set snapshotList [split $out "\n"]
 	foreach node_id $node_list {
 		set snapshot [getNodeSnapshot $node_id]
@@ -367,12 +389,12 @@ proc allSnapshotsAvailable {} {
 proc checkHangingTCPs { eid vimage } {
 	global execMode gui
 
-	if { [lindex [split [exec uname -r] "-"] 0] >= 9.0 } {
+	if { [lindex [split [rexec uname -r] "-"] 0] >= 9.0 } {
 		return
 	}
 
 	set timeoutNeeded 0
-	if { [catch { exec jexec $eid.$vimage netstat -an -f inet | fgrep "WAIT" } err] == 0 } {
+	if { [catch { rexec jexec $eid.$vimage netstat -an -f inet | fgrep "WAIT" } err] == 0 } {
 		set timeoutNeeded 1
 		break
 	}
@@ -412,7 +434,7 @@ proc checkHangingTCPs { eid vimage } {
 	set spin 1
 	while { $spin == 1 } {
 		set spin 0
-		while { [catch { exec jexec $eid.$vimage netstat -an -f inet | fgrep "WAIT" } err] == 0 } {
+		while { [catch { rexec jexec $eid.$vimage netstat -an -f inet | fgrep "WAIT" } err] == 0 } {
 			set spin 1
 			after 1000
 			set sec [expr $sec - 1]
@@ -662,7 +684,7 @@ proc execSetLinkJitter { eid link_id } {
 #   * link_id -- link id
 #****
 proc execResetLinkJitter { eid link_id } {
-	exec jexec $eid ngctl msg $link_id: setcfg \
+	rexec jexec $eid ngctl msg $link_id: setcfg \
 		"{upstream={jitmode=-1} downstream={jitmode=-1}}"
 }
 
@@ -677,7 +699,7 @@ proc execResetLinkJitter { eid link_id } {
 #   * regex -- regularl expression of the processes
 #****
 proc killExtProcess { regex } {
-	catch "exec pkill -f \"$regex\""
+	pipesExec "pkill -f \"$regex\"" "hold"
 }
 
 #****f* freebsd.tcl/fetchNodeRunningConfig
@@ -708,7 +730,7 @@ proc fetchNodeRunningConfig { node_id } {
 	set loopback 0
 	set ipv4_addrs {}
 	set ipv6_addrs {}
-	catch { exec jexec [getFromRunning "eid"].$node_id ifconfig -v -f inet:cidr,inet6:cidr } full
+	catch { rexec jexec [getFromRunning "eid"].$node_id ifconfig -v -f inet:cidr,inet6:cidr } full
 	set lines [split $full "\n"]
 	foreach line $lines {
 		if { [regexp {^([[:alnum:]]+):.*<([^>]+)>.*mtu ([^$]+)$} $line -> iface_name flags mtu]} {
@@ -810,7 +832,7 @@ proc fetchNodeRunningConfig { node_id } {
 	set croutes4 {}
 	set croutes6 {}
 
-	catch { exec jexec [getFromRunning "eid"].$node_id netstat -rn4 --libxo json} json
+	catch { rexec jexec [getFromRunning "eid"].$node_id netstat -rn4 --libxo json} json
 	set route_table [dictGet [json::json2dict $json] "statistics" "route-information" "route-table" "rt-family"]
 
 	foreach elem $route_table {
@@ -843,7 +865,7 @@ proc fetchNodeRunningConfig { node_id } {
 		set cur_node_cfg [_setNodeStatIPv4routes $cur_node_cfg $new_croutes4]
 	}
 
-	catch { exec jexec [getFromRunning "eid"].$node_id netstat -rn6 --libxo json} json
+	catch { rexec jexec [getFromRunning "eid"].$node_id netstat -rn6 --libxo json} json
 	set route_table [dictGet [json::json2dict $json] "statistics" "route-information" "route-table" "rt-family"]
 
 	foreach elem $route_table {
@@ -918,7 +940,7 @@ proc fetchNodeRunningConfig { node_id } {
 #****
 proc getHostIfcList {} {
 	# fetch interface list from the system
-	set extifcs [exec ifconfig -l]
+	set extifcs [rexec ifconfig -l]
 	# exclude loopback interface
 	set ilo [lsearch $extifcs lo0]
 	set extifcs [lreplace $extifcs $ilo $ilo]
@@ -949,9 +971,10 @@ proc getHostIfcVlanExists { node_id ifname } {
 	set iface_id [ifaceIdFromName $node_id $ifname]
 	set vlan [getIfcVlanTag $node_id $iface_id]
 	try {
-		exec ifconfig $ifname.$vlan create
+		rexec ifconfig $ifname.$vlan create
 	} on ok {} {
-		exec ifconfig $ifname.$vlan destroy
+		rexec ifconfig $ifname.$vlan destroy
+
 		return 0
 	} on error err {
 		set msg "Unable to create external interface '$ifname.$vlan':\n$err\n\nPlease\
@@ -1055,7 +1078,7 @@ proc isNodeStarted { node_id } {
 		}
 
 		try {
-			exec jexec [getFromRunning "eid"] ngctl show $node_id:
+			rexec jexec [getFromRunning "eid"] ngctl show $node_id:
 		} on error {} {
 			return false
 		}
@@ -1067,9 +1090,9 @@ proc isNodeStarted { node_id } {
 
 	try {
 		if { $nodecreate_timeout >= 0 } {
-			exec timeout [expr $nodecreate_timeout/5.0] jls -j $jail_id
+			rexec timeout [expr $nodecreate_timeout/5.0] jls -j $jail_id
 		} else {
-			exec jls -j $jail_id
+			rexec jls -j $jail_id
 		}
 	} on error {} {
 		return false
@@ -1254,9 +1277,9 @@ proc isNodeInitNet { node_id } {
 
 	try {
 		if { $nodecreate_timeout >= 0 } {
-			exec timeout [expr $nodecreate_timeout/5.0] jexec $jail_id rm /tmp/init > /dev/null
+			rexec timeout [expr $nodecreate_timeout/5.0] jexec $jail_id rm /tmp/init > /dev/null
 		} else {
-			exec jexec $jail_id rm /tmp/init > /dev/null
+			rexec jexec $jail_id rm /tmp/init > /dev/null
 		}
 	} on error {} {
 		return false
@@ -1397,9 +1420,9 @@ proc isNodeIfacesConfigured { node_id } {
 
 	try {
 		if { $ifacesconf_timeout >= 0 } {
-			exec timeout [expr $ifacesconf_timeout/5.0] jexec $jail_id test -f /out_ifaces.log > /dev/null
+			rexec timeout [expr $ifacesconf_timeout/5.0] jexec $jail_id test -f /out_ifaces.log > /dev/null
 		} else {
-			exec jexec $jail_id test -f /out_ifaces.log > /dev/null
+			rexec jexec $jail_id test -f /out_ifaces.log > /dev/null
 		}
 	} on error {} {
 		return false
@@ -1423,9 +1446,9 @@ proc isNodeConfigured { node_id } {
 
 	try {
 		if { $nodeconf_timeout >= 0 } {
-			exec timeout [expr $nodeconf_timeout/5.0] jexec $jail_id test -f /out.log > /dev/null
+			rexec timeout [expr $nodeconf_timeout/5.0] jexec $jail_id test -f /out.log > /dev/null
 		} else {
-			exec jexec $jail_id test -f /out.log > /dev/null
+			rexec jexec $jail_id test -f /out.log > /dev/null
 		}
 	} on error {} {
 		return false
@@ -1435,7 +1458,7 @@ proc isNodeConfigured { node_id } {
 }
 
 proc isNodeError { node_id } {
-	global skip_nodes
+	global skip_nodes remote
 
 	if { $node_id in $skip_nodes } {
 		return false
@@ -1447,7 +1470,12 @@ proc isNodeError { node_id } {
 
 	set jail_id "[getFromRunning "eid"].$node_id"
 
-	catch { exec jexec $jail_id sed "/^+ /d" /err.log } errlog
+	if { $remote != "" } {
+		set cmd "sed '/^+ /d' /err.log"
+	} else {
+		set cmd "sed \"/^+ /d\" /err.log"
+	}
+	catch { rexec jexec $jail_id {*}$cmd } errlog
 	if { $errlog == "" } {
 		return false
 	}
@@ -1456,7 +1484,7 @@ proc isNodeError { node_id } {
 }
 
 proc isNodeErrorIfaces { node_id } {
-	global skip_nodes
+	global skip_nodes remote
 
 	if { $node_id in $skip_nodes } {
 		return false
@@ -1468,7 +1496,12 @@ proc isNodeErrorIfaces { node_id } {
 
 	set jail_id "[getFromRunning "eid"].$node_id"
 
-	catch { exec jexec $jail_id sed "/^+ /d" /err_ifaces.log } errlog
+	if { $remote != "" } {
+		set cmd "sed '/^+ /d' /err_ifaces.log"
+	} else {
+		set cmd "sed \"/^+ /d\" /err_ifaces.log"
+	}
+	catch { rexec jexec $jail_id {*}$cmd} errlog
 	if { $errlog == "" } {
 		return false
 	}
@@ -1600,18 +1633,18 @@ proc removeNodeFS { eid node_id } {
 proc loadKernelModules {} {
 	global all_modules_list
 
-	catch { exec kldload nullfs }
-	catch { exec kldload unionfs }
+	catch { rexec kldload nullfs }
+	catch { rexec kldload unionfs }
 
-	catch { exec kldload ng_eiface }
-	catch { exec kldload ng_pipe }
-	catch { exec kldload ng_socket }
-	catch { exec kldload if_tun }
-	catch { exec kldload vlan }
-	catch { exec kldload ipsec }
-	catch { exec kldload pf }
-	#catch { exec kldload ng_iface }
-	#catch { exec kldload ng_cisco }
+	catch { rexec kldload ng_eiface }
+	catch { rexec kldload ng_pipe }
+	catch { rexec kldload ng_socket }
+	catch { rexec kldload if_tun }
+	catch { rexec kldload vlan }
+	catch { rexec kldload ipsec }
+	catch { rexec kldload pf }
+	#catch { rexec kldload ng_iface }
+	#catch { rexec kldload ng_cisco }
 
 	foreach module $all_modules_list {
 		if { [info procs $module.prepareSystem] == "$module.prepareSystem" } {
@@ -1634,7 +1667,7 @@ proc prepareVirtualFS {} {
 	if { $vroot_unionfs } {
 		# UNIONFS - anything to do here?
 	} else {
-		exec zfs create vroot/[getFromRunning "eid"]
+		rexec zfs create vroot/[getFromRunning "eid"]
 	}
 }
 
@@ -1649,49 +1682,49 @@ proc prepareVirtualFS {} {
 proc prepareDevfs { { force 0 } } {
 	global devfs_number
 
-	catch { exec devfs rule showsets } devcheck
+	catch { rexec devfs rule showsets } devcheck
 	if { $force == 1 || $devfs_number ni $devcheck } {
 		# Prepare a devfs ruleset for L3 vnodes
-		exec devfs ruleset $devfs_number
-		exec devfs rule delset
-		exec devfs rule add hide
-		exec devfs rule add path null unhide
-		exec devfs rule add path zero unhide
-		exec devfs rule add path random unhide
-		exec devfs rule add path urandom unhide
-		exec devfs rule add path ipl unhide
-		exec devfs rule add path ipnat unhide
-		exec devfs rule add path pf unhide
-		exec devfs rule add path crypto unhide
-		exec devfs rule add path ptyp* unhide
-		exec devfs rule add path ptyq* unhide
-		exec devfs rule add path ptyr* unhide
-		exec devfs rule add path ptys* unhide
-		exec devfs rule add path ptyp* unhide
-		exec devfs rule add path ptyq* unhide
-		exec devfs rule add path ptyr* unhide
-		exec devfs rule add path ptys* unhide
-		exec devfs rule add path ttyp* unhide
-		exec devfs rule add path ttyq* unhide
-		exec devfs rule add path ttyr* unhide
-		exec devfs rule add path ttys* unhide
-		exec devfs rule add path ttyp* unhide
-		exec devfs rule add path ttyq* unhide
-		exec devfs rule add path ttyr* unhide
-		exec devfs rule add path ttys* unhide
-		exec devfs rule add path ptmx unhide
-		exec devfs rule add path pts unhide
-		exec devfs rule add path pts/* unhide
-		exec devfs rule add path fd unhide
-		exec devfs rule add path fd/* unhide
-		exec devfs rule add path stdin unhide
-		exec devfs rule add path stdout unhide
-		exec devfs rule add path stderr unhide
-		exec devfs rule add path mem unhide
-		exec devfs rule add path kmem unhide
-		exec devfs rule add path bpf* unhide
-		exec devfs rule add path tun* unhide
-		exec devfs ruleset 0
+		rexec devfs ruleset $devfs_number
+		rexec devfs rule delset
+		rexec devfs rule add hide
+		rexec devfs rule add path null unhide
+		rexec devfs rule add path zero unhide
+		rexec devfs rule add path random unhide
+		rexec devfs rule add path urandom unhide
+		rexec devfs rule add path ipl unhide
+		rexec devfs rule add path ipnat unhide
+		rexec devfs rule add path pf unhide
+		rexec devfs rule add path crypto unhide
+		rexec devfs rule add path ptyp* unhide
+		rexec devfs rule add path ptyq* unhide
+		rexec devfs rule add path ptyr* unhide
+		rexec devfs rule add path ptys* unhide
+		rexec devfs rule add path ptyp* unhide
+		rexec devfs rule add path ptyq* unhide
+		rexec devfs rule add path ptyr* unhide
+		rexec devfs rule add path ptys* unhide
+		rexec devfs rule add path ttyp* unhide
+		rexec devfs rule add path ttyq* unhide
+		rexec devfs rule add path ttyr* unhide
+		rexec devfs rule add path ttys* unhide
+		rexec devfs rule add path ttyp* unhide
+		rexec devfs rule add path ttyq* unhide
+		rexec devfs rule add path ttyr* unhide
+		rexec devfs rule add path ttys* unhide
+		rexec devfs rule add path ptmx unhide
+		rexec devfs rule add path pts unhide
+		rexec devfs rule add path pts/* unhide
+		rexec devfs rule add path fd unhide
+		rexec devfs rule add path fd/* unhide
+		rexec devfs rule add path stdin unhide
+		rexec devfs rule add path stdout unhide
+		rexec devfs rule add path stderr unhide
+		rexec devfs rule add path mem unhide
+		rexec devfs rule add path kmem unhide
+		rexec devfs rule add path bpf* unhide
+		rexec devfs rule add path tun* unhide
+		rexec devfs ruleset 0
 	}
 }
 
@@ -1705,7 +1738,7 @@ proc prepareDevfs { { force 0 } } {
 #****
 proc createExperimentContainer {} {
 	# Create top-level vimage
-	exec jail -c name=[getFromRunning "eid"] vnet children.max=[llength [getFromRunning "node_list"]] persist
+	rexec jail -c name=[getFromRunning "eid"] vnet children.max=[llength [getFromRunning "node_list"]] persist
 }
 
 #****f* freebsd.tcl/createLinkBetween
@@ -1897,8 +1930,8 @@ proc nodeIfacesDestroy { eid node_id ifaces } {
 proc terminate_removeExperimentContainer { eid } {
 	# Remove the main vimage which contained all other nodes, hopefully we
 	# cleaned everything.
-	catch "exec jexec $eid kill -9 -1 2> /dev/null"
-	exec jail -r $eid
+	catch "rexec jexec $eid kill -9 -1 2> /dev/null"
+	rexec jail -r $eid
 }
 
 proc terminate_removeExperimentFiles { eid } {
@@ -1910,21 +1943,21 @@ proc terminate_removeExperimentFiles { eid } {
 	# cleaned everything.
 	if { $vroot_unionfs } {
 		# UNIONFS
-		catch "exec rm -fr $VROOT_BASE/$eid"
+		catch "rexec rm -fr $VROOT_BASE/$eid"
 	} else {
 		# ZFS
 		if { ! $gui || $execMode == "batch" } {
-			exec jail -r $eid
-			exec zfs destroy -fr vroot/$eid
+			rexec jail -r $eid
+			rexec zfs destroy -fr vroot/$eid
 		} else {
-			exec jail -r $eid &
-			exec zfs destroy -fr vroot/$eid &
+			rexec jail -r $eid &
+			rexec zfs destroy -fr vroot/$eid &
 
-			catch { exec zfs list | grep -c "$eid" } output
+			catch { rexec zfs list | grep -c "$eid" } output
 			set zfsCount [lindex [split $output] 0]
 
 			while { $zfsCount != 0 } {
-				catch { exec zfs list | grep -c "$eid/" } output
+				catch { rexec zfs list | grep -c "$eid/" } output
 
 				set zfsCount [lindex [split $output] 0]
 				$widget.p configure -value $zfsCount
@@ -1935,7 +1968,6 @@ proc terminate_removeExperimentFiles { eid } {
 		}
 	}
 }
-
 
 #****f* freebsd.tcl/l2node.nodeCreate
 # NAME
@@ -2006,7 +2038,7 @@ proc l2node.nodeDestroy { eid node_id } {
 #   * cpucount - CPU count
 #****
 proc getCpuCount {} {
-	return [lindex [exec sysctl kern.smp.cpus] 1]
+	return [lindex [rexec sysctl kern.smp.cpus] 1]
 }
 
 #****f* freebsd.tcl/captureExtIfc
@@ -2028,7 +2060,7 @@ proc captureExtIfc { eid node_id iface_id } {
 	set vlan [getIfcVlanTag $node_id $iface_id]
 	if { $vlan != "" && [getIfcVlanDev $node_id $iface_id] != "" } {
 		try {
-			exec ifconfig $ifname.$vlan create
+			rexec ifconfig $ifname.$vlan create
 		} on error err {
 			set msg "Error: VLAN $vlan on external interface $ifname can't be\
 				created.\n($err)"
@@ -2088,7 +2120,7 @@ proc releaseExtIfc { eid node_id iface_id } {
 	set ifname [getIfcName $node_id $iface_id]
 	set vlan [getIfcVlanTag $node_id $iface_id]
 	if { $vlan != "" && [getIfcVlanDev $node_id $iface_id] != "" } {
-		catch { exec ifconfig $ifname.$vlan -vnet $eid destroy }
+		catch { rexec ifconfig $ifname.$vlan -vnet $eid destroy }
 
 		return
 	}
@@ -2152,7 +2184,7 @@ proc enableIPforwarding { node_id } {
 #   * ifsc - list of interfaces
 #****
 proc getExtIfcs {} {
-	catch { exec ifconfig -l } ifcs
+	catch { rexec ifconfig -l } ifcs
 	foreach ignore "lo* ipfw* tun*" {
 		set ifcs [ lsearch -all -inline -not $ifcs $ignore ]
 	}

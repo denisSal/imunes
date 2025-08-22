@@ -179,7 +179,7 @@ proc $MODULE.maxLinks {} {
 ################################################################################
 
 proc $MODULE.prepareSystem {} {
-	catch { exec kldload ng_source }
+	catch { rexec kldload ng_source }
 }
 
 #****f* packgen.tcl/packgen.nodeCreate

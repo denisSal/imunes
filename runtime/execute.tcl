@@ -192,7 +192,6 @@ proc createExperimentFiles { eid } {
 
 	set current_file [getFromRunning "current_file"]
 	set basedir "$runtimeDir/$eid"
-	file mkdir $basedir
 
 	writeDataToFile $basedir/timestamp [clock format [clock seconds]]
 
@@ -224,70 +223,6 @@ proc createRunningVarsFile { eid } {
 	# TODO: maybe remove some elements?
 	writeDataToFile $runtimeDir/$eid/runningVars \
 		[list "dict_run" "$dict_run" "dict_run_gui" "$dict_run_gui" "execute_vars" "$execute_vars"]
-}
-
-proc readRunningVarsFile { eid } {
-	global gui_option_defaults
-	global runtimeDir gui
-
-	upvar 0 ::cf::[set ::curcfg]::dict_run dict_run
-	upvar 0 ::cf::[set ::curcfg]::dict_run_gui dict_run_gui
-	upvar 0 ::cf::[set ::curcfg]::execute_vars execute_vars
-
-	set fd [open $runtimeDir/$eid/runningVars r]
-	set vars_dict [read $fd]
-	close $fd
-
-	set dict_run [dictGet $vars_dict "dict_run"]
-	set dict_run_gui [dictGet $vars_dict "dict_run_gui"]
-	set execute_vars [dictGet $vars_dict "execute_vars"]
-
-	if { $gui } {
-		set canvas_list [getFromRunning_gui "canvas_list"]
-		if { $canvas_list == {} } {
-			newCanvas ""
-			set canvas_list [getFromRunning_gui "canvas_list"]
-		}
-
-		if { [getFromRunning "undolevel"] == "" } {
-			setToRunning "undolevel" 0
-		}
-
-		if { [getFromRunning "redolevel"] == "" } {
-			setToRunning "redolevel" 0
-		}
-
-		if { [getFromRunning_gui "zoom"] == "" } {
-			setToRunning_gui "zoom" [dictGet $gui_option_defaults "zoom"]
-		}
-
-		if { [getFromRunning_gui "curcanvas"] == "" } {
-			setToRunning_gui "curcanvas" [lindex $canvas_list 0]
-		}
-	}
-
-	# older versions do not have this variable
-	if { [getFromRunning "modified"] == "" } {
-		setToRunning "modified" false
-	}
-}
-
-#****f* exec.tcl/saveRunningConfiguration
-# NAME
-#   saveRunningConfiguration -- save running configuration in interactive
-# SYNOPSIS
-#   saveRunningConfiguration $eid
-# FUNCTION
-#   Saves running configuration of the specified experiment if running in
-#   interactive mode.
-# INPUTS
-#   * eid -- experiment id
-#****
-proc saveRunningConfiguration { eid } {
-	global runtimeDir
-
-	set fileName "$runtimeDir/$eid/config.imn"
-	saveCfgJson $fileName
 }
 
 #****f* exec.tcl/createExperimentScreenshot
