@@ -59,6 +59,7 @@ proc parseCmdArgs { options usage } {
 	global initMode execMode eid_base debug argv selected_experiment gui
 	global printVersion prepareFlag forceFlag
 	global nodecreate_timeout ifacesconf_timeout nodeconf_timeout
+	global remote rcmd ttyrcmd rescalation_comm
 
 	catch { array set params [::cmdline::getoptions argv $options $usage] } err
 	if { $err != "" || $params(h) } {
@@ -80,12 +81,35 @@ proc parseCmdArgs { options usage } {
 		set gui 0
 	}
 
+	if { $params(r) != "" || $params(remote) != "" } {
+		set remote $params(r)
+		if { $params(remote) != "" } {
+			set remote $params(remote)
+		}
+
+		if { $remote != "" } {
+			if { [string match "socat:*" $remote] } {
+				lassign [split $remote ":"] - remote port
+				set rcmd "socat - TCP:$remote:$port"
+			} else {
+				set rcmd "ssh $remote $rescalation_comm"
+			}
+
+			set ttyrcmd "ssh -t $remote $rescalation_comm"
+
+			puts "Using remote host '$remote'"
+		} else {
+			puts stderr "Remote host not given."
+			exit 1
+		}
+	}
+
 	if { $params(b) || $params(batch) } {
 		if { $params(e) == "" && $params(eid) == "" && $fileName == "" } {
 			puts stderr $usage
 			exit 1
 		}
-		catch { exec id -u } uid
+		catch { rexec id -u } uid
 		if { $uid != "0" } {
 			puts stderr "Error: To execute experiment, run IMUNES with root permissions."
 			exit 1
@@ -193,9 +217,14 @@ proc printImunesVersion {} {
 }
 
 proc setPlatformVariables {} {
-	global isOSfreebsd isOSlinux isOSwin
+	global isOSfreebsd isOSlinux isOSwin remote
 
-	set os [platform::identify]
+	catch { [rexec uname -s] } os
+	if { $os == "" } {
+		set os [platform::identify]
+		set remote ""
+		puts stderr "Cannot determing remote platform, switching to local"
+	}
 	switch -glob -nocase $os {
 		"*freebsd*" {
 			set isOSfreebsd true
@@ -359,3 +388,16 @@ proc reloadSources {} {
 	dputs "Reloaded all sources."
 }
 
+proc rexec { args } {
+	global remote rcmd
+
+	if { $remote == "" } {
+		dputs "CMD: '$args'"
+		return [exec {*}$args]
+	}
+
+	set cmd [list echo -e {*}$args | {*}$rcmd]
+
+	dputs "CMD: '$cmd'"
+	return [exec -- {*}$cmd]
+}

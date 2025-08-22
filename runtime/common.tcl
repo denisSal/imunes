@@ -652,10 +652,11 @@ proc displayBatchProgress { prgs tot } {
 #****
 proc pipesCreate {} {
 	global inst_pipes last_inst_pipe
+	global rcmd
 
 	set ncpus [getCpuCount]
 	for { set i 0 } { $i < $ncpus } { incr i } {
-		set inst_pipes($i) [open "| sh" r+]
+		set inst_pipes($i) [open "| $rcmd" r+]
 	}
 	set last_inst_pipe 0
 }
@@ -760,7 +761,7 @@ proc setOperMode { new_oper_mode } {
 			return
 		}
 
-		catch { exec id -u } uid
+		catch { rexec id -u } uid
 		if { $uid != "0" } {
 			set err "Error: To execute experiment, run IMUNES with root permissions."
 
@@ -806,7 +807,7 @@ proc setOperMode { new_oper_mode } {
 	}
 
 	#.panwin.f1.left.select configure -state active
-	if { "$new_oper_mode" == "exec" && [exec id -u] == 0 } {
+	if { "$new_oper_mode" == "exec" } {
 		if { $gui } {
 			.menubar.experiment entryconfigure "Execute" -state disabled
 			.menubar.experiment entryconfigure "Terminate" -state normal
@@ -985,19 +986,134 @@ proc fetchNodesConfiguration {} {
 
 # helper func
 proc writeDataToFile { path data } {
-	file mkdir [file dirname $path]
-	set fileId [open $path w]
-	puts $fileId $data
-	close $fileId
+	global remote
+
+	rexec mkdir -p [file dirname $path]
+
+	if { $remote != "" } {
+		set file_id [file tempfile tmppath]
+		set remote_tmppath "/tmp/[file tail $tmppath]"
+
+		puts $file_id $data
+		flush $file_id
+
+		exec scp $tmppath ${remote}:$remote_tmppath
+		rexec mv $remote_tmppath $path
+
+		close $file_id
+		file delete $tmppath
+	} else {
+		set file_id [open $path w]
+
+		puts $file_id $data
+		close $file_id
+	}
 }
 
 # helper func
 proc readDataFromFile { path } {
-	set fileId [open $path r]
-	set data [string trim [read $fileId]]
-	close $fileId
+	global remote
+
+	if { $remote != "" } {
+		set file_id [file tempfile tmppath]
+
+		exec scp ${remote}:$path $tmppath
+
+		set data [string trim [read $file_id]]
+		close $file_id
+
+		file delete $tmppath
+	} else {
+		set file_id [open $path r]
+
+		set data [string trim [read $file_id]]
+		close $file_id
+	}
 
 	return $data
+}
+
+proc readRunningVarsFile { eid } {
+	global gui_option_defaults
+	global runtimeDir gui remote
+
+	upvar 0 ::cf::[set ::curcfg]::dict_run dict_run
+	upvar 0 ::cf::[set ::curcfg]::dict_run_gui dict_run_gui
+	upvar 0 ::cf::[set ::curcfg]::execute_vars execute_vars
+
+	if { $remote != "" } {
+		set file_id [file tempfile tmppath]
+
+		exec scp ${remote}:$runtimeDir/$eid/runningVars $tmppath
+		set vars_dict [read $file_id]
+
+		close $file_id
+		file delete $tmppath
+	} else {
+		set file_id [open $runtimeDir/$eid/runningVars r]
+		set vars_dict [read $file_id]
+		close $file_id
+	}
+
+	set dict_run [dictGet $vars_dict "dict_run"]
+	set dict_run_gui [dictGet $vars_dict "dict_run_gui"]
+	set execute_vars [dictGet $vars_dict "execute_vars"]
+
+	if { $gui } {
+		set canvas_list [getFromRunning_gui "canvas_list"]
+		if { $canvas_list == {} } {
+			newCanvas ""
+			set canvas_list [getFromRunning_gui "canvas_list"]
+		}
+
+		if { [getFromRunning "undolevel"] == "" } {
+			setToRunning "undolevel" 0
+		}
+
+		if { [getFromRunning "redolevel"] == "" } {
+			setToRunning "redolevel" 0
+		}
+
+		if { [getFromRunning_gui "zoom"] == "" } {
+			setToRunning_gui "zoom" [dictGet $gui_option_defaults "zoom"]
+		}
+
+		if { [getFromRunning_gui "curcanvas"] == "" } {
+			setToRunning_gui "curcanvas" [lindex $canvas_list 0]
+		}
+	}
+}
+
+#****f* exec.tcl/saveRunningConfiguration
+# NAME
+#   saveRunningConfiguration -- save running configuration in interactive
+# SYNOPSIS
+#   saveRunningConfiguration $eid
+# FUNCTION
+#   Saves running configuration of the specified experiment if running in
+#   interactive mode.
+# INPUTS
+#   * eid -- experiment id
+#****
+proc saveRunningConfiguration { eid } {
+	global runtimeDir remote
+
+	set file_path "$runtimeDir/$eid/config.imn"
+
+	if { $remote != "" } {
+		set file_id [file tempfile tmppath]
+		set remote_tmppath "/tmp/[file tail $tmppath]"
+
+		saveCfgJson $tmppath
+
+		exec scp $tmppath ${remote}:$remote_tmppath
+		rexec mv $remote_tmppath $file_path
+
+		close $file_id
+		file delete $tmppath
+	} else {
+		saveCfgJson $file_path
+	}
 }
 
 #****f* editor.tcl/resumeSelectedExperiment
@@ -1129,12 +1245,13 @@ proc fetchExperimentFolders {} {
 	global runtimeDir
 
 	set exp_list ""
-	set exp_files [glob -nocomplain -directory $runtimeDir -type d *]
+	catch { rexec find "$runtimeDir" -mindepth 1 -maxdepth 1 -print } exp_files
 	if { $exp_files != "" } {
 		foreach file $exp_files {
 			lappend exp_list [file tail $file]
 		}
 	}
+
 	return $exp_list
 }
 
@@ -1172,14 +1289,25 @@ proc getResumableExperiments {} {
 #   * timestamp -- experiment timestamp
 #****
 proc getExperimentTimestampFromFile { eid } {
-	global runtimeDir
+	global runtimeDir remote
 
-	set pathToFile "$runtimeDir/$eid/timestamp"
+	set path_to_file "$runtimeDir/$eid/timestamp"
+
 	set timestamp ""
-	if { [file exists $pathToFile] } {
-		set fileId [open $pathToFile r]
-		set timestamp [string trim [read $fileId]]
-		close $fileId
+	if { $remote != "" } {
+		set file_id [file tempfile tmppath]
+
+		exec scp ${remote}:$path_to_file $tmppath
+		set timestamp [string trim [read $file_id]]
+		close $file_id
+
+		file delete $tmppath
+	} else {
+		if { [file exists $path_to_file] } {
+			set file_id [open $path_to_file r]
+			set timestamp [string trim [read $file_id]]
+			close $file_id
+		}
 	}
 
 	return $timestamp
@@ -1202,7 +1330,7 @@ proc getExperimentNameFromFile { eid } {
 
 	set pathToFile "$runtimeDir/$eid/name"
 	set name ""
-	if { [file exists $pathToFile] } {
+	if { ! [catch { rexec test -f $pathToFile }] } {
 		set name [readDataFromFile $pathToFile]
 	}
 
@@ -1222,15 +1350,23 @@ proc getExperimentNameFromFile { eid } {
 #   * file_path -- experiment configuration
 #****
 proc getRunningExperimentConfigPath { eid } {
-	global runtimeDir
+	global runtimeDir remote
 
-	set pathToFile "$runtimeDir/$eid/config.imn"
-	set file ""
-	if { [file exists $pathToFile] } {
-		set file $pathToFile
+	set file_path "$runtimeDir/$eid/config.imn"
+	if { [catch { rexec test -f $file_path } err] } {
+		return ""
 	}
 
-	return $file
+	if { $remote != "" } {
+		set file_id [file tempfile tmppath]
+
+		exec scp ${remote}:$file_path $tmppath
+		set file_path $tmppath
+
+		close $file_id
+	}
+
+	return $file_path
 }
 
 #****f* exec.tcl/captureOnExtIfc
