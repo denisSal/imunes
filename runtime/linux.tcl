@@ -68,7 +68,7 @@ proc l2node.nodeDestroy { eid node_id } {
 #****
 proc writeDataToNodeFile { node_id path data } {
 	set docker_id "[getFromRunning "eid"].$node_id"
-	catch { exec docker inspect -f "{{.GraphDriver.Data.MergedDir}}" $docker_id } node_dir
+	catch { rexec docker inspect -f "{{.GraphDriver.Data.MergedDir}}" $docker_id } node_dir
 	if { [string match "*No such object:*" $node_dir] } {
 		return
 	}
@@ -90,7 +90,7 @@ proc writeDataToNodeFile { node_id path data } {
 #   * returns the execution output
 #****
 proc execCmdNode { node_id cmd } {
-	catch { eval [concat "exec docker exec " [getFromRunning "eid"].$node_id $cmd] } output
+	catch { eval [concat "rexec docker exec " [getFromRunning "eid"].$node_id $cmd] } output
 
 	return $output
 }
@@ -150,7 +150,7 @@ proc checkForExternalApps { app_list } {
 #****
 proc checkForApplications { node_id app_list } {
 	foreach app $app_list {
-		set status [ catch { exec docker exec [getFromRunning "eid"].$node_id which $app } err ]
+		set status [ catch { rexec docker exec [getFromRunning "eid"].$node_id which $app } err ]
 		if { $status } {
 			return 1
 		}
@@ -171,25 +171,37 @@ proc checkForApplications { node_id app_list } {
 #   * iface_name -- virtual node interface
 #****
 proc startWiresharkOnNodeIfc { node_id iface_name } {
+	global remote rcmd escalation_comm
+
 	set eid [getFromRunning "eid"]
 
 	if {
+		$remote == "" &&
 		[checkForExternalApps "startxcmd"] == 0 &&
 		[checkForApplications $node_id "wireshark"] == 0
 	} {
 		startXappOnNode $node_id "wireshark -ki $iface_name"
 	} else {
-		set wiresharkComm ""
+		set wireshark_comm ""
 		foreach wireshark "wireshark wireshark-gtk wireshark-qt" {
 			if { [checkForExternalApps $wireshark] == 0 } {
-				set wiresharkComm $wireshark
+				set wireshark_comm $wireshark
 				break
 			}
 		}
 
-		if { $wiresharkComm != "" } {
-			exec docker exec $eid.$node_id tcpdump -s 0 -U -w - -i $iface_name 2>/dev/null |\
-				$wiresharkComm -o "gui.window_title:$iface_name@[getNodeName $node_id] ($eid)" -k -i - &
+		if { $remote != "" } {
+			set wireshark_comm [concat $escalation_comm $wireshark_comm]
+		}
+
+		if { $wireshark_comm != "" } {
+			if { $remote != "" } {
+				exec -- echo -e "docker exec $eid.$node_id tcpdump -s 0 -U -w - -i $iface_name 2>/dev/null" | {*}$rcmd | \
+					{*}$wireshark_comm -o "gui.window_title:$iface_name@[getNodeName $node_id] ($eid)" -k -i - &
+			} else {
+				exec docker exec $eid.$node_id tcpdump -s 0 -U -w - -i $iface_name 2>/dev/null |\
+					{*}$wireshark_comm -o "gui.window_title:$iface_name@[getNodeName $node_id] ($eid)" -k -i - &
+			}
 		} else {
 			tk_dialog .dialog1 "IMUNES error" \
 				"IMUNES could not find an installation of Wireshark.\
@@ -211,11 +223,18 @@ proc startWiresharkOnNodeIfc { node_id iface_name } {
 #   * app -- application to start
 #****
 proc startXappOnNode { node_id app } {
-	global debug
+	global debug remote
+
+	if { $remote != "" } {
+		puts stderr "Running X applications in nodes on remote host is not supported."
+
+		return
+	}
 
 	set eid [getFromRunning "eid"]
 	if { [checkForExternalApps "socat"] != 0 } {
 		puts stderr "To run X applications on the node, install socat on your host."
+
 		return
 	}
 
@@ -269,7 +288,7 @@ proc existingShells { shells node_id { first_only "" } } {
 	append cmds "done\n"
 	append cmds "echo \"\$retval\"\n"
 
-	catch { exec docker exec [getFromRunning "eid"].$node_id sh -c "$cmds" } existing
+	catch { rexec docker exec [getFromRunning "eid"].$node_id sh -c "$cmds" } existing
 
 	return $existing
 }
@@ -287,6 +306,8 @@ proc existingShells { shells node_id { first_only "" } } {
 #   * cmd -- the path to the shell.
 #****
 proc spawnShell { node_id cmd } {
+	global ttyrcmd
+
 	if { [checkTerminalMissing] } {
 		return
 	}
@@ -294,9 +315,9 @@ proc spawnShell { node_id cmd } {
 	set docker_id [getFromRunning "eid"]\.$node_id
 
 	# FIXME make this modular
-	exec xterm -name imunes-terminal -sb -rightbar \
+	exec xterm -name imunes-terminal \
 		-T "IMUNES: [getNodeName $node_id] (console) [string trim [lindex [split $cmd /] end] ']" \
-		-e "docker exec -it $docker_id $cmd" 2> /dev/null &
+		-e {*}$ttyrcmd "docker exec -it $docker_id $cmd" 2> /dev/null &
 }
 
 #****f* linux.tcl/allSnapshotsAvailable
@@ -328,13 +349,13 @@ proc allSnapshotsAvailable {} {
 			append search_template ":latest"
 		}
 
-		catch { exec docker images -q $search_template } images
+		catch { rexec docker images -q $search_template } images
 		if { [llength $images] > 0 } {
 			continue
 		} else {
 			# be nice to the user and see whether there is an image id matching
 			if { [string length $template] == 12 } {
-				catch { exec docker images -q } all_images
+				catch { rexec docker images -q } all_images
 				if { [lsearch $all_images $template] == -1 } {
 					incr missing
 				}
@@ -357,6 +378,7 @@ proc allSnapshotsAvailable {} {
 			}
 		}
 	}
+
 	return 1
 }
 
@@ -374,7 +396,7 @@ proc prepareDevfs { { force 0 } } {}
 #****
 proc getHostIfcList {} {
 	# fetch interface list from the system
-	set extifcs [exec ls /sys/class/net]
+	set extifcs [rexec ls /sys/class/net]
 	# exclude loopback interface
 	set ilo [lsearch $extifcs lo]
 	set extifcs [lreplace $extifcs $ilo $ilo]
@@ -405,9 +427,10 @@ proc getHostIfcVlanExists { node_id iface_name } {
 	set iface_id [ifaceIdFromName $node_id $iface_name]
 	set vlan [getIfcVlanTag $node_id $iface_id]
 	try {
-		exec ip link add link $iface_name name $iface_name.$vlan type vlan id $vlan
+		rexec ip link add link $iface_name name $iface_name.$vlan type vlan id $vlan
 	} on ok {} {
-		exec ip link del $iface_name.$vlan
+		rexec ip link del $iface_name.$vlan
+
 		return 0
 	} on error err {
 		set msg "Unable to create external interface '$iface_name.$vlan':\n$err\n\nPlease\
@@ -466,7 +489,7 @@ proc loadKernelModules {} {
 }
 
 proc prepareVirtualFS {} {
-	exec mkdir -p /var/run/netns
+	rexec mkdir -p /var/run/netns
 }
 
 proc attachToL3NodeNamespace { node_id } {
@@ -496,11 +519,11 @@ proc destroyNamespace { ns } {
 proc createExperimentContainer {} {
 	global devfs_number
 
-	catch { exec ip netns attach imunes_$devfs_number 1 }
-	catch { exec docker network create --opt com.docker.network.container_iface_prefix=dext imunes-bridge }
+	catch { rexec ip netns attach imunes_$devfs_number 1 }
+	catch { rexec docker network create --opt com.docker.network.container_iface_prefix=dext imunes-bridge }
 
 	# Top-level experiment netns
-	exec ip netns add [getFromRunning "eid"]
+	rexec ip netns add [getFromRunning "eid"]
 }
 
 #****f* linux.tcl/prepareFilesystemForNode
@@ -587,7 +610,7 @@ proc isNodeStarted { node_id } {
 		set nodeNs "[getFromRunning "eid"]-$node_id"
 
 		try {
-			exec ip netns exec $nodeNs ip link show $node_id
+			rexec ip netns exec $nodeNs ip link show $node_id
 		} on error {} {
 			return false
 		}
@@ -598,12 +621,12 @@ proc isNodeStarted { node_id } {
 	set docker_id "[getFromRunning "eid"].$node_id"
 
 	if { $nodecreate_timeout >= 0 } {
-		catch { exec timeout [expr $nodecreate_timeout/5.0] docker inspect --format '{{.State.Running}}' $docker_id } status
+		catch { rexec timeout [expr $nodecreate_timeout/5.0] docker inspect --format '{{.State.Running}}' $docker_id } status
 	} else {
-		catch { exec docker inspect --format '{{.State.Running}}' $docker_id } status
+		catch { rexec docker inspect --format '{{.State.Running}}' $docker_id } status
 	}
 
-	return [string match 'true' $status]
+	return [string match "*true*" $status]
 }
 
 proc isNodeNamespaceCreated { node_id } {
@@ -620,7 +643,7 @@ proc isNodeNamespaceCreated { node_id } {
 	}
 
 	try {
-		exec ip netns exec $nodeNs true
+		rexec ip netns exec $nodeNs true
 	} on error {} {
 		return false
 	}
@@ -838,9 +861,9 @@ proc isNodeInitNet { node_id } {
 
 	try {
 		if { $nodecreate_timeout >= 0 } {
-			exec timeout [expr $nodecreate_timeout/5.0] docker exec $docker_id ls /tmp/init >/dev/null
+			rexec timeout [expr $nodecreate_timeout/5.0] docker exec $docker_id ls /tmp/init >/dev/null
 		} else {
-			exec docker exec $docker_id ls /tmp/init >/dev/null
+			rexec docker exec $docker_id ls /tmp/init >/dev/null
 		}
 	} on error {} {
 		return false
@@ -1140,10 +1163,11 @@ proc isNodeIfacesConfigured { node_id } {
 	}
 
 	try {
+		set cmd "\'test ! -f /tout_ifaces.log && test -f /out_ifaces.log\'"
 		if { $ifacesconf_timeout >= 0 } {
-			exec timeout [expr $ifacesconf_timeout/5.0] docker exec -t $docker_id sh -c "test ! -f /tout_ifaces.log && test -f /out_ifaces.log"
+			rexec timeout [expr $ifacesconf_timeout/5.0] docker exec -t $docker_id sh -c {*}$cmd
 		} else {
-			exec docker exec -t $docker_id sh -c "test ! -f /tout_ifaces.log && test -f /out_ifaces.log"
+			rexec docker exec -t $docker_id sh -c {*}$cmd
 		}
 	} on error {} {
 		return false
@@ -1166,10 +1190,11 @@ proc isNodeConfigured { node_id } {
 	}
 
 	try {
+		set cmd "\'test ! -f /tout.log && test -f /out.log\'"
 		if { $nodeconf_timeout >= 0 } {
-			exec timeout [expr $nodeconf_timeout/5.0] docker exec -t $docker_id sh -c "test ! -f /tout.log && test -f /out.log"
+			rexec timeout [expr $nodeconf_timeout/5.0] docker exec -t $docker_id sh -c {*}$cmd
 		} else {
-			exec docker exec -t $docker_id sh -c "test ! -f /tout.log && test -f /out.log"
+			rexec docker exec -t $docker_id sh -c {*}$cmd
 		}
 	} on error {} {
 		return false
@@ -1192,10 +1217,11 @@ proc isNodeError { node_id } {
 	set docker_id "[getFromRunning "eid"].$node_id"
 
 	try {
+		set cmd "sed '/^+ /d' /err.log"
 		if { $nodeconf_timeout >= 0 } {
-			exec timeout [expr $nodeconf_timeout/5.0] docker exec -t $docker_id sed "/^+ /d" /err.log
+			rexec timeout [expr $nodeconf_timeout/5.0] docker exec -t $docker_id {*}$cmd
 		} else {
-			exec docker exec -t $docker_id sed "/^+ /d" /err.log
+			rexec docker exec -t $docker_id {*}$cmd
 		}
 	} on error {} {
 		return ""
@@ -1222,10 +1248,11 @@ proc isNodeErrorIfaces { node_id } {
 	set docker_id "[getFromRunning "eid"].$node_id"
 
 	try {
+		set cmd "sed '/^+ /d' /err_ifaces.log"
 		if { $ifacesconf_timeout >= 0 } {
-			exec timeout [expr $ifacesconf_timeout/5.0] docker exec -t $docker_id sed "/^+ /d" /err_ifaces.log
+			rexec timeout [expr $ifacesconf_timeout/5.0] docker exec -t $docker_id {*}$cmd
 		} else {
-			exec docker exec -t $docker_id sed "/^+ /d" /err_ifaces.log
+			rexec docker exec -t $docker_id {*}$cmd
 		}
 	} on error {} {
 		return ""
@@ -1240,7 +1267,7 @@ proc isNodeErrorIfaces { node_id } {
 
 proc removeNetns { netns } {
 	if { $netns != "" } {
-		catch { exec ip netns del $netns }
+		catch { rexec ip netns del $netns }
 	}
 }
 
@@ -1258,7 +1285,7 @@ proc terminate_removeExperimentContainer { eid } {
 
 proc terminate_removeExperimentFiles { eid } {
 	set VROOT_BASE [getVrootDir]
-	catch { exec rm -fr $VROOT_BASE/$eid & }
+	catch { rexec rm -fr $VROOT_BASE/$eid & }
 }
 
 proc removeNodeContainer { eid node_id } {
@@ -1369,7 +1396,7 @@ proc removeNodeIfcIPaddrs { eid node_id } {
 #   * cpucount - CPU count
 #****
 proc getCpuCount {} {
-	return [lindex [exec grep -c processor /proc/cpuinfo] 0]
+	return [lindex [rexec grep -c processor /proc/cpuinfo] 0]
 }
 
 #****f* linux.tcl/enableIPforwarding
@@ -1410,10 +1437,11 @@ proc enableIPforwarding { node_id } {
 #   * ifsc - list of interfaces
 #****
 proc getExtIfcs {} {
-	catch { exec ls /sys/class/net } ifcs
+	catch { rexec ls /sys/class/net } ifcs
 	foreach ignore "lo* ipfw* tun*" {
 		set ifcs [ lsearch -all -inline -not $ifcs $ignore ]
 	}
+
 	return "$ifcs"
 }
 
@@ -1447,8 +1475,8 @@ proc captureExtIfc { eid node_id iface_id } {
 		}
 
 		try {
-			exec ip link set $iface_name up
-			exec ip link add link $iface_name name $iface_name.$vlan {*}$nsstr type vlan id $vlan
+			rexec ip link set $iface_name up
+			rexec ip link add link $iface_name name $iface_name.$vlan {*}$nsstr type vlan id $vlan
 		} on error err {
 			# if not direct link, raise error as we can't have multiple VLAN ifaces with the same VID
 			if { $link_id == "" || ! [getLinkDirect $link_id] } {
@@ -1498,7 +1526,7 @@ proc captureExtIfc { eid node_id iface_id } {
 	}
 
 	try {
-		exec test -d /sys/class/net/$iface_name/wireless
+		rexec test -d /sys/class/net/$iface_name/wireless
 	} on error {} {
 		# not wireless, so MAC address can be changed
 		set ether [getIfcMACaddr $peer_id $peer_iface_id]
@@ -1712,7 +1740,7 @@ proc fetchInterfaceData { node_id iface_id } {
 
 	set new_cfg $node_cfg
 
-	catch { exec ip --json a show $iface_name } json
+	catch { rexec ip --json a show $iface_name } json
 	set elem {*}[json::json2dict $json]
 
 	if { "UP" in [dictGet $elem "flags"] } {
@@ -1804,7 +1832,7 @@ proc fetchNodeRunningConfig { node_id } {
 
 	set ifaces_names [allIfacesNames $node_id]
 
-	catch { exec docker exec [getFromRunning "eid"].$node_id sh -c "ip --json a" } json
+	catch { rexec docker exec [getFromRunning "eid"].$node_id sh -c "ip --json a" } json
 	foreach elem [json::json2dict $json] {
 		set iface_name [dictGet $elem "ifname"]
 		if { $iface_name ni $ifaces_names } {
@@ -1878,7 +1906,7 @@ proc fetchNodeRunningConfig { node_id } {
 	set croutes4 {}
 	set croutes6 {}
 
-	catch { exec docker exec [getFromRunning "eid"].$node_id sh -c "ip -4 --json r" } json
+	catch { rexec docker exec [getFromRunning "eid"].$node_id sh -c "ip -4 --json r" } json
 	foreach elem [json::json2dict $json] {
 		if { [dictGet $elem "scope"] in "link" } {
 			continue
@@ -1907,7 +1935,7 @@ proc fetchNodeRunningConfig { node_id } {
 		set cur_node_cfg [_setNodeStatIPv4routes $cur_node_cfg $new_croutes4]
 	}
 
-	catch { exec docker exec [getFromRunning "eid"].$node_id sh -c "ip -6 --json r" } json
+	catch { rexec docker exec [getFromRunning "eid"].$node_id sh -c "ip -6 --json r" } json
 	foreach elem [json::json2dict $json] {
 		if { [dictGet $elem "nexthops"] == "" && [dictGet $elem "gateway"] == "" } {
 			continue
@@ -1975,7 +2003,7 @@ proc fetchNodeRunningConfig { node_id } {
 
 proc checkSysPrerequisites {} {
 	set msg ""
-	if { [catch { exec docker ps }] } {
+	if { [catch { rexec docker ps }] } {
 		set msg "Cannot start experiment. Is docker installed and running (check the output of 'docker ps')?"
 	}
 
@@ -2159,8 +2187,8 @@ proc inetdServiceRestartCmds {} {
 proc moveFileFromNode { node_id path ext_path } {
 	set eid [getFromRunning "eid"]
 
-	catch { exec hcp [getNodeName $node_id]@$eid:$path $ext_path }
-	catch { exec docker exec $eid.$node_id rm -fr $path }
+	catch { rexec hcp [getNodeName $node_id]@$eid:$path $ext_path }
+	catch { rexec docker exec $eid.$node_id rm -fr $path }
 }
 
 # XXX nat64 procedures
