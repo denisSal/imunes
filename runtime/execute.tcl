@@ -192,7 +192,6 @@ proc createExperimentFiles { eid } {
 
 	set current_file [getFromRunning "current_file"]
 	set basedir "$runtimeDir/$eid"
-	file mkdir $basedir
 
 	writeDataToFile $basedir/timestamp [clock format [clock seconds]]
 
@@ -224,70 +223,6 @@ proc createRunningVarsFile { eid } {
 	# TODO: maybe remove some elements?
 	writeDataToFile $runtimeDir/$eid/runningVars \
 		[list "dict_run" "$dict_run" "dict_run_gui" "$dict_run_gui" "execute_vars" "$execute_vars"]
-}
-
-proc readRunningVarsFile { eid } {
-	global gui_option_defaults
-	global runtimeDir gui
-
-	upvar 0 ::cf::[set ::curcfg]::dict_run dict_run
-	upvar 0 ::cf::[set ::curcfg]::dict_run_gui dict_run_gui
-	upvar 0 ::cf::[set ::curcfg]::execute_vars execute_vars
-
-	set fd [open $runtimeDir/$eid/runningVars r]
-	set vars_dict [read $fd]
-	close $fd
-
-	set dict_run [dictGet $vars_dict "dict_run"]
-	set dict_run_gui [dictGet $vars_dict "dict_run_gui"]
-	set execute_vars [dictGet $vars_dict "execute_vars"]
-
-	if { $gui } {
-		set canvas_list [getFromRunning_gui "canvas_list"]
-		if { $canvas_list == {} } {
-			newCanvas ""
-			set canvas_list [getFromRunning_gui "canvas_list"]
-		}
-
-		if { [getFromRunning "undolevel"] == "" } {
-			setToRunning "undolevel" 0
-		}
-
-		if { [getFromRunning "redolevel"] == "" } {
-			setToRunning "redolevel" 0
-		}
-
-		if { [getFromRunning_gui "zoom"] == "" } {
-			setToRunning_gui "zoom" [dictGet $gui_option_defaults "zoom"]
-		}
-
-		if { [getFromRunning_gui "curcanvas"] == "" } {
-			setToRunning_gui "curcanvas" [lindex $canvas_list 0]
-		}
-	}
-
-	# older versions do not have this variable
-	if { [getFromRunning "modified"] == "" } {
-		setToRunning "modified" false
-	}
-}
-
-#****f* exec.tcl/saveRunningConfiguration
-# NAME
-#   saveRunningConfiguration -- save running configuration in interactive
-# SYNOPSIS
-#   saveRunningConfiguration $eid
-# FUNCTION
-#   Saves running configuration of the specified experiment if running in
-#   interactive mode.
-# INPUTS
-#   * eid -- experiment id
-#****
-proc saveRunningConfiguration { eid } {
-	global runtimeDir
-
-	set fileName "$runtimeDir/$eid/config.imn"
-	saveCfgJson $fileName
 }
 
 #****f* exec.tcl/createExperimentScreenshot
@@ -482,17 +417,49 @@ proc deployCfg { { execute 0 } } {
 
 	set t_start [clock milliseconds]
 
+	set init_popup ""
+	if { $gui && $execMode != "batch" } {
+		set init_popup .startup
+		catch { destroy $init_popup }
+		toplevel $init_popup -takefocus 1
+		wm transient $init_popup .
+		wm title $init_popup "Preparing the system"
+
+		message $init_popup.msg -justify left -aspect 1200 \
+			-text "Checking prerequisites..."
+
+		pack $init_popup.msg
+		update
+
+		set init_max 5
+		ttk::progressbar $init_popup.p -orient horizontal -length 250 \
+			-mode determinate -maximum $init_max -value 0
+		pack $init_popup.p
+		update
+
+		grab $init_popup
+	}
+
 	try {
-		execute_prepareSystem
+		execute_prepareSystem $init_popup.p $init_popup.msg
 	} on error err {
-		statline "ERROR in 'execute_prepareSystem': '$err'"
+		statline "ERROR in 'execute_prepareSystem $init_popup.p $init_popup.msg': '$err'"
 		if { $gui && $execMode != "batch" } {
+			catch { destroy $init_popup }
+
 			after idle { .dialog1.msg configure -wraplength 4i }
 			tk_dialog .dialog1 "IMUNES error" \
 				"$err \nTerminate the experiment and report the bug!" info 0 Dismiss
 		}
 
 		return
+	}
+
+	if { $gui && $execMode != "batch" } {
+		$init_popup.p configure -value $init_max
+		update
+
+		catch { destroy $init_popup }
 	}
 
 	statline "Preparing for initialization..."
@@ -742,7 +709,7 @@ proc deployCfg { { execute 0 } } {
 	}
 }
 
-proc execute_prepareSystem {} {
+proc execute_prepareSystem { progressbar_widget msg_widget } {
 	global eid_base isOSlinux
 	global execMode gui
 
@@ -781,9 +748,32 @@ proc execute_prepareSystem {} {
 		setToRunning "eid" $eid
 	}
 
+	if { $gui && $execMode != "batch" } {
+		$progressbar_widget step
+		$msg_widget configure -text "Loading kernel modules..."
+	}
+	statline "Loading kernel modules..."
 	loadKernelModules
+
+	if { $gui && $execMode != "batch" } {
+		$progressbar_widget step
+		$msg_widget configure -text "Preparing virtual filesystem..."
+	}
+	statline "Preparing virtual filesystem..."
 	prepareVirtualFS
+
+	if { $gui && $execMode != "batch" } {
+		$progressbar_widget step
+		$msg_widget configure -text "Preparing devfs..."
+	}
+	statline "Preparing devfs..."
 	prepareDevfs
+
+	if { $gui && $execMode != "batch" } {
+		$progressbar_widget step
+		$msg_widget configure -text "Creating experiment..."
+	}
+	statline "Creating experiment..."
 	createExperimentContainer
 	createExperimentFiles $eid
 	createRunningVarsFile $eid
