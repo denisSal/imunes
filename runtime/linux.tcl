@@ -573,7 +573,7 @@ proc createNodeContainer { node_id } {
 		set ulimit_proc_str ""
 	}
 
-	set docker_cmd "docker run --detach --init --tty \
+	set docker_cmd "docker run --detach --init --tty --rm \
 		--privileged --cap-add=ALL --net=$network \
 		--name $docker_id --hostname=[getNodeName $node_id] \
 		--volume /tmp/.X11-unix:/tmp/.X11-unix \
