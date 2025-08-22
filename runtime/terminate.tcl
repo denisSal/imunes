@@ -40,7 +40,7 @@ proc terminate_deleteExperimentFiles { eid } {
 	global runtimeDir
 
 	set folderName "$runtimeDir/$eid"
-	catch { exec rm -rf $folderName }
+	catch { rexec rm -rf $folderName }
 }
 
 proc checkTerminate {} {}
@@ -569,9 +569,7 @@ proc undeployCfg { { eid "" } { terminate 0 } } {
 
 		if { $terminate } {
 			statline "Removing experiment top-level container/netns..."
-			pipesCreate
 			terminate_removeExperimentContainer $eid
-			pipesClose
 
 			statline "Removing experiment files..."
 			terminate_removeExperimentFiles $eid

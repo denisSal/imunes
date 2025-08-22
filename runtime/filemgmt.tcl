@@ -306,7 +306,9 @@ proc saveOptions {} {
 	}
 
 	if { [cfgGet "gui" "options"] == "" } {
+		set tmp [getFromRunning "modified"]
 		cfgUnset "gui" "options"
+		setToRunning "modified" $tmp
 	}
 
 	if { $running_zoom == "" } {

@@ -98,26 +98,35 @@ set nodeconf_timeout 3
 set selected_experiment ""
 set gui 1
 
+global remote rcmd ttyrcmd escalation_comm rescalation_comm
+set remote ""
+set rcmd "sh"
+set ttyrcmd ""
+set escalation_comm ""
+set rescalation_comm "sudo -i"
+
 set options {
-	{a			"Attach to a running experiment"}
-	{attach		"Attach to a running experiment"}
-	{e.arg		"" "Specify experiment ID"}
-	{eid.arg	"" "Specify experiment ID"}
-	{b			"Turn on batch mode"}
-	{batch		"Turn on batch mode"}
-	{c.secret	"Run in CLI mode"}
-	{cli.secret	"Run in CLI mode"}
-	{d.secret	"Turn on debug mode"}
-	{p			"Prepare virtual root file system"}
-	{prepare	"Prepare virtual root file system"}
-	{f			"Force virtual root preparation (delete existing vroot)"}
-	{force		"Force virtual root preparation (delete existing vroot)"}
-	{i			"Setup devfs rules for virtual nodes (Only on FreeBSD)"}
-	{l			"Run in legacy/slow mode"}
-	{legacy		"Run in legacy/slow mode"}
-	{v			"Print IMUNES version"}
-	{version	"Print IMUNES version"}
-	{h			"Print this message"}
+	{a					"Attach to a running experiment"}
+	{attach				"Attach to a running experiment"}
+	{e.arg				"" "Specify experiment ID"}
+	{eid.arg			"" "Specify experiment ID"}
+	{b					"Turn on batch mode"}
+	{batch				"Turn on batch mode"}
+	{c.secret			"Run in CLI mode"}
+	{cli.secret			"Run in CLI mode"}
+	{d.secret			"Turn on debug mode"}
+	{p					"Prepare virtual root file system"}
+	{prepare			"Prepare virtual root file system"}
+	{r.arg.secret		"" "Connect to remote host via SSH"}
+	{remote.arg.secret	"" "Connect to remote host via SSH"}
+	{f					"Force virtual root preparation (delete existing vroot)"}
+	{force				"Force virtual root preparation (delete existing vroot)"}
+	{i					"Setup devfs rules for virtual nodes (Only on FreeBSD)"}
+	{l					"Run in legacy/slow mode"}
+	{legacy				"Run in legacy/slow mode"}
+	{v					"Print IMUNES version"}
+	{version			"Print IMUNES version"}
+	{h					"Print this message"}
 }
 
 set usage [getPrettyUsage $options]
@@ -451,7 +460,7 @@ if { $execMode == "interactive" } {
 		}
 	} else {
 		set configFile "$runtimeDir/$eid_base/config.imn"
-		if { [file exists $configFile] } {
+		if { ! [catch { rexec test -f $configFile }] } {
 			set curcfg [newObjectId $cfg_list "cfg"]
 			lappend cfg_list $curcfg
 
@@ -474,9 +483,9 @@ if { $execMode == "interactive" } {
 			setToRunning "stop_sched" true
 			setToRunning "undolevel" 0
 			setToRunning "redolevel" 0
-			setToRunning "current_file" $configFile
+			setToRunning "current_file" [getRunningExperimentConfigPath $eid_base]
 
-			readCfgJson $configFile
+			readCfgJson [getFromRunning "current_file"]
 
 			readRunningVarsFile $eid_base
 			setToRunning "cfg_deployed" true

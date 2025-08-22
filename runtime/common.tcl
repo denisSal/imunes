@@ -652,10 +652,11 @@ proc displayBatchProgress { prgs tot } {
 #****
 proc pipesCreate {} {
 	global inst_pipes last_inst_pipe
+	global rcmd
 
 	set ncpus [getCpuCount]
 	for { set i 0 } { $i < $ncpus } { incr i } {
-		set inst_pipes($i) [open "| sh" r+]
+		set inst_pipes($i) [open "| $rcmd" r+]
 	}
 	set last_inst_pipe 0
 }
@@ -760,7 +761,7 @@ proc setOperMode { new_oper_mode } {
 			return
 		}
 
-		catch { exec id -u } uid
+		catch { rexec id -u } uid
 		if { $uid != "0" } {
 			set err "Error: To execute experiment, run IMUNES with root permissions."
 
@@ -806,7 +807,7 @@ proc setOperMode { new_oper_mode } {
 	}
 
 	#.panwin.f1.left.select configure -state active
-	if { "$new_oper_mode" == "exec" && [exec id -u] == 0 } {
+	if { "$new_oper_mode" == "exec" } {
 		if { $gui } {
 			.menubar.experiment entryconfigure "Execute" -state disabled
 			.menubar.experiment entryconfigure "Terminate" -state normal
@@ -965,19 +966,104 @@ proc fetchNodesConfiguration {} {
 
 # helper func
 proc writeDataToFile { path data } {
-	file mkdir [file dirname $path]
-	set fileId [open $path w]
-	puts $fileId $data
-	close $fileId
+	global remote rcmd
+
+	rexec mkdir -p [file dirname $path]
+
+	if { $remote != "" } {
+		set file_id [open "| $rcmd dd of=$path status=none" w]
+	} else {
+		set file_id [open $path w]
+	}
+
+	puts $file_id $data
+	close $file_id
 }
 
 # helper func
 proc readDataFromFile { path } {
-	set fileId [open $path r]
-	set data [string trim [read $fileId]]
-	close $fileId
+	global remote rcmd
+
+	if { $remote != "" } {
+		set file_id [open "| $rcmd cat $path" r]
+	} else {
+		set file_id [open $path r]
+	}
+
+	set data [string trim [read $file_id]]
+	close $file_id
 
 	return $data
+}
+
+proc readRunningVarsFile { eid } {
+	global gui_option_defaults
+	global runtimeDir gui remote
+
+	upvar 0 ::cf::[set ::curcfg]::dict_run dict_run
+	upvar 0 ::cf::[set ::curcfg]::dict_run_gui dict_run_gui
+	upvar 0 ::cf::[set ::curcfg]::execute_vars execute_vars
+
+	set vars_dict [readDataFromFile $runtimeDir/$eid/runningVars]
+
+	set dict_run [dictGet $vars_dict "dict_run"]
+	set dict_run_gui [dictGet $vars_dict "dict_run_gui"]
+	set execute_vars [dictGet $vars_dict "execute_vars"]
+
+	if { $gui } {
+		set canvas_list [getFromRunning_gui "canvas_list"]
+		if { $canvas_list == {} } {
+			newCanvas ""
+			set canvas_list [getFromRunning_gui "canvas_list"]
+		}
+
+		if { [getFromRunning "undolevel"] == "" } {
+			setToRunning "undolevel" 0
+		}
+
+		if { [getFromRunning "redolevel"] == "" } {
+			setToRunning "redolevel" 0
+		}
+
+		if { [getFromRunning_gui "zoom"] == "" } {
+			setToRunning_gui "zoom" [dictGet $gui_option_defaults "zoom"]
+		}
+
+		if { [getFromRunning_gui "curcanvas"] == "" } {
+			setToRunning_gui "curcanvas" [lindex $canvas_list 0]
+		}
+	}
+
+	# older versions do not have this variable
+	if { [getFromRunning "modified"] == "" } {
+		setToRunning "modified" false
+	}
+}
+
+#****f* exec.tcl/saveRunningConfiguration
+# NAME
+#   saveRunningConfiguration -- save running configuration in interactive
+# SYNOPSIS
+#   saveRunningConfiguration $eid
+# FUNCTION
+#   Saves running configuration of the specified experiment if running in
+#   interactive mode.
+# INPUTS
+#   * eid -- experiment id
+#****
+proc saveRunningConfiguration { eid } {
+	global runtimeDir remote rcmd
+
+	set file_path "$runtimeDir/$eid/config.imn"
+
+	if { $remote != "" } {
+		set file_id [open "| $rcmd dd of=$file_path status=none" w]
+
+		puts $file_id [saveCfgJson - "no_write"]
+		close $file_id
+	} else {
+		saveCfgJson $file_path
+	}
 }
 
 #****f* editor.tcl/resumeSelectedExperiment
@@ -1128,7 +1214,7 @@ proc getResumableExperiments {} {
 	global runtimeDir
 
 	set exp_list {}
-	catch { exec find "$runtimeDir" -mindepth 1 -maxdepth 1 -print } exp_paths
+	catch { rexec find "$runtimeDir" -mindepth 1 -maxdepth 1 -print } exp_paths
 	if { $exp_paths != "" } {
 		set exp_list [lmap exp_path $exp_paths { file tail $exp_path }]
 	}
@@ -1150,17 +1236,15 @@ proc getResumableExperiments {} {
 #   * timestamp -- experiment timestamp
 #****
 proc getExperimentTimestampFromFile { eid } {
-	global runtimeDir
+	global runtimeDir remote
 
-	set pathToFile "$runtimeDir/$eid/timestamp"
-	set timestamp ""
-	if { [file exists $pathToFile] } {
-		set fileId [open $pathToFile r]
-		set timestamp [string trim [read $fileId]]
-		close $fileId
+	set path_to_file "$runtimeDir/$eid/timestamp"
+	catch { rexec ls $path_to_file } err
+	if { $err != $path_to_file } {
+		return ""
 	}
 
-	return $timestamp
+	return [string trim [readDataFromFile $path_to_file]]
 }
 
 #****f* exec.tcl/getExperimentNameFromFile
@@ -1178,13 +1262,13 @@ proc getExperimentTimestampFromFile { eid } {
 proc getExperimentNameFromFile { eid } {
 	global runtimeDir
 
-	set pathToFile "$runtimeDir/$eid/name"
-	set name ""
-	if { [file exists $pathToFile] } {
-		set name [readDataFromFile $pathToFile]
+	set file_path "$runtimeDir/$eid/name"
+	catch { rexec ls $file_path } err
+	if { $err != $file_path } {
+		return ""
 	}
 
-	return $name
+	return [readDataFromFile $file_path]
 }
 
 #****f* exec.tcl/getRunningExperimentConfigPath
@@ -1200,15 +1284,24 @@ proc getExperimentNameFromFile { eid } {
 #   * file_path -- experiment configuration
 #****
 proc getRunningExperimentConfigPath { eid } {
-	global runtimeDir
+	global runtimeDir remote
 
-	set pathToFile "$runtimeDir/$eid/config.imn"
-	set file ""
-	if { [file exists $pathToFile] } {
-		set file $pathToFile
+	set file_path "$runtimeDir/$eid/config.imn"
+	catch { rexec ls $file_path } err
+	if { $err != $file_path } {
+		return ""
 	}
 
-	return $file
+	if { $remote != "" } {
+		set file_id [file tempfile tmppath]
+
+		puts $file_id [readDataFromFile $file_path]
+		set file_path $tmppath
+
+		close $file_id
+	}
+
+	return $file_path
 }
 
 #****f* exec.tcl/captureOnExtIfc

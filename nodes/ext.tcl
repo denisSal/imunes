@@ -219,8 +219,8 @@ proc $MODULE.maxLinks {} {
 #   Does nothing
 #****
 proc $MODULE.prepareSystem {} {
-	catch { exec kldload ipfilter }
-	catch { sysctl net.inet.ip.forwarding=1 }
+	catch { rexec kldload ipfilter }
+	catch { rexec sysctl net.inet.ip.forwarding=1 }
 }
 
 #****f* ext.tcl/ext.nodeCreate
