@@ -371,6 +371,10 @@ proc selectAdjacent {} {
 proc button3link { c x y } {
 	global isOSlinux
 
+	if { ! [getFromRunning "stop_sched"] } {
+		return
+	}
+
 	set oper_mode [getFromRunning "oper_mode"]
 
 	set link_id [lindex [$c gettags "link && current"] 1]
@@ -598,6 +602,10 @@ proc mergeNodeGUI { node_id } {
 #****
 proc button3node { c x y } {
 	global isOSlinux
+
+	if { ! [getFromRunning "stop_sched"] } {
+		return
+	}
 
 	set canvas_list [getFromRunning "canvas_list"]
 	set curcanvas [getFromRunning "curcanvas"]
@@ -1361,6 +1369,10 @@ proc button1 { c x y button } {
 	global default_link_color default_link_width
 	global resizemode resizeobj
 
+	if { ! [getFromRunning "stop_sched"] } {
+		return
+	}
+
 	set zoom [getFromRunning "zoom"]
 
 	set x [$c canvasx $x]
@@ -1763,6 +1775,10 @@ proc button1-release { c x y } {
 	global resizemode resizeobj
 	global newnode
 
+	if { ! [getFromRunning "stop_sched"] } {
+		return
+	}
+
 	set zoom [getFromRunning "zoom"]
 	set undolevel [getFromRunning "undolevel"]
 	set redolevel [getFromRunning "redolevel"]
@@ -2110,6 +2126,10 @@ proc button1-release { c x y } {
 #****
 proc button3background { c x y } {
 	global show_background_image changed
+
+	if { ! [getFromRunning "stop_sched"] } {
+		return
+	}
 
 	set canvas_list [getFromRunning "canvas_list"]
 	set curcanvas [getFromRunning "curcanvas"]

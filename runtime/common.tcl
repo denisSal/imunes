@@ -992,6 +992,8 @@ proc resumeSelectedExperiment { exp } {
 
 	setToRunning "eid" $exp
 	setToRunning "cfg_deployed" true
+	setToRunning "stop_sched" 1
+
 	setOperMode exec
 }
 
