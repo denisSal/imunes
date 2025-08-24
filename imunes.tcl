@@ -192,6 +192,7 @@ set gui_option_defaults {
 	default_link_width		2
 	default_fill_color		"Gray"
 	default_text_color		"#000000"
+	hide_progress			0
 }
 
 foreach {option default_value} [concat $option_defaults $gui_option_defaults] {

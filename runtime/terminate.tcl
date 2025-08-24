@@ -46,7 +46,7 @@ proc terminate_deleteExperimentFiles { eid } {
 proc checkTerminate {} {}
 
 proc terminate_nodesShutdown { eid nodes nodes_count w } {
-	global progressbarCount execMode
+	global progressbarCount execMode hide_progress
 
 	set batchStep 0
 	foreach node_id $nodes {
@@ -67,7 +67,7 @@ proc terminate_nodesShutdown { eid nodes nodes_count w } {
 		incr batchStep
 		incr progressbarCount -1
 
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			statline "Shutting down node [getNodeName $node_id]"
 			$w.p configure -value $progressbarCount
 			update
@@ -83,7 +83,7 @@ proc terminate_nodesShutdown { eid nodes nodes_count w } {
 }
 
 proc terminate_linksUnconfigure { eid links links_count w } {
-	global progressbarCount execMode
+	global progressbarCount execMode hide_progress
 
 	set batchStep 0
 	set skipLinks ""
@@ -109,7 +109,7 @@ proc terminate_linksUnconfigure { eid links links_count w } {
 		incr batchStep
 		incr progressbarCount -1
 
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			statline $msg
 			$w.p configure -value $progressbarCount
 			update
@@ -126,7 +126,7 @@ proc terminate_linksUnconfigure { eid links links_count w } {
 }
 
 proc terminate_linksDestroy { eid links links_count w } {
-	global progressbarCount execMode
+	global progressbarCount execMode hide_progress
 
 	set batchStep 0
 	set skipLinks ""
@@ -167,7 +167,7 @@ proc terminate_linksDestroy { eid links links_count w } {
 		incr batchStep
 		incr progressbarCount -1
 
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			statline $msg
 			$w.p configure -value $progressbarCount
 			update
@@ -184,7 +184,7 @@ proc terminate_linksDestroy { eid links links_count w } {
 }
 
 proc terminate_nodesDestroy { eid nodes nodes_count w } {
-	global progressbarCount execMode
+	global progressbarCount execMode hide_progress
 
 	set batchStep 0
 	foreach node_id $nodes {
@@ -205,7 +205,7 @@ proc terminate_nodesDestroy { eid nodes nodes_count w } {
 		incr batchStep
 		incr progressbarCount -1
 
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			statline "Destroying node [getNodeName $node_id]"
 			$w.p configure -value $progressbarCount
 			update
@@ -221,7 +221,7 @@ proc terminate_nodesDestroy { eid nodes nodes_count w } {
 }
 
 proc terminate_nodesDestroyFS { eid nodes nodes_count w } {
-	global progressbarCount execMode
+	global progressbarCount execMode hide_progress
 
 	set batchStep 0
 	foreach node_id $nodes {
@@ -247,7 +247,7 @@ proc terminate_nodesDestroyFS { eid nodes nodes_count w } {
 		incr batchStep
 		incr progressbarCount -1
 
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			statline "Destroying node [getNodeName $node_id] (FS)"
 			$w.p configure -value $progressbarCount
 			update
@@ -263,7 +263,7 @@ proc terminate_nodesDestroyFS { eid nodes nodes_count w } {
 }
 
 proc finishTerminating { status msg w } {
-	global progressbarCount execMode
+	global progressbarCount execMode hide_progress
 
 	set vars "terminate_nodes destroy_nodes_ifaces terminate_links \
 		unconfigure_links unconfigure_nodes_ifaces unconfigure_nodes"
@@ -275,7 +275,9 @@ proc finishTerminating { status msg w } {
 	if { $execMode == "batch" } {
 		puts stderr $msg
 	} else {
-		catch { destroy $w }
+		if { ! $hide_progress } {
+			catch { destroy $w }
+		}
 		set progressbarCount 0
 		if { ! $status } {
 			after idle { .dialog1.msg configure -wraplength 4i }
@@ -299,7 +301,7 @@ proc finishTerminating { status msg w } {
 proc undeployCfg { { eid "" } { terminate 0 } } {
 	upvar 0 ::cf::[set ::curcfg]::dict_cfg dict_cfg
 
-	global progressbarCount execMode skip_nodes
+	global progressbarCount execMode skip_nodes hide_progress
 
 	set bkp_cfg ""
 	set terminate_cfg [getFromExecuteVars "terminate_cfg"]
@@ -464,7 +466,7 @@ proc undeployCfg { { eid "" } { terminate 0 } } {
 	}
 
 	set w ""
-	if { $execMode != "batch" } {
+	if { ! $hide_progress && $execMode != "batch" } {
 		set w .startup
 		catch { destroy $w }
 
@@ -638,7 +640,7 @@ proc undeployCfg { { eid "" } { terminate 0 } } {
 }
 
 proc timeoutPatch { eid nodes nodes_count w } {
-	global progressbarCount execMode
+	global progressbarCount execMode hide_progress
 
 	set batchStep 0
 	set nodes_left $nodes
@@ -651,7 +653,7 @@ proc timeoutPatch { eid nodes nodes_count w } {
 			incr progressbarCount -1
 
 			set name [getNodeName $node_id]
-			if { $execMode != "batch" } {
+			if { ! $hide_progress && $execMode != "batch" } {
 				statline "Node $name stopped"
 				$w.p configure -value $progressbarCount
 				update
@@ -671,7 +673,7 @@ proc timeoutPatch { eid nodes nodes_count w } {
 }
 
 proc terminate_nodesUnconfigure { eid nodes nodes_count w } {
-	global progressbarCount execMode
+	global progressbarCount execMode hide_progress
 
 	set batchStep 0
 	set subnet_gws {}
@@ -694,7 +696,7 @@ proc terminate_nodesUnconfigure { eid nodes nodes_count w } {
 		incr batchStep
 		incr progressbarCount -1
 
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			$w.p configure -value $progressbarCount
 			statline "Unconfiguring node [getNodeName $node_id]"
 			update
@@ -710,7 +712,7 @@ proc terminate_nodesUnconfigure { eid nodes nodes_count w } {
 }
 
 proc terminate_nodesIfacesUnconfigure { eid nodes_ifaces nodes_count w } {
-	global progressbarCount execMode
+	global progressbarCount execMode hide_progress
 
 	set batchStep 0
 	set subnet_gws {}
@@ -736,7 +738,7 @@ proc terminate_nodesIfacesUnconfigure { eid nodes_ifaces nodes_count w } {
 		incr batchStep
 		incr progressbarCount -1
 
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			$w.p configure -value $progressbarCount
 			statline "Unconfiguring interfaces on node [getNodeName $node_id]"
 			update
@@ -752,7 +754,7 @@ proc terminate_nodesIfacesUnconfigure { eid nodes_ifaces nodes_count w } {
 }
 
 proc terminate_nodesIfacesDestroy { eid nodes_ifaces nodes_count w } {
-	global progressbarCount execMode
+	global progressbarCount execMode hide_progress
 
 	set batchStep 0
 	dict for {node_id ifaces} $nodes_ifaces {
@@ -775,7 +777,7 @@ proc terminate_nodesIfacesDestroy { eid nodes_ifaces nodes_count w } {
 		incr batchStep
 		incr progressbarCount -1
 
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			statline "Destroying physical interfaces on node [getNodeName $node_id]"
 			$w.p configure -value $progressbarCount
 			update

@@ -428,7 +428,7 @@ proc nodeIpsecInit { node_id } {
 #   configure_nodes_ifaces, configure_nodes
 #****
 proc deployCfg { { execute 0 } } {
-	global progressbarCount execMode skip_nodes err_skip_nodesifaces err_skip_nodes
+	global progressbarCount execMode skip_nodes err_skip_nodesifaces err_skip_nodes hide_progress
 	global runnable_node_types
 
 	if { ! $execute } {
@@ -562,7 +562,7 @@ proc deployCfg { { execute 0 } } {
 
 	set w ""
 	set eid [getFromRunning "eid"]
-	if { $execMode != "batch" } {
+	if { ! $hide_progress && $execMode != "batch" } {
 		set w .startup
 		catch { destroy $w }
 		toplevel $w -takefocus 1
@@ -595,9 +595,11 @@ proc deployCfg { { execute 0 } } {
 			puts "Experiment ID = $eid"
 		}
 
-		catch { destroy $w }
+		if { ! $hide_progress } {
+			catch { destroy $w }
 
-		set progressbarCount 0
+			set progressbarCount 0
+		}
 
 		return
 	}
@@ -780,7 +782,7 @@ proc execute_prepareSystem {} {
 }
 
 proc execute_nodesCreate { nodes nodes_count w } {
-	global progressbarCount execMode runnable_node_types skip_nodes
+	global progressbarCount execMode runnable_node_types skip_nodes hide_progress
 
 	set eid [getFromRunning "eid"]
 
@@ -800,7 +802,7 @@ proc execute_nodesCreate { nodes nodes_count w } {
 		incr batchStep
 		incr progressbarCount
 
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			statline "Instantiating node [getNodeName $node_id]"
 			$w.p configure -value $progressbarCount
 			update
@@ -816,7 +818,7 @@ proc execute_nodesCreate { nodes nodes_count w } {
 }
 
 proc waitForInstantiateNodes { nodes nodes_count w } {
-	global progressbarCount execMode skip_nodes nodecreate_timeout
+	global progressbarCount execMode skip_nodes nodecreate_timeout hide_progress
 
 	set t_start [clock milliseconds]
 
@@ -840,7 +842,7 @@ proc waitForInstantiateNodes { nodes nodes_count w } {
 			incr progressbarCount
 
 			set name [getNodeName $node_id]
-			if { $execMode != "batch" } {
+			if { ! $hide_progress && $execMode != "batch" } {
 				statline "Node $name started"
 				$w.p configure -value $progressbarCount
 				update
@@ -877,7 +879,7 @@ proc waitForInstantiateNodes { nodes nodes_count w } {
 }
 
 proc execute_nodesNamespaceSetup { nodes nodes_count w } {
-	global progressbarCount execMode skip_nodes
+	global progressbarCount execMode skip_nodes hide_progress
 
 	set eid [getFromRunning "eid"]
 
@@ -897,7 +899,7 @@ proc execute_nodesNamespaceSetup { nodes nodes_count w } {
 		incr batchStep
 		incr progressbarCount
 
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			statline "Creating namespace for [getNodeName $node_id]"
 			$w.p configure -value $progressbarCount
 			update
@@ -913,7 +915,7 @@ proc execute_nodesNamespaceSetup { nodes nodes_count w } {
 }
 
 proc waitForNamespaces { nodes nodes_count w } {
-	global progressbarCount execMode
+	global progressbarCount execMode hide_progress
 
 	set batchStep 0
 	set nodes_left $nodes
@@ -928,7 +930,7 @@ proc waitForNamespaces { nodes nodes_count w } {
 			incr progressbarCount
 
 			set name [getNodeName $node_id]
-			if { $execMode != "batch" } {
+			if { ! $hide_progress && $execMode != "batch" } {
 				statline "Namespace for $name created"
 				$w.p configure -value $progressbarCount
 				update
@@ -948,7 +950,7 @@ proc waitForNamespaces { nodes nodes_count w } {
 }
 
 proc execute_nodesInitConfigure { nodes nodes_count w } {
-	global progressbarCount execMode skip_nodes
+	global progressbarCount execMode skip_nodes hide_progress
 
 	set eid [getFromRunning "eid"]
 
@@ -968,7 +970,7 @@ proc execute_nodesInitConfigure { nodes nodes_count w } {
 		incr batchStep
 		incr progressbarCount
 
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			statline "Starting initial configuration on [getNodeName $node_id]"
 			$w.p configure -value $progressbarCount
 			update
@@ -984,7 +986,7 @@ proc execute_nodesInitConfigure { nodes nodes_count w } {
 }
 
 proc waitForInitConf { nodes nodes_count w } {
-	global progressbarCount execMode skip_nodes nodecreate_timeout
+	global progressbarCount execMode skip_nodes nodecreate_timeout hide_progress
 
 	set t_start [clock milliseconds]
 
@@ -1006,7 +1008,7 @@ proc waitForInitConf { nodes nodes_count w } {
 			incr progressbarCount
 
 			set name [getNodeName $node_id]
-			if { $execMode != "batch" } {
+			if { ! $hide_progress && $execMode != "batch" } {
 				statline "Initial networking on $name configured"
 				$w.p configure -value $progressbarCount
 				update
@@ -1045,7 +1047,7 @@ proc waitForInitConf { nodes nodes_count w } {
 proc execute_nodesCopyFiles { nodes nodes_count w } {}
 
 proc execute_nodesPhysIfacesCreate { nodes_ifaces nodes_count w } {
-	global progressbarCount execMode skip_nodes
+	global progressbarCount execMode skip_nodes hide_progress
 
 	set eid [getFromRunning "eid"]
 
@@ -1069,7 +1071,7 @@ proc execute_nodesPhysIfacesCreate { nodes_ifaces nodes_count w } {
 		incr batchStep
 		incr progressbarCount
 
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			statline "Creating physical ifaces on node [getNodeName $node_id]"
 			$w.p configure -value $progressbarCount
 			update
@@ -1085,7 +1087,7 @@ proc execute_nodesPhysIfacesCreate { nodes_ifaces nodes_count w } {
 }
 
 proc execute_nodesLogIfacesCreate { nodes_ifaces nodes_count w } {
-	global progressbarCount execMode skip_nodes
+	global progressbarCount execMode skip_nodes hide_progress
 
 	set eid [getFromRunning "eid"]
 
@@ -1109,7 +1111,7 @@ proc execute_nodesLogIfacesCreate { nodes_ifaces nodes_count w } {
 		incr batchStep
 		incr progressbarCount
 
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			statline "Creating logical ifaces on node [getNodeName $node_id]"
 			$w.p configure -value $progressbarCount
 			update
@@ -1125,7 +1127,7 @@ proc execute_nodesLogIfacesCreate { nodes_ifaces nodes_count w } {
 }
 
 proc execute_linksCreate { links links_count w } {
-	global progressbarCount execMode skip_nodes
+	global progressbarCount execMode skip_nodes hide_progress
 
 	set batchStep 0
 	for { set pending_links $links } { $pending_links != "" } {} {
@@ -1163,7 +1165,7 @@ proc execute_linksCreate { links links_count w } {
 		incr batchStep
 		incr progressbarCount
 
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			statline $msg
 			$w.p configure -value $progressbarCount
 			update
@@ -1181,7 +1183,7 @@ proc execute_linksCreate { links links_count w } {
 }
 
 proc execute_linksConfigure { links links_count w } {
-	global progressbarCount execMode skip_nodes
+	global progressbarCount execMode skip_nodes hide_progress
 
 	set batchStep 0
 	for { set pending_links $links } { $pending_links != "" } {} {
@@ -1215,7 +1217,7 @@ proc execute_linksConfigure { links links_count w } {
 		incr batchStep
 		incr progressbarCount
 
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			statline $msg
 			$w.p configure -value $progressbarCount
 			update
@@ -1233,7 +1235,7 @@ proc execute_linksConfigure { links links_count w } {
 }
 
 proc execute_nodesIfacesConfigure { nodes_ifaces nodes_count w } {
-	global progressbarCount execMode skip_nodes
+	global progressbarCount execMode skip_nodes hide_progress
 
 	set eid [getFromRunning "eid"]
 
@@ -1256,7 +1258,7 @@ proc execute_nodesIfacesConfigure { nodes_ifaces nodes_count w } {
 		incr batchStep
 		incr progressbarCount
 
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			$w.p configure -value $progressbarCount
 			statline "Configuring interfaces on node [getNodeName $node_id]"
 			update
@@ -1272,7 +1274,7 @@ proc execute_nodesIfacesConfigure { nodes_ifaces nodes_count w } {
 }
 
 proc configureIfacesWait { nodes_ifaces nodes_count w } {
-	global progressbarCount execMode err_skip_nodesifaces ifacesconf_timeout
+	global progressbarCount execMode err_skip_nodesifaces ifacesconf_timeout hide_progress
 
 	set t_start [clock milliseconds]
 
@@ -1296,7 +1298,7 @@ proc configureIfacesWait { nodes_ifaces nodes_count w } {
 			incr progressbarCount
 
 			set name [getNodeName $node_id]
-			if { $execMode != "batch" } {
+			if { ! $hide_progress && $execMode != "batch" } {
 				statline "Node $name ifaces configured"
 				$w.p configure -value $progressbarCount
 				update
@@ -1333,7 +1335,7 @@ proc configureIfacesWait { nodes_ifaces nodes_count w } {
 }
 
 proc execute_nodesConfigure { nodes nodes_count w } {
-	global progressbarCount execMode skip_nodes
+	global progressbarCount execMode skip_nodes hide_progress
 
 	set eid [getFromRunning "eid"]
 
@@ -1353,7 +1355,7 @@ proc execute_nodesConfigure { nodes nodes_count w } {
 		incr batchStep
 		incr progressbarCount
 
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			$w.p configure -value $progressbarCount
 			statline "Starting configuration on node [getNodeName $node_id]"
 			update
@@ -1430,7 +1432,7 @@ proc generateHostsFile { node_id } {
 }
 
 proc waitForConfStart { nodes nodes_count w } {
-	global progressbarCount execMode err_skip_nodes nodeconf_timeout
+	global progressbarCount execMode err_skip_nodes nodeconf_timeout hide_progress
 
 	set t_start [clock milliseconds]
 
@@ -1452,7 +1454,7 @@ proc waitForConfStart { nodes nodes_count w } {
 			incr progressbarCount
 
 			set name [getNodeName $node_id]
-			if { $execMode != "batch" } {
+			if { ! $hide_progress && $execMode != "batch" } {
 				statline "Node $name configured"
 				$w.p configure -value $progressbarCount
 				update
@@ -1513,7 +1515,7 @@ proc finishExecuting { status msg w } {
 }
 
 proc checkForErrors { nodes nodes_count w } {
-	global progressbarCount execMode skip_nodes err_skip_nodes
+	global progressbarCount execMode skip_nodes err_skip_nodes hide_progress
 
 	set batchStep 0
 	set err_nodes ""
@@ -1546,7 +1548,7 @@ proc checkForErrors { nodes nodes_count w } {
 		incr progressbarCount
 
 		set name [getNodeName $node_id]
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			statline "Node $name checked - $msg"
 			$w.p configure -value $progressbarCount
 			update
@@ -1623,7 +1625,7 @@ proc checkForErrors { nodes nodes_count w } {
 }
 
 proc checkForErrorsIfaces { nodes nodes_count w } {
-	global progressbarCount execMode skip_nodes err_skip_nodesifaces
+	global progressbarCount execMode skip_nodes err_skip_nodesifaces hide_progress
 
 	set batchStep 0
 	set err_nodes ""
@@ -1656,7 +1658,7 @@ proc checkForErrorsIfaces { nodes nodes_count w } {
 		incr progressbarCount
 
 		set name [getNodeName $node_id]
-		if { $execMode != "batch" } {
+		if { ! $hide_progress && $execMode != "batch" } {
 			statline "Interfaces on node $name checked - $msg"
 			$w.p configure -value $progressbarCount
 			update

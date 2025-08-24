@@ -242,8 +242,13 @@ proc evsched {} {
 	}
 
 	if { $changed == 1 } {
+		global hide_progress
+
+		set tmp $hide_progress
+		set hide_progress 1
 		undeployCfg
 		deployCfg
+		set hide_progress $tmp
 
 		redrawAll
 	}
