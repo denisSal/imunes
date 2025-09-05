@@ -439,9 +439,9 @@ proc reloadSources {} {
 
 	safeSourceFile "$ROOTDIR/$LIBDIR/gui/debug.tcl"
 
-	applyOptions
-
 	if { $gui } {
+		applyOptionsToGUI
+
 		redrawAll
 		refreshToolBarNodes
 	}
