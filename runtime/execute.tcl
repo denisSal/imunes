@@ -1667,9 +1667,7 @@ proc execute_nodesConfigure { nodes nodes_count w } {
 #   * node_id -- node id
 #****
 proc generateHostsFile { node_id } {
-	global auto_etc_hosts
-
-	if { $auto_etc_hosts != 1 || [[getNodeType $node_id].virtlayer] != "VIRTUALIZED" } {
+	if { [getActiveOption "auto_etc_hosts"] != 1 || [[getNodeType $node_id].virtlayer] != "VIRTUALIZED" } {
 		return
 	}
 
