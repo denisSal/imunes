@@ -85,7 +85,7 @@ set file_types {
 proc newProject {} {
 	global curcfg cfg_list
 	global CFG_VERSION
-	global zoom gui
+	global gui
 
 	set curcfg [newObjectId $cfg_list "cfg"]
 	lappend cfg_list $curcfg
@@ -95,6 +95,7 @@ proc newProject {} {
 	upvar 0 ::cf::[set ::curcfg]::dict_run_gui dict_run_gui
 	upvar 0 ::cf::[set ::curcfg]::dict_cfg dict_cfg
 	upvar 0 ::cf::[set ::curcfg]::execute_vars execute_vars
+	upvar 0 ::cf::[set ::curcfg]::modified_options modified_options
 
 	set dict_cfg [dict create]
 	setOption "version" $CFG_VERSION
@@ -102,6 +103,7 @@ proc newProject {} {
 	set dict_run [dict create]
 	set dict_run_gui [dict create]
 	set execute_vars [dict create]
+	set modified_options [dict create]
 
 	setToRunning "eid" ""
 	setToRunning "oper_mode" "edit"
@@ -112,7 +114,6 @@ proc newProject {} {
 	setToRunning "undolevel" 0
 	setToRunning "redolevel" 0
 	if { $gui } {
-		setToRunning_gui "zoom" $zoom
 		setToRunning_gui "canvas_list" {}
 		setToRunning_gui "curcanvas" [newCanvas ""]
 	}
@@ -173,6 +174,7 @@ proc switchProject {} {
 
 	setOperMode [getFromRunning "oper_mode"]
 	if { $gui } {
+		applyOptionsToGUI
 		switchCanvas none
 		redrawAll
 		updateProjectMenu
@@ -247,7 +249,7 @@ proc openFile {} {
 		setToRunning_gui "curcanvas" [lindex $canvas_list 0]
 	}
 
-	applyOptions
+	applyOptionsToGUI
 
 	if { $gui } {
 		switchCanvas none
@@ -293,30 +295,51 @@ proc openFile {} {
 	}
 }
 
-proc saveOptions {} {
-	global option_defaults gui_option_defaults
-	set running_zoom [getFromRunning_gui "zoom"]
+proc saveOptions { { option_names {} } } {
+	global all_options all_gui_options default_options custom_options
+	global gui execMode
 
-	foreach {option default_value} $option_defaults {
-		global $option
+	if { $option_names == {} } {
+		set option_names [dict keys $default_options]
+	}
 
-		set value [set $option]
-		if { $value != $default_value } {
-			setOption $option $value
+	foreach {option_name default_value} $default_options {
+		if { $option_name ni $option_names } {
+			continue
+		}
+
+		if { $option_name in $all_options } {
+			set gui_suffix ""
+		} elseif { $option_name in $all_gui_options } {
+			if { ! $gui } {
+				continue
+			}
+			set gui_suffix "_gui"
 		} else {
-			unsetOption $option
+			continue
+		}
+
+		if { $option_name ni [dictGet $custom_options "custom_override"] } {
+			set custom_value [dictGet $custom_options $option_name]
+			if { $custom_value != "" } {
+				set default_value $custom_value
+			}
+		}
+
+		set value [getActiveOption $option_name]
+		if { $value != $default_value } {
+			setOption$gui_suffix $option_name $value
+		} else {
+			unsetOption$gui_suffix $option_name
 		}
 	}
 
-	foreach {option default_value} $gui_option_defaults {
-		global $option
+	if { ! $gui && $execMode != "batch" } {
+		set tmp [getFromRunning "modified"]
+		cfgUnset "gui"
+		setToRunning "modified" $tmp
 
-		set value [set $option]
-		if { $value != $default_value } {
-			setOption_gui $option $value
-		} else {
-			unsetOption_gui $option
-		}
+		return
 	}
 
 	if { [cfgGet "gui" "options"] == "" } {
@@ -324,44 +347,30 @@ proc saveOptions {} {
 		cfgUnset "gui" "options"
 		setToRunning "modified" $tmp
 	}
+}
 
-	if { $running_zoom == "" } {
+proc applyOptionsToGUI {} {
+	global all_options all_gui_options default_options
+	global gui
+
+	if { ! $gui } {
 		return
 	}
 
-	if { $running_zoom != [dictGet $gui_option_defaults "zoom"] } {
-		setOption_gui "zoom" $running_zoom
-	} else {
-		unsetOption_gui "zoom"
-	}
-}
-
-proc applyOptions {} {
-	global option_defaults gui_option_defaults
-
-	foreach {option default_value} $option_defaults {
-		global $option
-
-		set value [getOption $option]
-		if { $value != "" } {
-			set $option $value
+	foreach {option_name default_value} $default_options {
+		if { $option_name in $all_options } {
+			set gui_suffix ""
+		} elseif { $option_name in $all_gui_options } {
+			set gui_suffix "_gui"
 		} else {
-			set $option $default_value
+			continue
 		}
+
+		set value [getActiveOption $option_name]
+
+		global $option_name
+		set $option_name $value
 	}
-
-	foreach {option default_value} $gui_option_defaults {
-		global $option
-
-		set value [getOption_gui $option]
-		if { $value != "" } {
-			set $option $value
-		} else {
-			set $option $default_value
-		}
-	}
-
-	setToRunning_gui "zoom" $zoom
 }
 
 #****f* filemgmt.tcl/saveFile
@@ -495,22 +504,93 @@ proc closeFile {} {
 # NAME
 #   readConfigFile -- read configuration file
 # SYNOPSIS
-#   readConfigFile
+#   readConfigFile $file_name
 # FUNCTION
-#   Read config files, the first one found: .imunesrc, $HOME/.imunesrc
+#   Read config file given with $file_name. The file should be in JSON format,
+#   and it will be skipped if it cannot be parsed. Only options given by
+#   variables $all_options/$all_gui_options are legitimate options to give.
 #***
-proc readConfigFile {} {
-	global env
+proc readConfigFile { file_name } {
+	global all_options all_gui_options custom_options last_config_file
+
+	set fd [open $file_name r]
+	set json_options [read $fd]
+	close $fd
+
+	# remove all comments (all lines starting with #)
+	regsub -all -line {^[ \t]*#.*\n} $json_options "" json_options
+
+	try {
+		json::json2dict $json_options
+	} on error err {
+		puts stderr "Error sourcing config file '$file_name':\n$err"
+
+		return
+	} on ok read_options {}
+
+	foreach {option_name option_value} $read_options {
+		if { $option_name ni "$all_options $all_gui_options custom_override" } {
+			continue
+		}
+
+		set custom_options [dictSet $custom_options $option_name $option_value]
+	}
+
+	set last_config_file $file_name
+}
+
+#****f* filemgmt.tcl/readConfigFiles
+# NAME
+#   readConfigFiles -- read configuration file
+# SYNOPSIS
+#   readConfigFiles
+# FUNCTION
+#   Read existing config files, in this order:
+#	 - ./.imunesrc
+#	 - /etc/imunes/config
+#	 - $XDG_CONFIG_HOME/imunes/config or $HOME/.imunes.rc
+#	 - ./.imunes.rc
+#
+#   After that, read /etc/imunes/override which overrides any previously set
+#   options.
+#
+#	All the configuration files are JSON files, except for .imunesrc, which
+#	is a TCL file which will be sourced. It is kept for compatibility
+#	reasons.
+#
+#   NOTE: If $XDG_CONFIG_HOME is either not set or empty, a default of
+#   $HOME/.config is used
+#
+#	Check config.example for the list of options.
+#***
+proc readConfigFiles {} {
+	global custom_options home_path config_dir last_config_file
+
+	set custom_options {}
 
 	if { [file exists ".imunesrc"] } {
-		source ".imunesrc"
-	} else {
-		if { [catch { set myhome $env(HOME) }] } {
-			;# not running on UNIX
-		} else {
-			if { [file exists "$myhome/.imunesrc"] } {
-				source "$myhome/.imunesrc"
-			}
+		safeSourceFile ".imunesrc"
+		set last_config_file ".imunesrc"
+	}
+
+	if { $home_path == "" } {
+		# not running on UNIX
+		if { [file exists ".imunes.rc"] } {
+			readConfigFile ".imunes.rc"
+		}
+
+		return
+	}
+
+	set home_config "$config_dir/config"
+	if { [file exists "$home_path/.imunes.rc"] } {
+		# $home_path/.imunes.rc overrides $config_dir/config
+		set home_config "$home_path/.imunes.rc"
+	}
+
+	foreach file_name "/etc/imunes/config $home_config .imunes.rc /etc/imunes/override" {
+		if { [file exists $file_name] } {
+			readConfigFile $file_name
 		}
 	}
 }
