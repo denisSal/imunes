@@ -115,7 +115,6 @@ proc drawAnnotation { obj } {
 proc popupOvalDialog { c target modify } {
 	global newrect newoval
 	global width
-	global default_fill_color default_text_color
 
 	# return if coords are empty
 	if { $target == 0 && [$c coords "$newoval"] == "" } {
@@ -136,7 +135,7 @@ proc popupOvalDialog { c target modify } {
 		set annotationType [getAnnotationType $target]
 	}
 
-	if { $color == "" } { set color $default_fill_color }
+	if { $color == "" } { set color [getActiveOption "default_fill_color"] }
 	if { $bordercolor == "" } { set bordercolor black }
 	if { $width == "" } { set width 1 }
 
@@ -237,7 +236,7 @@ proc popupOvalApply { c wi target } {
 		set target [newObjectId [getFromRunning_gui "annotation_list"] "a"]
 		addAnnotation $target oval
 
-		set coords [lmap n [$c coords $newoval] {expr int($n / [getFromRunning_gui "zoom"])}]
+		set coords [lmap n [$c coords $newoval] {expr int($n / [getActiveOption "zoom"])}]
 		if { [lindex $coords 0] < 0 } {
 			set coords [lreplace $coords 0 0 5]
 		}
@@ -279,16 +278,14 @@ proc popupOvalApply { c wi target } {
 #   * oval -- oval annotation
 #****
 proc drawOval { oval } {
-	global default_fill_color
-
 	# multiply each coordinate with $zoom and assign to variables x1, y1, x2, y2
-	lassign [lmap n [getAnnotationCoords $oval] {expr $n * [getFromRunning_gui "zoom"]}] x1 y1 x2 y2
+	lassign [lmap n [getAnnotationCoords $oval] {expr $n * [getActiveOption "zoom"]}] x1 y1 x2 y2
 
 	set color [getAnnotationColor $oval]
 	set bordercolor [getAnnotationBorderColor $oval]
 	set width [getAnnotationWidth $oval]
 
-	if { $color == "" } { set color $default_fill_color }
+	if { $color == "" } { set color [getActiveOption "default_fill_color"] }
 	if { $width == "" } { set width 1 }
 	if { $bordercolor == "" } { set bordercolor black }
 
@@ -312,7 +309,6 @@ proc drawOval { oval } {
 proc popupRectangleDialog { c target modify } {
 	global newrect newoval
 	global width rad
-	global default_fill_color default_text_color
 
 	# return if coords are empty
 	if { $target == 0 && [$c coords "$newrect"] == "" } {
@@ -335,11 +331,11 @@ proc popupRectangleDialog { c target modify } {
 		set rad [getAnnotationRad $target]
 	}
 
-	if { $color == "" } { set color $default_fill_color }
+	if { $color == "" } { set color [getActiveOption "default_fill_color"] }
 	if { $bordercolor == "" } { set bordercolor black }
 	if { $width == "" } { set width 1 }
 
-	lassign [lmap n $coords {expr int($n / [getFromRunning_gui "zoom"])}] x1 y1 x2 y2
+	lassign [lmap n $coords {expr int($n / [getActiveOption "zoom"])}] x1 y1 x2 y2
 	set xx [expr {abs($x2 - $x1)}]
 	set yy [expr {abs($y2 - $y1)}]
 	if { $xx > $yy } {
@@ -454,7 +450,7 @@ proc popupRectangleApply { c wi target } {
 		set target [newObjectId [getFromRunning_gui "annotation_list"] "a"]
 		addAnnotation $target rectangle
 
-		set coords [lmap n [$c coords $newrect] {expr int($n / [getFromRunning_gui "zoom"])}]
+		set coords [lmap n [$c coords $newrect] {expr int($n / [getActiveOption "zoom"])}]
 		if { [lindex $coords 0] < 0 } {
 			set coords [lreplace $coords 0 0 5]
 		}
@@ -497,17 +493,15 @@ proc popupRectangleApply { c wi target } {
 #   * rectangle -- rectangle annotation
 #****
 proc drawRect { rectangle } {
-	global default_fill_color
-
 	# multiply each coordinate with $zoom and assign to variables x1, y1, x2, y2
-	lassign [lmap n [getAnnotationCoords $rectangle] {expr $n * [getFromRunning_gui "zoom"]}] x1 y1 x2 y2
+	lassign [lmap n [getAnnotationCoords $rectangle] {expr $n * [getActiveOption "zoom"]}] x1 y1 x2 y2
 
 	set color [getAnnotationColor $rectangle]
 	set bordercolor [getAnnotationBorderColor $rectangle]
 	set width [getAnnotationWidth $rectangle]
 	set rad [getAnnotationRad $rectangle]
 
-	if { $color == "" } { set color $default_fill_color }
+	if { $color == "" } { set color [getActiveOption "default_fill_color"] }
 	if { $width == "" } { set width 1 }
 	if { $bordercolor == "" } { set bordercolor black }
 	# rounded-rectangle radius
@@ -540,7 +534,6 @@ proc drawRect { rectangle } {
 proc popupTextDialog { c target modify } {
 	global newrect newoval newtext
 	global width rad
-	global default_fill_color default_text_color
 
 	# return if coords are empty
 	if { $target == 0 && [$c coords "$newtext"] == "" } {
@@ -561,7 +554,7 @@ proc popupTextDialog { c target modify } {
 		set font [getAnnotationFont $target]
 	}
 
-	if { $lcolor == "" } { set lcolor black }
+	if { $lcolor == "" } { set lcolor [getActiveOption "default_text_color"] }
 	if { $font == "" } { set font TkTextFont }
 
 	set wi .popup
@@ -652,7 +645,7 @@ proc popupTextApply { c wi target } {
 			# Create a new annotation object
 			set target [newObjectId [getFromRunning_gui "annotation_list"] "a"]
 			addAnnotation $target text
-			set coords [lmap n [$c coords $newtext] {expr int($n / [getFromRunning_gui "zoom"])}]
+			set coords [lmap n [$c coords $newtext] {expr int($n / [getActiveOption "zoom"])}]
 		} else {
 			set coords [getAnnotationCoords $target]
 		}
@@ -684,9 +677,7 @@ proc popupTextApply { c wi target } {
 #   * text -- text annotation
 #****
 proc drawText { text } {
-	global default_text_color
-
-	set zoom [getFromRunning_gui "zoom"]
+	set zoom [getActiveOption "zoom"]
 
 	set coords [getAnnotationCoords $text]
 	if { $coords == "" } {
@@ -697,7 +688,7 @@ proc drawText { text } {
 	set label [getAnnotationLabel $text]
 	set font [getAnnotationFont $text]
 
-	if { $labelcolor == "" } { set labelcolor $default_text_color }
+	if { $labelcolor == "" } { set labelcolor [getActiveOption "default_text_color"] }
 	if { $font == "" } { set font TkTextFont }
 	set font [font actual $font]
 
@@ -723,7 +714,6 @@ proc drawText { text } {
 proc popupFreeformDialog { c target modify } {
 	global newfree
 	global width
-	global default_fill_color
 
 	# return if coords are empty
 	if { $target == 0 && [$c coords "$newfree"] == "" } {
@@ -824,7 +814,7 @@ proc popupFreeformApply { c wi target } {
 		set target [newObjectId [getFromRunning_gui "annotation_list"] "a"]
 		addAnnotation $target freeform
 
-		set coords [lmap n [$c coords $newfree] {expr int($n / [getFromRunning_gui "zoom"])}]
+		set coords [lmap n [$c coords $newfree] {expr int($n / [getActiveOption "zoom"])}]
 	} else {
 		set coords [getAnnotationCoords $target]
 	}
@@ -853,12 +843,12 @@ proc popupFreeformApply { c wi target } {
 #   * freeform -- freeform annotation
 #****
 proc drawFreeform { freeform } {
-	set zoom [getFromRunning_gui "zoom"]
+	set zoom [getActiveOption "zoom"]
 	set coords [getAnnotationCoords $freeform]
 	set color [getAnnotationColor $freeform]
 	set width [getAnnotationWidth $freeform]
 
-	if { $color == "" } { set color $default_fill_color }
+	if { $color == "" } { set color [getActiveOption "default_fill_color"] }
 	if { $width == "" } { set width 2 }
 
 	set l [expr {[llength $coords]-2}]
@@ -1292,7 +1282,7 @@ proc selectmarkLeave { c x y } {
 proc backgroundImage { c img } {
 	global sizex sizey
 
-	set zoom [getFromRunning_gui "zoom"]
+	set zoom [getActiveOption "zoom"]
 	set e_sizex [expr {int($sizex * $zoom)}]
 	set e_sizey [expr {int($sizey * $zoom)}]
 
