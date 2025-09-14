@@ -1346,3 +1346,30 @@ proc checkAndPromptSave { { cfg_to_check "" } } {
 
 	return 0
 }
+
+proc refreshHiddenNodes { content_frame } {
+	global all_modules_list custom_override
+
+	if { "hidden_node_types" in $custom_override } {
+		return
+	}
+
+	set hidden_node_types {}
+	foreach node_type $all_modules_list {
+		if {
+			([$node_type.netlayer] == "LINK" &&
+			"selected" in [$content_frame.cb$node_type state]) ||
+			([$node_type.netlayer] == "NETWORK" &&
+			"selected" in [$content_frame.cb$node_type state])
+		} {
+			lappend hidden_node_types $node_type
+		}
+	}
+
+	if { $hidden_node_types == {} } {
+		set hidden_node_types "none"
+	}
+
+	setModifiedOption "hidden_node_types" $hidden_node_types
+	refreshToolBarNodes
+}
