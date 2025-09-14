@@ -8,6 +8,10 @@ proc refreshToolBarNodes {} {
 	menu $mf.left.net_nodes -title "Network layer nodes"
 
 	foreach node_type $all_modules_list {
+		if { $node_type in [getActiveOption "hidden_node_types"] } {
+			continue
+		}
+
 		set image [image create photo -file [$node_type.icon toolbar]]
 
 		set tool ""
