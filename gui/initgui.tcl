@@ -352,6 +352,9 @@ bind . <Control-a> selectAllObjects
 .menubar.edit add command -label "Select adjacent" \
 	-accelerator "Ctrl+D" -underline 7 -command selectAdjacent
 bind . <Control-d> selectAdjacent
+.menubar.edit add command -label "Editor preferences" \
+	-accelerator "Ctrl+P" -underline 0 -command editorPreferences_gui
+bind . <Control-p> editorPreferences_gui
 
 #
 # Canvas
