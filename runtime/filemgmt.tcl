@@ -676,7 +676,7 @@ proc closeFile { { noprompt "" } } {
 #   variables $all_options/$all_gui_options are legitimate options to give.
 #***
 proc readConfigFile { file_name } {
-	global all_options all_gui_options custom_options last_config_file
+	global all_options all_gui_options custom_options last_config_file config_override
 
 	dputs "Reading custom editor preferences from: '$file_name'"
 
@@ -707,7 +707,11 @@ proc readConfigFile { file_name } {
 		dputs "	-> Loaded custom options: '$custom_options'"
 	}
 
-	set last_config_file $file_name
+	if { $file_name == "/etc/imunes/override" } {
+		set config_override "true"
+	} else {
+		set last_config_file $file_name
+	}
 }
 
 #****f* filemgmt.tcl/readConfigFiles

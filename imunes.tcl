@@ -453,6 +453,7 @@ if { ! [file isdirectory "$config_dir"] } {
 }
 
 # Read config files
+set config_override "false"
 set last_config_file $config_path
 readConfigFiles
 if { $last_config_file != "" } {
