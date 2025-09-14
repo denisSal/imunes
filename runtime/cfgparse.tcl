@@ -1924,6 +1924,35 @@ proc getOptSource { option_name } {
 	return $option_source
 }
 
+proc getOptSource { option_name } {
+	global all_options all_gui_options default_options custom_options
+
+	if { $option_name in $all_options } {
+		set gui_suffix ""
+	} elseif { $option_name in $all_gui_options } {
+		set gui_suffix "_gui"
+	} else {
+		return
+	}
+
+	set option_value ""
+	set option_source "default"
+	if { $option_name ni [dictGet $custom_options "custom_override"] } {
+		set option_value [getOption$gui_suffix $option_name]
+		set option_source "topology"
+	}
+
+	if { $option_value == "" } {
+		set option_value [dictGet $custom_options $option_name]
+		set option_source "custom"
+		if { $option_value == "" } {
+			set option_source "default"
+		}
+	}
+
+	return $option_source
+}
+
 proc getActiveOption { option_name } {
 	global all_options all_gui_options default_options custom_options
 

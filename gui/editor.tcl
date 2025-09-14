@@ -1365,3 +1365,570 @@ proc refreshHiddenNodes { content_frame } {
 proc _invokeNodeProc { node_cfg proc_name args } {
 	return [invokeTypeProc [_getNodeType $node_cfg] $proc_name {*}$args]
 }
+
+#****f* editor.tcl/checkDoubleRange
+# NAME
+#   checkDoubleRange -- check float range
+# SYNOPSIS
+#   set check [checkDoubleRange $str $low $high]
+# FUNCTION
+#   This procedure checks the input string to see if it is
+#   an float between the low and high value.
+# INPUTS
+#   str -- string to check
+#   low -- the bottom value
+#   high -- the top value
+# RESULT
+#   * check -- set to 1 if the str is string between low and high
+#   value, 0 otherwise.
+#****
+proc checkDoubleRange { str low high } {
+	if { $str == "" } {
+		return 1
+	}
+
+	set str [string trimleft $str 0]
+	if { $str == "" } {
+		set str 0
+	}
+
+	if { ! [string is double $str] } {
+		return 0
+	}
+
+	if { $str < $low || $str > $high } {
+		return 0
+	}
+
+	return 1
+}
+
+proc editorPreferences_gui {} {
+	global all_options all_gui_options default_options
+	global current_tab_elem last_config_file
+	global custom_options custom_override
+
+	global tmp_custom_options tmp_topology_options
+
+	set tmp_custom_options [dictUnset $custom_options "custom_override"]
+	set custom_override [dictGet $custom_options "custom_override"]
+
+	set tmp_topology_options [dict create]
+	foreach {option_name default_value} $default_options {
+		if { $option_name in $all_options } {
+			set gui_suffix ""
+		} elseif { $option_name in $all_gui_options } {
+			set gui_suffix "_gui"
+		} else {
+			continue
+		}
+
+		set tmp [getOption$gui_suffix $option_name]
+		if { $tmp != "" } {
+			dict set tmp_topology_options $option_name $tmp
+		}
+	}
+
+	set wi .editor_preferences
+
+	catch { destroy $wi }
+	tk::toplevel $wi
+
+	try {
+		grab $wi
+	} on error {} {
+		catch { destroy $wi }
+		return
+	}
+
+	set source_string " (custom options from $last_config_file)"
+
+	wm title $wi "Editor Preferences$source_string"
+	wm minsize $wi 584 445
+	wm resizable $wi 0 1
+
+	set notebook $wi.notebook
+	ttk::notebook $notebook
+
+	bind $notebook <<NotebookTabChanged>> "editorPreferencesGUI_changeTab %W \[%W select]"
+
+	# Active options tab
+	set active_tab_elem $notebook.active_tab_elem
+	ttk::frame $active_tab_elem
+	$notebook add $active_tab_elem -text "Active options"
+	set current_tab_elem $active_tab_elem
+
+	# redraw header and existing elements
+	editorPreferencesGUI_refreshGUI $active_tab_elem "active" $custom_override
+
+	# Custom options tab
+	set custom_tab_elem $notebook.custom_tab_elem
+	ttk::frame $custom_tab_elem
+	$notebook add $custom_tab_elem -text "Custom options"
+
+	# redraw header and existing elements
+	editorPreferencesGUI_refreshGUI $custom_tab_elem "custom" $custom_override
+
+	# Topology options tab
+	set topology_tab_elem $notebook.topology_tab_elem
+	ttk::frame $topology_tab_elem
+	$notebook add $topology_tab_elem -text "Topology options"
+
+	# redraw header and existing elements
+	editorPreferencesGUI_refreshGUI $topology_tab_elem "topology" $custom_override
+
+	# Buttons
+	set bottom $wi.bottom
+	ttk::frame $bottom
+	set buttons $wi.bottom.buttons
+	ttk::frame $buttons -borderwidth 2
+
+	#ttk::button $buttons.fetch -text "Fetch from active" -command \
+	#	"
+	#global current_tab_elem
+
+	#lassign \[editorPreferencesGUI_fetchTabOptions \$current_tab_elem \"fetch_from_active\"] curtab_options curtab_override
+
+	#editorPreferencesGUI_refreshGUI \$current_tab_elem \$curtab_options \$curtab_override \"fetched\"
+	#"
+
+	set tmp_command [list apply {
+		{ wi } {
+			global current_tab_elem
+
+			set current_option_source [lindex [split [winfo name $current_tab_elem] "_"] 0]
+			lassign [editorPreferencesGUI_contentChanged $current_tab_elem] diff curtab_options curtab_override
+
+			if { $diff } {
+				editorPreferencesGUI_saveContent $current_option_source $curtab_options $curtab_override
+			}
+
+			if { $wi != "" } {
+				destroy $wi
+			}
+		}
+	} \
+		""
+	]
+	ttk::button $buttons.apply -text "Apply" \
+		-command $tmp_command
+	ttk::button $buttons.applyClose -text "Apply and Close" \
+		-command [lreplace $tmp_command end end $wi]
+
+	ttk::button $buttons.cancel \
+		-text "Cancel" \
+		-command "destroy $wi"
+
+	#grid $buttons.fetch -row 0 -column 1 -sticky swe -padx 2 -columnspan 3
+	grid $buttons.apply -row 1 -column 1 -sticky swe -padx 2
+	grid $buttons.applyClose -row 1 -column 2 -sticky swe -padx 2
+	grid $buttons.cancel -row 1 -column 3 -sticky swe -padx 2
+
+	pack $notebook -fill both -expand 1
+	pack $bottom -fill both -side bottom
+	pack $buttons -pady 2
+}
+
+proc editorPreferencesGUI_contentChanged { tab_elem } {
+	global custom_options global_override
+
+	set current_option_source [lindex [split [winfo name $tab_elem] "_"] 0]
+
+	lassign [editorPreferencesGUI_fetchTabOptions $tab_elem] curtab_options curtab_override
+	if { $current_option_source == "active" } {
+		return [list 0 $curtab_options $curtab_override]
+	}
+
+	global tmp_${current_option_source}_options
+
+	dict for {key value} [dictDiff [set tmp_${current_option_source}_options] $curtab_options] {
+		if { $value == "copy" } {
+			continue
+		}
+
+		if { $key in $global_override } {
+			continue
+		}
+
+		return [list 1 $curtab_options $curtab_override]
+	}
+
+	if { $current_option_source == "custom" } {
+		if { [lsort [dictGet $custom_options "custom_override"]] != [lsort $curtab_override] } {
+			return [list 1 $curtab_options $curtab_override]
+		}
+	}
+
+	return [list 0 $curtab_options $curtab_override]
+}
+
+proc editorPreferencesGUI_changeTab { notebook to_tab_elem } {
+	global current_tab_elem
+
+	lassign [editorPreferencesGUI_contentChanged $current_tab_elem] diff curtab_options curtab_override
+	set to_option_source [lindex [split [winfo name $to_tab_elem] "_"] 0]
+
+	if { $diff } {
+		set answer [tk_messageBox -message \
+			"Changes pending, do you want to apply them?" \
+			-icon warning -type yesno ]
+
+		switch -- $answer {
+			yes {
+				set current_option_source [lindex [split [winfo name $current_tab_elem] "_"] 0]
+				editorPreferencesGUI_saveContent $current_option_source $curtab_options $curtab_override
+			}
+
+			no {}
+		}
+	}
+
+	editorPreferencesGUI_refreshGUI $to_tab_elem $to_option_source $curtab_override
+
+	set current_tab_elem $to_tab_elem
+}
+
+proc editorPreferencesGUI_fetchTabOptions { option_tab_elem { fetch_from_active "" } } {
+	global options_defaults gui_options_defaults global_override
+
+	set default_options "$options_defaults $gui_options_defaults"
+
+	set content $option_tab_elem.content
+	set option_source [lindex [split [winfo name $option_tab_elem] "_"] 0]
+
+	set current_options_gui [dict create]
+	set custom_override_gui {}
+	foreach {option_name option_default option_type option_description} $default_options {
+		if { $option_name == "custom_override" } {
+			continue
+		}
+
+		set type [lindex $option_type 0]
+		switch -exact $type {
+			"bool" {
+				# configured column
+				set ${option_name}_tmp [expr { "selected" in [$content.w${option_name}_option_value state] }]
+			}
+			"string" -
+			"list" -
+			"double" -
+			"int" -
+			default {
+				# configured column
+				set ${option_name}_tmp [$content.w${option_name}_option_value get]
+			}
+		}
+
+		if { "selected" in [$content.w${option_name}_custom_override state] } {
+			lappend custom_override_gui $option_name
+		}
+
+		if { "selected" in [$content.w${option_name}_from_enabled state] } {
+			set current_options_gui [dictSet $current_options_gui $option_name [set ${option_name}_tmp]]
+		}
+	}
+
+	return [list $current_options_gui $custom_override_gui]
+}
+
+proc editorPreferencesGUI_refreshGUI { option_tab_elem options custom_override { fetched "" } } {
+	global options_defaults gui_options_defaults options_max_length global_override
+	global all_options all_gui_options custom_options
+
+	set content $option_tab_elem.content
+	catch { destroy $content }
+
+	ttk::frame $content -relief groove -borderwidth 2 -padding 2
+	grid $content -in $option_tab_elem -sticky nsew -pady 4 -columnspan 6
+
+	set padx 10
+	set header_color "#5b5b9b"
+
+	set option_source [lindex [split [winfo name $option_tab_elem] "_"] 0]
+	if { $option_source == "active" } {
+		set from_set_text "Configured from"
+	} else {
+		set from_set_text "Enabled"
+	}
+
+	ttk::label $content.h_option_name -text "Option name" \
+		-anchor "center" -foreground $header_color -width [expr $options_max_length + 4]
+	ttk::label $content.h_option_default -text "Default value" \
+		-anchor "center" -foreground $header_color
+	ttk::label $content.h_option_value -text "Configured value" \
+		-anchor "center" -foreground $header_color
+	ttk::label $content.h_option_from_enabled -text "$from_set_text" -width 16 \
+		-anchor "center" -foreground $header_color
+	ttk::label $content.h_option_custom_override -text "Custom override" \
+		-anchor "center" -foreground $header_color
+
+	grid $content.h_option_name -row 0 -column 0 -in $content -sticky "e" -padx $padx
+	grid $content.h_option_default -row 0 -column 1 -in $content -sticky "" -padx $padx
+	grid $content.h_option_value -row 0 -column 2 -in $content -sticky "" -padx $padx
+	grid $content.h_option_from_enabled -row 0 -column 3 -in $content -sticky "" -padx $padx
+	grid $content.h_option_custom_override -row 0 -column 4 -in $content -sticky "" -padx $padx
+
+	set full_default_options "$options_defaults $gui_options_defaults"
+
+	# skip header row
+	set row 1
+	set checkbutton_dict "0 !selected 1 selected"
+	foreach {option_name option_default option_type option_description} $full_default_options {
+		if { $option_name == "custom_override" } {
+			continue
+		}
+
+		set option_enabled 0
+		switch -exact $options {
+			"active" {
+				set option_value [getActiveOption $option_name]
+			}
+			"custom" {
+				set tmp [dictGet $custom_options $option_name]
+				if { $tmp != "" } {
+					set option_value $tmp
+					set option_enabled 1
+				} else {
+					set option_value $option_default
+				}
+			}
+			"topology" {
+				if { $option_name in $all_options } {
+					set gui_suffix ""
+				} elseif { $option_name in $all_gui_options } {
+					set gui_suffix "_gui"
+				} else {
+					continue
+				}
+
+				set tmp [getOption$gui_suffix $option_name]
+				if { $tmp != "" } {
+					set option_value $tmp
+					set option_enabled 1
+				} else {
+					set option_value [getActiveOption $option_name]
+				}
+			}
+		}
+
+		# OPTION NAME
+		ttk::label $content.w${option_name} -text "$option_name"
+
+		# on button1 click, open a *_help menu with an option description
+		# so that the cursor is inside of it
+		menu $content.w${option_name}_help -tearoff 0
+		$content.w${option_name}_help add command -label "$option_description"
+		bind $content.w${option_name} <1> "tk_popup $content.w${option_name}_help \
+			\[expr %X - \[winfo width $content.w${option_name}]/2] \
+			\[expr %Y - \[winfo height $content.w${option_name}]/2]"
+
+		# destroy the *_help menu when leaving it with the cursor
+		bind $content.w${option_name}_help <Leave> "catch { unset $content.w${option_name}_help }"
+
+		# DEFAULT VALUE, CONFIGURED VALUE
+		set type [lindex $option_type 0]
+		switch -exact $type {
+			"bool" {
+				# default column
+				ttk::checkbutton $content.w${option_name}_default -text "" -state disabled
+				set value [dict get $checkbutton_dict $option_default]
+				$content.w${option_name}_default state $value
+
+				# configured column
+				ttk::checkbutton $content.w${option_name}_option_value -text ""
+				if { $option_value != "" } {
+					set value [dict get $checkbutton_dict $option_value]
+					if { $option_source == "active" } {
+						set value "disabled $value"
+					}
+				} else {
+					set value [dict get $checkbutton_dict $option_default]
+				}
+
+				$content.w${option_name}_option_value state $value
+			}
+			"string" {
+				# default column
+				ttk::label $content.w${option_name}_default -text "\"$option_default\""
+
+				# configured column
+				ttk::entry $content.w${option_name}_option_value -width 10
+				if { $option_value != "" } {
+					set value $option_value
+				} else {
+					set value $option_default
+				}
+
+				$content.w${option_name}_option_value insert 0 "$value"
+				if { $option_source == "active" } {
+					$content.w${option_name}_option_value state disabled
+				}
+			}
+			"list" {
+				set list_options [split [lindex $option_type 1] "|"]
+				if { $option_value != "" && $option_value ni $list_options } {
+					set option_value [lindex $list_options 0]
+				}
+
+				# default column
+				ttk::label $content.w${option_name}_default -text "$option_default"
+
+				# configured column
+				ttk::combobox $content.w${option_name}_option_value -width 8 -state readonly
+				$content.w${option_name}_option_value configure -values $list_options
+				if { $option_value != "" } {
+					$content.w${option_name}_option_value set $option_value
+				} else {
+					$content.w${option_name}_option_value set $option_default
+				}
+
+				if { $option_source == "active" } {
+					$content.w${option_name}_option_value state disabled
+				}
+			}
+			"double" -
+			"int" {
+				lassign [split [lindex $option_type 1] "|"] min max
+				if { $option_value != "" } {
+					if { $option_value < $min } {
+						set option_value $min
+					} elseif { $option_value > $max } {
+						set option_value $max
+					}
+				}
+
+				if { $type == "double" } {
+					set check_name "checkDoubleRange"
+					set increment 0.1
+				} else {
+					set check_name "checkIntRange"
+					set increment 1
+				}
+
+				# default column
+				ttk::label $content.w${option_name}_default -text "$option_default \[$min-$max\]"
+
+				# configured column
+				ttk::spinbox $content.w${option_name}_option_value -width 6 -validate focus \
+					-invalidcommand "focusAndFlash %W"
+				if { $option_value != "" } {
+					$content.w${option_name}_option_value insert 0 $option_value
+				} else {
+					$content.w${option_name}_option_value insert 0 $option_default
+				}
+				$content.w${option_name}_option_value configure \
+					-validatecommand "$check_name %P $min $max" \
+					-from $min -to $max -increment $increment
+
+				if { $option_source == "active" } {
+					$content.w${option_name}_option_value state disabled
+				}
+			}
+			default {
+				# default column
+				ttk::label $content.w${option_name}_default -text "\"$option_default\""
+
+				# configured column
+				if { $option_value != "" } {
+					ttk::label $content.w${option_name}_option_value -text "\"$option_value\""
+				} else {
+					ttk::label $content.w${option_name}_option_value -text "\"$option_default\""
+				}
+			}
+		}
+
+		# CONFIGURED FROM / ENABLED
+		if { $option_source == "active" } {
+			ttk::label $content.w${option_name}_from_enabled
+
+			if { $option_name in $global_override } {
+				$content.w${option_name} configure -foreground red
+				$content.w${option_name}_from_enabled configure -text "user" -foreground red
+			} else {
+				$content.w${option_name}_from_enabled configure -text "[getOptSource $option_name]"
+				if { $option_name in $global_override } {
+					set global_override [removeFromList $global_override $option_name]
+				}
+			}
+		} else {
+			ttk::checkbutton $content.w${option_name}_from_enabled -text ""
+			$content.w${option_name}_from_enabled state [dict get $checkbutton_dict $option_enabled]
+		}
+
+		# CUSTOM OVERRIDE
+		ttk::checkbutton $content.w${option_name}_custom_override -text ""
+		$content.w${option_name}_custom_override state \
+			[dict get $checkbutton_dict [expr {$option_name in [dictGet $custom_options "custom_override"]}]]
+
+		if { $option_source ni "custom" } {
+			$content.w${option_name}_custom_override state disabled
+		}
+
+		grid $content.w${option_name} -row $row -column 0 -in $content -sticky "w" -padx $padx
+		grid $content.w${option_name}_default -row $row -column 1 -in $content -sticky "" -padx $padx
+		grid $content.w${option_name}_option_value -row $row -column 2 -in $content -sticky "" -padx $padx
+		grid $content.w${option_name}_from_enabled -row $row -column 3 -in $content -sticky "" -padx $padx
+		grid $content.w${option_name}_custom_override -row $row -column 4 -in $content -sticky "" -padx $padx
+
+		incr row
+	}
+
+	update
+}
+
+proc editorPreferencesGUI_saveContent { option_source curtab_options curtab_override } {
+	global config_dir config_path
+
+	switch -exact $option_source {
+		"active" {
+		}
+		"custom" {
+			global tmp_custom_options current_tab_elem custom_options
+
+			set custom_options $curtab_options
+
+			#lassign [editorPreferencesGUI_fetchTabOptions $current_tab_elem] curtab_options curtab_override
+			set curtab_options [dictSet $curtab_options "custom_override" $curtab_override]
+
+			set json_cfg [createJson "object" $curtab_options]
+			if { ! [file exists $config_dir] } {
+				file mkdir $config_dir
+			}
+
+			set fd [open "$config_path" w+]
+			puts $fd $json_cfg
+			close $fd
+
+			readConfigFiles
+			set tmp_custom_options [dictUnset $custom_options "custom_override"]
+		}
+		"topology" {
+			global all_options all_gui_options default_options tmp_topology_options
+
+			foreach {option_name default_value} $default_options {
+				if { $option_name in $all_options } {
+					set gui_suffix ""
+				} elseif { $option_name in $all_gui_options } {
+					set gui_suffix "_gui"
+				} else {
+					continue
+				}
+
+				if { $option_name in [dict keys $curtab_options] } {
+					setOption$gui_suffix $option_name [dictGet $curtab_options $option_name]
+				} else {
+					unsetOption$gui_suffix $option_name
+				}
+			}
+
+			set tmp_topology_options $curtab_options
+			setToRunning "modified" true
+		}
+	}
+
+	applyOptionsToGUI
+	updateIconSize
+	redrawAll
+
+	refreshToolBarNodes
+}
