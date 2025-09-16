@@ -559,6 +559,7 @@ if { $execMode == "interactive" } {
 		setToRunning "eid" ""
 		setToRunning "oper_mode" "edit"
 		setToRunning "auto_execution" 1
+		setToRunning "no_auto_execute_nodes" {}
 		setToRunning "cfg_deployed" false
 		setToRunning "stop_sched" true
 		setToRunning "undolevel" 0
@@ -608,6 +609,7 @@ if { $execMode == "interactive" } {
 			setToRunning "eid" $eid_base
 			setToRunning "oper_mode" "edit"
 			setToRunning "auto_execution" 1
+			setToRunning "no_auto_execute_nodes" {}
 			setToRunning "cfg_deployed" false
 			setToRunning "stop_sched" true
 			setToRunning "undolevel" 0
