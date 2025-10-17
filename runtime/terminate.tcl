@@ -285,7 +285,7 @@ proc finishTerminating { status msg w } {
 proc undeployCfg { { eid "" } { terminate 0 } } {
 	upvar 0 ::cf::[set ::curcfg]::dict_cfg dict_cfg
 
-	global progressbarCount execMode skip_nodes gui
+	global progressbarCount execMode skip_nodes skip_links gui
 
 	set bkp_cfg ""
 	set terminate_cfg [getFromExecuteVars "terminate_cfg"]
@@ -339,6 +339,7 @@ proc undeployCfg { { eid "" } { terminate 0 } } {
 	}
 
 	set skip_nodes {}
+	set skip_links {}
 	set links_count [llength $terminate_links]
 
 	set t_start [clock milliseconds]

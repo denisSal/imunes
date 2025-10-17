@@ -489,7 +489,7 @@ proc nodeIpsecInit { node_id } {
 #   configure_nodes_ifaces, configure_nodes
 #****
 proc deployCfg { { execute 0 } } {
-	global progressbarCount execMode skip_nodes err_skip_nodesifaces err_skip_nodes
+	global progressbarCount execMode skip_nodes err_skip_nodesifaces err_skip_nodes skip_links
 	global runnable_node_types gui
 
 	if { ! $execute } {
@@ -515,6 +515,7 @@ proc deployCfg { { execute 0 } } {
 
 	set progressbarCount 0
 	set skip_nodes {}
+	set skip_links {}
 	set err_skip_nodesifaces {}
 	set err_skip_nodes {}
 	set nodes_count [llength $instantiate_nodes]
@@ -604,7 +605,7 @@ proc deployCfg { { execute 0 } } {
 	}
 	set configure_links_count [llength $configure_links]
 
-	set maxProgressbasCount [expr {2*$all_nodes_count + 1*$native_nodes_count + 4*$virtualized_nodes_count + 1*$links_count + 1*$configure_links_count + 2*$configure_nodes_count + 2*$create_nodes_ifaces_count + 2*$configure_nodes_ifaces_count + $error_check_nodes_ifaces_count + $error_check_nodes_count}]
+	set maxProgressbasCount [expr {2*$all_nodes_count + 1*$native_nodes_count + 4*$virtualized_nodes_count + 2*$links_count + 1*$configure_links_count + 2*$configure_nodes_count + 4*$create_nodes_ifaces_count + 2*$configure_nodes_ifaces_count + $error_check_nodes_ifaces_count + $error_check_nodes_count}]
 
 	set w ""
 	set eid [getFromRunning "eid"]
@@ -655,7 +656,7 @@ proc deployCfg { { execute 0 } } {
 			execute_nodesCreate $virtualized_nodes $virtualized_nodes_count $w
 			pipesClose
 			statline "Waiting for $virtualized_nodes_count VIRTUALIZED node(s) to start..."
-			waitForInstantiateNodes $virtualized_nodes $virtualized_nodes_count $w
+			execute_nodesCreate_wait $virtualized_nodes $virtualized_nodes_count $w
 		}
 
 		statline "Setting up namespaces for all nodes..."
@@ -664,7 +665,7 @@ proc deployCfg { { execute 0 } } {
 			execute_nodesNamespaceSetup $all_nodes $all_nodes_count $w
 			pipesClose
 			statline "Waiting on namespaces for $all_nodes_count node(s)..."
-			waitForNamespaces $all_nodes $all_nodes_count $w
+			execute_nodesNamespaceSetup_wait $all_nodes $all_nodes_count $w
 		}
 
 		statline "Starting initial configuration on VIRTUALIZED nodes..."
@@ -673,7 +674,7 @@ proc deployCfg { { execute 0 } } {
 			execute_nodesInitConfigure $virtualized_nodes $virtualized_nodes_count $w
 			pipesClose
 			statline "Waiting for initial configuration on $virtualized_nodes_count VIRTUALIZED node(s)..."
-			waitForInitConf $virtualized_nodes $virtualized_nodes_count $w
+			execute_nodesInitConfigure_wait $virtualized_nodes $virtualized_nodes_count $w
 		}
 
 		statline "Instantiating NATIVE nodes..."
@@ -682,7 +683,7 @@ proc deployCfg { { execute 0 } } {
 			execute_nodesCreate $native_nodes $native_nodes_count $w
 			pipesClose
 			statline "Waiting for $native_nodes_count NATIVE node(s) to start..."
-			waitForInstantiateNodes $native_nodes $native_nodes_count $w
+			execute_nodesCreate_wait $native_nodes $native_nodes_count $w
 		}
 
 		#statline "Copying host files to $virtualized_nodes_count VIRTUALIZED node(s)..."
@@ -699,6 +700,7 @@ proc deployCfg { { execute 0 } } {
 			execute_nodesPhysIfacesCreate $create_nodes_ifaces $create_nodes_ifaces_count $w
 			statline "Waiting for physical interfaces on $create_nodes_ifaces_count node(s) to be created..."
 			pipesClose
+			execute_nodesPhysIfacesCreate_wait $create_nodes_ifaces $create_nodes_ifaces_count $w
 		}
 
 		statline "Creating logical interfaces on nodes..."
@@ -707,6 +709,7 @@ proc deployCfg { { execute 0 } } {
 			execute_nodesLogIfacesCreate $create_nodes_ifaces $create_nodes_ifaces_count $w
 			statline "Waiting for logical interfaces on $create_nodes_ifaces_count node(s) to be created..."
 			pipesClose
+			execute_nodesLogIfacesCreate_wait $create_nodes_ifaces $create_nodes_ifaces_count $w
 		}
 
 		statline "Configuring interfaces on node(s)..."
@@ -715,15 +718,16 @@ proc deployCfg { { execute 0 } } {
 			execute_nodesIfacesConfigure $configure_nodes_ifaces $configure_nodes_ifaces_count $w
 			pipesClose
 			statline "Waiting for interface configuration on $configure_nodes_ifaces_count node(s)..."
-			waitForConfigureIfaces $configure_nodes_ifaces $configure_nodes_ifaces_count $w
+			execute_nodesIfacesConfigure_wait $configure_nodes_ifaces $configure_nodes_ifaces_count $w
 		}
 
 		statline "Creating links..."
 		if { $links_count > 0 } {
 			pipesCreate
 			execute_linksCreate $instantiate_links $links_count $w
-			statline "Waiting for $links_count link(s) to be created..."
 			pipesClose
+			statline "Waiting for $links_count link(s) to be created..."
+			execute_linksCreate_wait $instantiate_links $links_count $w
 		}
 
 		statline "Configuring links..."
@@ -745,7 +749,7 @@ proc deployCfg { { execute 0 } } {
 			execute_nodesConfigure $configure_nodes $configure_nodes_count $w
 			pipesClose
 			statline "Waiting for configuration on $configure_nodes_count node(s)..."
-			waitForConfStart $configure_nodes $configure_nodes_count $w
+			execute_nodesConfigure_wait $configure_nodes $configure_nodes_count $w
 		}
 
 		statline "Starting services for NODECONF hook..."
@@ -865,7 +869,7 @@ proc execute_nodesCreate { nodes nodes_count w } {
 	}
 }
 
-proc waitForInstantiateNodes { nodes nodes_count w } {
+proc execute_nodesCreate_wait { nodes nodes_count w } {
 	global progressbarCount execMode skip_nodes nodecreate_timeout gui
 
 	set t_start [clock milliseconds]
@@ -962,7 +966,7 @@ proc execute_nodesNamespaceSetup { nodes nodes_count w } {
 	}
 }
 
-proc waitForNamespaces { nodes nodes_count w } {
+proc execute_nodesNamespaceSetup_wait { nodes nodes_count w } {
 	global progressbarCount execMode gui
 
 	set batchStep 0
@@ -1033,7 +1037,7 @@ proc execute_nodesInitConfigure { nodes nodes_count w } {
 	}
 }
 
-proc waitForInitConf { nodes nodes_count w } {
+proc execute_nodesInitConfigure_wait { nodes nodes_count w } {
 	global progressbarCount execMode skip_nodes nodecreate_timeout gui
 
 	set t_start [clock milliseconds]
@@ -1134,6 +1138,72 @@ proc execute_nodesPhysIfacesCreate { nodes_ifaces nodes_count w } {
 	}
 }
 
+proc execute_nodesPhysIfacesCreate_wait { nodes_ifaces nodes_count w } {
+	global progressbarCount execMode err_skip_nodesifaces ifacesconf_timeout gui
+
+	set t_start [clock milliseconds]
+
+	set nodes [dict keys $nodes_ifaces]
+
+	set batchStep 0
+	set nodes_left $nodes
+	# ignore first run when checking for timeout
+	set old_nodes_left -1
+	while { [llength $nodes_left] > 0 } {
+		displayBatchProgress $batchStep $nodes_count
+		foreach node_id $nodes_left {
+			set ifaces [removeFromList [dict get $nodes_ifaces $node_id] [logIfcList $node_id]]
+			if { $ifaces == "*" } {
+				set ifaces [ifcList $node_id]
+			}
+
+			if { ! [isNodeIfacesCreated $node_id $ifaces] } {
+				if { $ifacesconf_timeout < 0 } {
+					after [expr -$ifacesconf_timeout]
+				}
+				continue
+			}
+
+			incr batchStep
+			incr progressbarCount
+
+			set name [getNodeName $node_id]
+			if { $gui && $execMode != "batch" } {
+				statline "Node $name physical ifaces created"
+				$w.p configure -value $progressbarCount
+				update
+			}
+			displayBatchProgress $batchStep $nodes_count
+
+			set nodes_left [removeFromList $nodes_left $node_id]
+		}
+
+		if { $old_nodes_left != [llength $nodes_left] } {
+			set old_nodes_left [llength $nodes_left]
+			set t_start [clock milliseconds]
+
+			continue
+		}
+
+		if { $ifacesconf_timeout < 0 } {
+			continue
+		}
+
+		set t_last [clock milliseconds]
+		if { [llength $nodes_left] > 0 && [expr {($t_last - $t_start)/1000.0}] > $ifacesconf_timeout } {
+			set err_skip_nodesifaces $nodes_left
+			break
+		}
+	}
+
+	if { $nodes_count > 0 } {
+		displayBatchProgress $batchStep $nodes_count
+		if { ! $gui || $execMode == "batch" } {
+			statline ""
+		}
+	}
+}
+
 proc execute_nodesLogIfacesCreate { nodes_ifaces nodes_count w } {
 	global progressbarCount execMode skip_nodes gui
 
@@ -1174,6 +1244,72 @@ proc execute_nodesLogIfacesCreate { nodes_ifaces nodes_count w } {
 	}
 }
 
+proc execute_nodesLogIfacesCreate_wait { nodes_ifaces nodes_count w } {
+	global progressbarCount execMode err_skip_nodesifaces ifacesconf_timeout gui
+
+	set t_start [clock milliseconds]
+
+	set nodes [dict keys $nodes_ifaces]
+
+	set batchStep 0
+	set nodes_left $nodes
+	# ignore first run when checking for timeout
+	set old_nodes_left -1
+	while { [llength $nodes_left] > 0 } {
+		displayBatchProgress $batchStep $nodes_count
+		foreach node_id $nodes_left {
+			set ifaces [removeFromList [dict get $nodes_ifaces $node_id] [ifcList $node_id]]
+			if { $ifaces == "*" } {
+				set ifaces [logIfcList $node_id]
+			}
+
+			if { ! [isNodeIfacesCreated $node_id $ifaces] } {
+				if { $ifacesconf_timeout < 0 } {
+					after [expr -$ifacesconf_timeout]
+				}
+				continue
+			}
+
+			incr batchStep
+			incr progressbarCount
+
+			set name [getNodeName $node_id]
+			if { $gui && $execMode != "batch" } {
+				statline "Node $name logical ifaces created"
+				$w.p configure -value $progressbarCount
+				update
+			}
+			displayBatchProgress $batchStep $nodes_count
+
+			set nodes_left [removeFromList $nodes_left $node_id]
+		}
+
+		if { $old_nodes_left != [llength $nodes_left] } {
+			set old_nodes_left [llength $nodes_left]
+			set t_start [clock milliseconds]
+
+			continue
+		}
+
+		if { $ifacesconf_timeout < 0 } {
+			continue
+		}
+
+		set t_last [clock milliseconds]
+		if { [llength $nodes_left] > 0 && [expr {($t_last - $t_start)/1000.0}] > $ifacesconf_timeout } {
+			set err_skip_nodesifaces $nodes_left
+			break
+		}
+	}
+
+	if { $nodes_count > 0 } {
+		displayBatchProgress $batchStep $nodes_count
+		if { ! $gui || $execMode == "batch" } {
+			statline ""
+		}
+	}
+}
+
 proc execute_linksCreate { links links_count w } {
 	global progressbarCount execMode skip_nodes gui
 
@@ -1191,8 +1327,6 @@ proc execute_linksCreate { links links_count w } {
 		if { $node1_id ni $skip_nodes && $node2_id ni $skip_nodes } {
 			try {
 				createLinkBetween $node1_id $node2_id $iface1_id $iface2_id $link_id
-
-				setToRunning "${link_id}_running" true
 			} on error err {
 				return -code error "Error in 'createLinkBetween $node1_id $node2_id $iface1_id $iface2_id $link_id': $err"
 			}
@@ -1218,8 +1352,72 @@ proc execute_linksCreate { links links_count w } {
 	}
 }
 
+proc execute_linksCreate_wait { links links_count w } {
+	global progressbarCount execMode skip_links nodecreate_timeout gui
+
+	set t_start [clock milliseconds]
+
+	set batchStep 0
+	set links_left $links
+	# ignore first run when checking for timeout
+	set old_links_left -1
+	while { [llength $links_left] > 0 } {
+		displayBatchProgress $batchStep $links_count
+		foreach link_id $links_left {
+			if { ! [isLinkStarted $link_id] } {
+				if { $nodecreate_timeout < 0 } {
+					after [expr -$nodecreate_timeout]
+				}
+				continue
+			}
+
+			setToRunning "${link_id}_running" true
+			set mirror_link_id [getLinkMirror $link_id]
+			if { $mirror_link_id != "" } {
+				setToRunning "${mirror_link_id}_running" true
+			}
+
+			incr batchStep
+			incr progressbarCount
+
+			if { $gui && $execMode != "batch" } {
+				statline "Link $link_id started"
+				$w.p configure -value $progressbarCount
+				update
+			}
+			displayBatchProgress $batchStep $links_count
+
+			set links_left [removeFromList $links_left $link_id]
+		}
+
+		if { $old_links_left != [llength $links_left] } {
+			set old_links_left [llength $links_left]
+			set t_start [clock milliseconds]
+
+			continue
+		}
+
+		if { $nodecreate_timeout < 0 } {
+			continue
+		}
+
+		set t_last [clock milliseconds]
+		if { [llength $links_left] > 0 && [expr {($t_last - $t_start)/1000.0}] > $nodecreate_timeout } {
+			lappend skip_links {*}$links_left
+			break
+		}
+	}
+
+	if { $links_count > 0 } {
+		displayBatchProgress $batchStep $links_count
+		if { ! $gui || $execMode == "batch" } {
+			statline ""
+		}
+	}
+}
+
 proc execute_linksConfigure { links links_count w } {
-	global progressbarCount execMode skip_nodes gui
+	global progressbarCount execMode skip_nodes skip_links gui
 
 	set batchStep 0
 	for { set pending_links $links } { $pending_links != "" } {} {
@@ -1232,7 +1430,7 @@ proc execute_linksConfigure { links links_count w } {
 
 		displayBatchProgress $batchStep $links_count
 
-		if { $node1_id ni $skip_nodes && $node2_id ni $skip_nodes } {
+		if { $node1_id ni $skip_nodes && $node2_id ni $skip_nodes && $link_id ni $skip_links } {
 			try {
 				configureLinkBetween $node1_id $node2_id $iface1_id $iface2_id $link_id
 			} on error err {
@@ -1299,7 +1497,7 @@ proc execute_nodesIfacesConfigure { nodes_ifaces nodes_count w } {
 	}
 }
 
-proc waitForConfigureIfaces { nodes_ifaces nodes_count w } {
+proc execute_nodesIfacesConfigure_wait { nodes_ifaces nodes_count w } {
 	global progressbarCount execMode err_skip_nodesifaces ifacesconf_timeout gui
 
 	set t_start [clock milliseconds]
@@ -1457,7 +1655,7 @@ proc generateHostsFile { node_id } {
 	writeDataToNodeFile $node_id /etc/hosts $etc_hosts
 }
 
-proc waitForConfStart { nodes nodes_count w } {
+proc execute_nodesConfigure_wait { nodes nodes_count w } {
 	global progressbarCount execMode err_skip_nodes nodeconf_timeout gui
 
 	set t_start [clock milliseconds]

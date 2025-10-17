@@ -1478,6 +1478,39 @@ proc unconfigNodeIfaces { eid node_id ifaces } {
 	pipesExec "jexec $jail_id sh -c '$cmds'" "hold"
 }
 
+proc isNodeIfacesCreated { node_id ifaces } {
+	global skip_nodes ifacesconf_timeout
+
+	if { $node_id in $skip_nodes || $ifaces == "" } {
+		return true
+	}
+
+	set jail_id "[getFromRunning "eid"].$node_id"
+
+	if { [[getNodeType $node_id].virtlayer] == "NATIVE" } {
+		return true
+	}
+
+	set cmds ""
+	foreach iface_id $ifaces {
+		append cmds "ifconfig [getIfcName $node_id $iface_id] > /dev/null 2>&1 && "
+	}
+
+	append cmds "true"
+
+	try {
+		if { $ifacesconf_timeout >= 0 } {
+			exec timeout [expr $ifacesconf_timeout/5.0] jexec $jail_id sh -c "$cmds"
+		} else {
+			exec jexec $jail_id sh -c "$cmds"
+		}
+	} on error {} {
+		return false
+	}
+
+	return true
+}
+
 proc isNodeIfacesConfigured { node_id } {
 	global skip_nodes ifacesconf_timeout
 
@@ -1496,6 +1529,42 @@ proc isNodeIfacesConfigured { node_id } {
 			exec timeout [expr $ifacesconf_timeout/5.0] jexec $jail_id test -f /out_ifaces.log > /dev/null
 		} else {
 			exec jexec $jail_id test -f /out_ifaces.log > /dev/null
+		}
+	} on error {} {
+		return false
+	}
+
+	return true
+}
+
+proc isLinkStarted { link_id } {
+	global nodecreate_timeout skip_links
+
+	if { $link_id in $skip_links } {
+		return true
+	}
+
+	set mirror_link_id [getLinkMirror $link_id]
+	if { $mirror_link_id != "" && [getFromRunning "${mirror_link_id}_running"] } {
+		return true
+	}
+
+	lassign [getLinkPeers $link_id] node1_id node2_id
+	if {
+		[getLinkDirect $link_id] ||
+		"wlan" in "[getNodeType $node1_id] [getNodeType $node2_id]"
+	} {
+		# TODO
+		return true
+	}
+
+	set eid [getFromRunning "eid"]
+
+	try {
+		if { $nodecreate_timeout >= 0 } {
+			exec timeout [expr $nodecreate_timeout/5.0] jexec $eid ngctl show $link_id:
+		} else {
+			exec jexec $eid ngctl show $link_id:
 		}
 	} on error {} {
 		return false
