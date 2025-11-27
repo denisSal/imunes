@@ -377,7 +377,7 @@ proc setZoom { x y } {
 proc setZoomApply { w } {
 	set newzoom [expr [$w.setzoom.e1 get] / 100.0]
 	if { $newzoom != [getActiveOption "zoom"] } {
-		setModifiedOption "zoom" $newzoom
+		setGlobalOption "zoom" $newzoom
 		redrawAll
 	}
 
@@ -475,7 +475,7 @@ proc selectZoomApply { w } {
 
 	set newzoom [ expr $tempzoom / 100.0]
 	if { $newzoom != [getActiveOption "zoom"] } {
-		setModifiedOption "zoom" $newzoom
+		setGlobalOption "zoom" $newzoom
 
 		redrawAll
 		set changed 1
@@ -500,13 +500,13 @@ proc routerDefaultsApply { wi } {
 	global changed routerDefaultsModel router_ConfigModel
 	global routerRipEnable routerRipngEnable routerOspfEnable routerOspf6Enable routerBgpEnable routerLdpEnable
 
-	setModifiedOption "routerDefaultsModel" $routerDefaultsModel
-	setModifiedOption "routerRipEnable" $routerRipEnable
-	setModifiedOption "routerRipngEnable" $routerRipngEnable
-	setModifiedOption "routerOspfEnable" $routerOspfEnable
-	setModifiedOption "routerOspf6Enable" $routerOspf6Enable
-	setModifiedOption "routerBgpEnable" $routerBgpEnable
-	setModifiedOption "routerLdpEnable" $routerLdpEnable
+	setGlobalOption "routerDefaultsModel" $routerDefaultsModel
+	setGlobalOption "routerRipEnable" $routerRipEnable
+	setGlobalOption "routerRipngEnable" $routerRipngEnable
+	setGlobalOption "routerOspfEnable" $routerOspfEnable
+	setGlobalOption "routerOspf6Enable" $routerOspf6Enable
+	setGlobalOption "routerBgpEnable" $routerBgpEnable
+	setGlobalOption "routerLdpEnable" $routerLdpEnable
 
 	set selected_node_list [selectedNodes]
 	if { $selected_node_list == {} } {
@@ -1372,7 +1372,7 @@ proc refreshHiddenNodes { content_frame } {
 		set hidden_node_types "none"
 	}
 
-	setModifiedOption "hidden_node_types" $hidden_node_types
+	setGlobalOption "hidden_node_types" $hidden_node_types
 	refreshToolBarNodes
 }
 
@@ -1525,38 +1525,38 @@ proc editorPreferences_gui {} {
 
 	#editorPreferencesGUI_refreshGUI \$current_tab_elem \$curtab_options \$curtab_override \"fetched\"
 	#"
-	#ttk::button $buttons.apply -text "Apply" -command \
-	#	"
-	#global current_tab_elem
+	ttk::button $buttons.apply -text "Apply" -command \
+		"
+	global current_tab_elem
 
-	#lassign \[editorPreferencesGUI_contentChanged \$current_tab_elem] - curtab_options curtab_override
-	#editorPreferencesGUI_saveContent \[lindex \[split \[winfo name \$current_tab_elem] \"_\"\] 0\] \\
-	#	\$curtab_options \$curtab_override
-	##refreshRunningOpts
+	lassign \[editorPreferencesGUI_contentChanged \$current_tab_elem] - curtab_options curtab_override
+	editorPreferencesGUI_saveContent \[lindex \[split \[winfo name \$current_tab_elem] \"_\"\] 0\] \\
+		\$curtab_options \$curtab_override
+	#refreshRunningOpts
 
-	#if { \$current_tab_elem == \"$modified_tab_elem\" } {
-	#	editorPreferencesGUI_refreshGUI \$current_tab_elem \$curtab_options \$curtab_override
-	#}
-	#"
-	#ttk::button $buttons.applyClose -text "Apply and Close" -command \
-	#	"
-	#global current_tab_elem
+	if { \$current_tab_elem == \"$modified_tab_elem\" } {
+		editorPreferencesGUI_refreshGUI \$current_tab_elem \$curtab_options \$curtab_override
+	}
+	"
+	ttk::button $buttons.applyClose -text "Apply and Close" -command \
+		"
+	global current_tab_elem
 
-	#lassign \[editorPreferencesGUI_contentChanged \$current_tab_elem] - curtab_options curtab_override
-	#editorPreferencesGUI_saveContent \[lindex \[split \[winfo name \$current_tab_elem] \"_\"\] 0\] \\
-	#	\$curtab_options \$curtab_override
-	##refreshRunningOpts
+	lassign \[editorPreferencesGUI_contentChanged \$current_tab_elem] - curtab_options curtab_override
+	editorPreferencesGUI_saveContent \[lindex \[split \[winfo name \$current_tab_elem] \"_\"\] 0\] \\
+		\$curtab_options \$curtab_override
+	#refreshRunningOpts
 
-	#destroy $wi
-	#"
+	destroy $wi
+	"
 
 	ttk::button $buttons.cancel \
 		-text "Cancel" \
 		-command "destroy $wi"
 
 	#grid $buttons.fetch -row 0 -column 1 -sticky swe -padx 2 -columnspan 3
-	#grid $buttons.apply -row 1 -column 1 -sticky swe -padx 2
-	#grid $buttons.applyClose -row 1 -column 2 -sticky swe -padx 2
+	grid $buttons.apply -row 1 -column 1 -sticky swe -padx 2
+	grid $buttons.applyClose -row 1 -column 2 -sticky swe -padx 2
 	grid $buttons.cancel -row 1 -column 3 -sticky swe -padx 2
 
 	pack $notebook -fill both -expand 1
@@ -1748,6 +1748,7 @@ proc editorPreferencesGUI_refreshGUI { option_tab_elem options custom_override {
 			continue
 		}
 
+		set custom_enabled 0
 		switch -exact $options {
 			"modified" {
 				set tmp [dictGet $modified_options $option_name]
@@ -1761,8 +1762,9 @@ proc editorPreferencesGUI_refreshGUI { option_tab_elem options custom_override {
 				set tmp [dictGet $custom_options $option_name]
 				if { $tmp != "" } {
 					set option_value $tmp
+					set custom_enabled 1
 				} else {
-					set option_value $default_value
+					set option_value $option_default
 				}
 			}
 			"topology" {
@@ -1945,13 +1947,13 @@ proc editorPreferencesGUI_refreshGUI { option_tab_elem options custom_override {
 			}
 		} else {
 			ttk::checkbutton $content.w${option_name}_from_enabled -text ""
-			$content.w${option_name}_from_enabled state [dict get $checkbutton_dict [expr {$option_value != ""}]]
+			$content.w${option_name}_from_enabled state [dict get $checkbutton_dict $custom_enabled]
 		}
 
 		# CUSTOM OVERRIDE
 		ttk::checkbutton $content.w${option_name}_custom_override -text ""
 		$content.w${option_name}_custom_override state \
-			[dict get $checkbutton_dict [expr {$option_name in $custom_override}]]
+			[dict get $checkbutton_dict [expr {$option_name in [dictGet $custom_options "custom_override"]}]]
 
 		if { $option_source ni "custom" } {
 			$content.w${option_name}_custom_override state disabled
@@ -1979,11 +1981,12 @@ proc editorPreferencesGUI_saveContent { option_source curtab_options curtab_over
 		"modified" {
 		}
 		"custom" {
-			global tmp_custom_options custom_override
+			global current_tab_elem default_options
 
-			set custom_override $curtab_override
-			set tmp_custom_options [dictSet $tmp_custom_options "custom_override" $custom_override]
-			set json_cfg [createJson "object" $tmp_custom_options]
+			lassign [editorPreferencesGUI_fetchTabOptions $current_tab_elem] curtab_options curtab_override
+			set curtab_options [dictSet $curtab_options "custom_override" $curtab_override]
+
+			set json_cfg [createJson "object" $curtab_options]
 			if { ! [file exists $config_dir] } {
 				file mkdir $config_dir
 			}

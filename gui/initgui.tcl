@@ -431,11 +431,11 @@ menu .menubar.tools -tearoff 0
 	-command { align2grid }
 .menubar.tools add separator
 .menubar.tools add checkbutton -label "IPv4 auto-assign addresses/routes" \
-	-variable IPv4autoAssign -command { toggleModifiedOption "IPv4autoAssign" }
+	-variable IPv4autoAssign -command { setGlobalOption "IPv4autoAssign" - "toggle" }
 .menubar.tools add checkbutton -label "IPv6 auto-assign addresses/routes" \
-	-variable IPv6autoAssign -command { toggleModifiedOption "IPv6autoAssign" }
+	-variable IPv6autoAssign -command { setGlobalOption "IPv6autoAssign" - "toggle" }
 .menubar.tools add checkbutton -label "Auto-generate /etc/hosts file" \
-	-variable auto_etc_hosts -command { toggleModifiedOption "auto_etc_hosts" }
+	-variable auto_etc_hosts -command { setGlobalOption "auto_etc_hosts" - "toggle" }
 .menubar.tools add separator
 .menubar.tools add command -label "Randomize MAC bytes" -underline 10 \
 	-command randomizeMACbytes
@@ -639,16 +639,16 @@ $m add radiobutton -label "Normal" -variable icon_size \
 
 .menubar.view add checkbutton -label "Show Interface Names" \
 	-underline 5 -variable show_interface_names \
-	-command { toggleModifiedOption "show_interface_names" ; redrawAllLinks }
+	-command { setGlobalOption "show_interface_names" - "toggle" ; redrawAllLinks }
 .menubar.view add checkbutton -label "Show IPv4 Addresses " \
 	-underline 8 -variable show_interface_ipv4 \
-	-command { toggleModifiedOption "show_interface_ipv4" ; redrawAllLinks }
+	-command { setGlobalOption "show_interface_ipv4" - "toggle" ; redrawAllLinks }
 .menubar.view add checkbutton -label "Show IPv6 Addresses " \
 	-underline 8 -variable show_interface_ipv6 \
-	-command { toggleModifiedOption "show_interface_ipv6" ; redrawAllLinks }
+	-command { setGlobalOption "show_interface_ipv6" - "toggle" ; redrawAllLinks }
 
 set tmp_command {
-	toggleModifiedOption "show_node_labels"
+	setGlobalOption "show_node_labels" - "toggle"
 	foreach object [.panwin.f1.c find withtag nodelabel] {
 		if { [getActiveOption "show_node_labels"] } {
 			.panwin.f1.c itemconfigure $object -state normal
@@ -661,7 +661,7 @@ set tmp_command {
 	-underline 5 -variable show_node_labels -command $tmp_command
 
 set tmp_command {
-	toggleModifiedOption "show_link_labels"
+	setGlobalOption "show_link_labels" - "toggle"
 	foreach object [.panwin.f1.c find withtag linklabel] {
 		if { [getActiveOption "show_link_labels"] } {
 			.panwin.f1.c itemconfigure $object -state normal
@@ -677,7 +677,7 @@ set tmp_command {
 	set var_list "show_interface_names show_interface_ipv4 show_interface_ipv6 \
 		show_node_labels show_link_labels"
 	foreach var $var_list {
-		setModifiedOption $var 1
+		setGlobalOption $var 1
 	}
 
 	applyOptionsToGUI
@@ -695,7 +695,7 @@ set tmp_command {
 	set var_list "show_interface_names show_interface_ipv4 show_interface_ipv6 \
 		show_node_labels show_link_labels"
 	foreach var $var_list {
-		setModifiedOption $var 0
+		setGlobalOption $var 0
 	}
 
 	applyOptionsToGUI
@@ -798,19 +798,19 @@ set tmp_command {
 
 .menubar.view add checkbutton -label "Show Unsupported Nodes" \
 	-variable show_unsupported_nodes -underline 5 \
-	-command { toggleModifiedOption "show_unsupported_nodes" ; refreshToolBarNodes }
+	-command { setGlobalOption "show_unsupported_nodes" - "toggle" ; refreshToolBarNodes }
 
 .menubar.view add separator
 
 .menubar.view add checkbutton -label "Show Background Image" \
 	-underline 5 -variable show_background_image \
-	-command { toggleModifiedOption "show_background_image" ; redrawAll }
+	-command { setGlobalOption "show_background_image" - "toggle" ; redrawAll }
 .menubar.view add checkbutton -label "Show Annotations" \
 	-underline 8 -variable show_annotations \
-	-command { toggleModifiedOption "show_annotations" ; redrawAll }
+	-command { setGlobalOption "show_annotations" - "toggle" ; redrawAll }
 .menubar.view add checkbutton -label "Show Grid" \
 	-underline 5 -variable show_grid \
-	-command { toggleModifiedOption "show_grid" ; redrawAll }
+	-command { setGlobalOption "show_grid" - "toggle" ; redrawAll }
 
 
 .menubar.view add separator

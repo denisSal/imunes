@@ -225,14 +225,12 @@ if { $argv != "" } {
 	upvar 0 ::cf::[set ::curcfg]::dict_run_gui dict_run_gui
 	upvar 0 ::cf::[set ::curcfg]::execute_vars execute_vars
 	upvar 0 ::cf::[set ::curcfg]::dict_cfg dict_cfg
-	upvar 0 ::cf::[set ::curcfg]::modified_options modified_options
 	set dict_cfg [dict create]
 	setOption "version" $CFG_VERSION
 
 	set dict_run [dict create]
 	set dict_run_gui [dict create]
 	set execute_vars [dict create]
-	set modified_options [dict create]
 
 	setToRunning "eid" ""
 	setToRunning "oper_mode" "edit"

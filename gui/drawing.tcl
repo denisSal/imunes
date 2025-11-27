@@ -1288,7 +1288,7 @@ proc updateIconSize { { new_icon_size "" } } {
 	if { $new_icon_size == "" } {
 		set new_icon_size [getActiveOption "icon_size"]
 	} else {
-		setModifiedOption "icon_size" $new_icon_size
+		setGlobalOption "icon_size" $new_icon_size
 	}
 
 	foreach b $all_modules_list {
@@ -1319,7 +1319,7 @@ proc selectZoomPopupMenu { x y } {
 
 	foreach z $zoom_stops {
 		set tmp_command {
-			setModifiedOption "zoom" $sel_zoom
+			setGlobalOption "zoom" $sel_zoom
 
 			redrawAll
 			set changed 1
@@ -1717,7 +1717,7 @@ proc zoom { dir } {
 	switch -exact -- $dir {
 		"down" {
 			if { $zoom > $maxzoom } {
-				setModifiedOption "zoom" $maxzoom
+				setGlobalOption "zoom" $maxzoom
 			} elseif { $zoom < $minzoom } {
 				; # leave it unchanged
 			} else {
@@ -1729,13 +1729,13 @@ proc zoom { dir } {
 						set newzoom $z
 					}
 				}
-				setModifiedOption "zoom" $newzoom
+				setGlobalOption "zoom" $newzoom
 			}
 			redrawAll
 		}
 		"up" {
 			if { $zoom < $minzoom } {
-				setModifiedOption "zoom" $minzoom
+				setGlobalOption "zoom" $minzoom
 			} elseif { $zoom > $maxzoom } {
 				; # leave it unchanged
 			} else {
@@ -1745,13 +1745,13 @@ proc zoom { dir } {
 						break
 					}
 				}
-				setModifiedOption "zoom" $newzoom
+				setGlobalOption "zoom" $newzoom
 			}
 			redrawAll
 		}
 		default {
 			if { $i < [expr [llength $zoom_stops] - 1] } {
-				setModifiedOption "zoom" [lindex $zoom_stops [expr $i + 1]]
+				setGlobalOption "zoom" [lindex $zoom_stops [expr $i + 1]]
 				redrawAll
 			}
 		}

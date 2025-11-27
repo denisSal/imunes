@@ -1193,15 +1193,15 @@ proc button3node { c x y } {
 				switch -exact -- $ip_version {
 					"ipv4" {
 						set tmp [getActiveOption "IPv4autoAssign"]
-						setModifiedOption "IPv4autoAssign" 1
+						setGlobalOption "IPv4autoAssign" 1
 						changeAddressRange
-						setModifiedOption "IPv4autoAssign" $tmp
+						setGlobalOption "IPv4autoAssign" $tmp
 					}
 					"ipv6" {
 						set tmp [getActiveOption "IPv6autoAssign"]
-						setModifiedOption "IPv6autoAssign" 1
+						setGlobalOption "IPv6autoAssign" 1
 						changeAddressRange6
-						setModifiedOption "IPv6autoAssign" $tmp
+						setGlobalOption "IPv6autoAssign" $tmp
 					}
 				}
 
@@ -2232,7 +2232,7 @@ proc button3background { c x y } {
 	# Show canvas background
 	#
 	set toggle_bkg_command {
-		toggleModifiedOption "show_background_image"
+		setGlobalOption "show_background_image" - "toggle"
 
 		redrawAll
 		set changed 1
@@ -2631,9 +2631,9 @@ proc matchSubnet4 { node_id iface_id } {
 	}
 
 	set tmp [getActiveOption "IPv4autoAssign"]
-	setModifiedOption "IPv4autoAssign" 1
+	setGlobalOption "IPv4autoAssign" 1
 	autoIPv4addr $node_id $iface_id
-	setModifiedOption "IPv4autoAssign" $tmp
+	setGlobalOption "IPv4autoAssign" $tmp
 
 	if { [getNodeAutoDefaultRoutesStatus $node_id] == "enabled" } {
 		trigger_nodeReconfig $node_id
@@ -2658,9 +2658,9 @@ proc matchSubnet6 { node_id iface_id } {
 	}
 
 	set tmp [getActiveOption "IPv6autoAssign"]
-	setModifiedOption "IPv6autoAssign" 1
+	setGlobalOption "IPv6autoAssign" 1
 	autoIPv6addr $node_id $iface_id
-	setModifiedOption "IPv6autoAssign" $tmp
+	setGlobalOption "IPv6autoAssign" $tmp
 
 	if { [getNodeAutoDefaultRoutesStatus $node_id] == "enabled" } {
 		trigger_nodeReconfig $node_id
