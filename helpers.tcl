@@ -269,7 +269,7 @@ proc printImunesVersion {} {
 }
 
 proc setPlatformVariables {} {
-	global isOSfreebsd isOSlinux isOSwin remote remote_error
+	global isOSfreebsd isOSlinux isOSwin remote remote_error isOSmac
 
 	try {
 		rexec uname -s
@@ -296,6 +296,9 @@ proc setPlatformVariables {} {
 		}
 		"*win*" {
 			set isOSwin true
+		}
+		"*darwin*" {
+			set isOSmac true
 		}
 	}
 }

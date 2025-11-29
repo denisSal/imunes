@@ -174,6 +174,7 @@ if { $printVersion } {
 set isOSfreebsd false
 set isOSlinux false
 set isOSwin false
+set isOSmac false
 
 # Runtime libriaries
 foreach file_path [glob -directory $ROOTDIR/$LIBDIR/runtime *.tcl] {

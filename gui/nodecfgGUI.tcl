@@ -192,8 +192,14 @@ proc configGUI_addPanedWin { wi } {
 #   * node_id - node id
 #****
 proc configGUI_addTree { wi node_id } {
-	global treecolumns cancel curnode node_cfg
+	global treecolumns cancel curnode node_cfg isOSmac
 	set curnode $node_id
+
+	if { $isOSmac } {
+		set rightClick "<Button-2>"
+	} else {
+		set rightClick "<Button-3>"
+	}
 
 	set iface_list [_ifcList $node_cfg]
 	set logiface_list [_logIfcList $node_cfg]
@@ -381,8 +387,13 @@ proc configGUI_addTree { wi node_id } {
 		]
 		$wi.panwin.f1.tree tag bind $iface_id <Key-Up> $tmp_command
 
-		$wi.panwin.f1.tree tag bind $iface_id <3> \
+		$wi.panwin.f1.tree tag bind $iface_id $rightClick \
 			"showPhysIfcMenu $iface_id"
+
+		if { $isOSmac } {
+			$wi.panwin.f1.tree tag bind $iface_id <Control-Button-1> \
+				"showPhysIfcMenu $iface_id"
+		}
 
 		#pathname next item:
 		#Returns the identifier of item's next sibling, or {} if item is the last child of its parent.
@@ -420,8 +431,13 @@ proc configGUI_addTree { wi node_id } {
 				$wi.panwin.f1.tree selection set $iface_id; \
 				configGUI_showIfcInfo $wi.panwin.f2 0 $node_id $iface_id"
 
-			$wi.panwin.f1.tree tag bind $iface_id <3> \
+			$wi.panwin.f1.tree tag bind $iface_id $rightClick \
 				"showLogIfcMenu $iface_id"
+
+			if { $isOSmac } {
+				$wi.panwin.f1.tree tag bind $iface_id <Control-Button-1> \
+					"showLogIfcMenu $iface_id"
+			}
 
 			set tmp_command [list apply {
 				{ wi node_id previous_iface } {
@@ -600,7 +616,13 @@ proc showPhysIfcMenu { iface_id } {
 #   * node_id - node id
 #****
 proc configGUI_refreshIfcsTree { wi node_id } {
-	global treecolumns node_cfg
+	global treecolumns node_cfg isOSmac
+
+	if { $isOSmac } {
+		set rightClick "<Button-2>"
+	} else {
+		set rightClick "<Button-3>"
+	}
 
 	set iface_list [_ifcList $node_cfg]
 	set logiface_list [_logIfcList $node_cfg]
@@ -697,8 +719,13 @@ proc configGUI_refreshIfcsTree { wi node_id } {
 		]
 		$wi tag bind $iface_id <Key-Up> $tmp_command
 
-		$wi tag bind $iface_id <3> \
+		$wi tag bind $iface_id $rightClick \
 			"showPhysIfcMenu $iface_id"
+
+		if { $isOSmac } {
+			$wi tag bind $iface_id <Control-Button-1> \
+				"showPhysIfcMenu $iface_id"
+		}
 
 		set tmp_command [list apply {
 			{ wi node_id next_iface } {
@@ -731,8 +758,13 @@ proc configGUI_refreshIfcsTree { wi node_id } {
 				$wi selection set $iface_id; \
 				configGUI_showIfcInfo $wi_bind.panwin.f2 0 $node_id $iface_id"
 
-			$wi tag bind $iface_id <3> \
+			$wi tag bind $iface_id $rightClick \
 				"showLogIfcMenu $iface_id"
+
+			if { $isOSmac } {
+				$wi tag bind $iface_id <Control-Button-1> \
+					"showLogIfcMenu $iface_id"
+			}
 
 			set tmp_command [list apply {
 				{ wi node_id previous_iface } {
