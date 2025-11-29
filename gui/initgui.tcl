@@ -145,6 +145,13 @@ set iconsrcfile [lindex [glob -directory $ROOTDIR/$LIBDIR/icons/normal/ *.gif] 0
 #interface selected in the topology tree
 set selectedIfc ""
 
+global isOSmac
+if { $isOSmac } {
+    set rightClick "<Button-2>"
+} else {
+    set rightClick "<Button-3>"
+}
+
 # Packets required for GUI
 #package require Img
 
@@ -539,7 +546,7 @@ set routing_defaults_command {
 
 	set protocol_list {}
 	foreach item $protocols {
-		lassign $item protocol protocol_label protocol_variable 
+		lassign $item protocol protocol_label protocol_variable
 		lappend protocol_list $protocol
 		ttk::checkbutton $w.protocols.$protocol \
 			-text $protocol_label \
@@ -1228,7 +1235,7 @@ pack propagate $mf 0
 ttk::label .bottom.textbox -relief sunken -anchor w -width 999
 ttk::label .bottom.zoom -relief sunken -anchor w -width 10
 bind .bottom.zoom <Double-1> "selectZoom %X %Y"
-bind .bottom.zoom <3> "selectZoomPopupMenu %X %Y"
+bind .bottom.zoom $rightClick "selectZoomPopupMenu %X %Y"
 ttk::label .bottom.cpu_load -relief sunken -anchor e -width 9
 ttk::label .bottom.mbuf -relief sunken -anchor w -width 15
 ttk::label .bottom.oper_mode -relief sunken -anchor w -width 10
@@ -1270,27 +1277,42 @@ $c bind freeform <Double-1> "annotationConfigGUI $c"
 
 $c bind text <KeyPress> "textInsert $c %A"
 $c bind text <Return> "textInsert $c \\n"
-$c bind node <3> "button3node $c %x %y"
-$c bind nodelabel <3> "button3node $c %x %y"
-$c bind node_running <3> "button3node $c %x %y"
-$c bind link <3> "button3link $c %x %y"
-$c bind linklabel <3> "button3link $c %x %y"
+$c bind node $rightClick "button3node $c %x %y"
+$c bind nodelabel $rightClick "button3node $c %x %y"
+$c bind node_running $rightClick "button3node $c %x %y"
+$c bind link $rightClick "button3link $c %x %y"
+$c bind linklabel $rightClick "button3link $c %x %y"
 
 $c bind route <Any-Enter> "anyLeave $c"
 $c bind route <Any-Leave> "anyLeave $c"
 $c bind showCfgPopup <Any-Leave> "anyLeave $c"
 $c bind text <Any-Leave> "anyLeave $c"
 
-$c bind oval <3> "button3annotation oval $c %x %y"
-$c bind rectangle <3> "button3annotation rectangle $c %x %y"
-$c bind text <3> "button3annotation text $c %x %y"
-$c bind freeform <3> "button3annotation freeform $c %x %y"
+$c bind oval $rightClick "button3annotation oval $c %x %y"
+$c bind rectangle $rightClick "button3annotation rectangle $c %x %y"
+$c bind text $rightClick "button3annotation text $c %x %y"
+$c bind freeform $rightClick "button3annotation freeform $c %x %y"
 
 $c bind selectmark <Any-Enter> "selectmarkEnter $c %x %y"
 $c bind selectmark <Any-Leave> "selectmarkLeave $c %x %y"
 
-$c bind background <3> "button3background $c %x %y"
-$c bind grid <3> "button3background $c %x %y"
+$c bind background $rightClick "button3background $c %x %y"
+$c bind grid $rightClick "button3background $c %x %y"
+
+if { $isOSmac } {
+	bind .bottom.zoom <Control-Button-1> "selectZoomPopupMenu %X %Y"
+	$c bind node <Control-Button-1> "button3node $c %x %y"
+	$c bind nodelabel <Control-Button-1> "button3node $c %x %y"
+	$c bind node_running <Control-Button-1> "button3node $c %x %y"
+	$c bind link <Control-Button-1> "button3link $c %x %y"
+	$c bind linklabel <Control-Button-1> "button3link $c %x %y"
+	$c bind oval <Control-Button-1> "button3annotation oval $c %x %y"
+	$c bind rectangle <Control-Button-1> "button3annotation rectangle $c %x %y"
+	$c bind text <Control-Button-1> "button3annotation text $c %x %y"
+	$c bind freeform <Control-Button-1> "button3annotation freeform $c %x %y"
+	$c bind background <Control-Button-1> "button3background $c %x %y"
+	$c bind grid <Control-Button-1> "button3background $c %x %y"
+}
 
 bind $c <1> "button1 $c %x %y none"
 bind $c <Control-Button-1> "button1 $c %x %y ctrl"
