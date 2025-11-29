@@ -217,7 +217,7 @@ proc printImunesVersion {} {
 }
 
 proc setPlatformVariables {} {
-	global isOSfreebsd isOSlinux isOSwin
+	global isOSfreebsd isOSlinux isOSwin isOSmac
 
 	set os [platform::identify]
 	switch -glob -nocase $os {
@@ -229,6 +229,9 @@ proc setPlatformVariables {} {
 		}
 		"*win*" {
 			set isOSwin true
+		}
+		"*darwin*" {
+			set isOSmac true
 		}
 	}
 }

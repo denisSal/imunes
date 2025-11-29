@@ -138,6 +138,7 @@ if { $printVersion } {
 set isOSfreebsd false
 set isOSlinux false
 set isOSwin false
+set isOSmac false
 
 setPlatformVariables
 
