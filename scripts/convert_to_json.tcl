@@ -104,6 +104,23 @@ foreach file [glob -directory $ROOTDIR/$LIBDIR/runtime *.tcl] {
 	}
 }
 
+# bases for naming new nodes
+array set nodeNamingBase {
+	pc pc
+	vm vm
+	ext ext
+	filter filter
+	router router
+	host host
+	hub hub
+	lanswitch switch
+	nat64 nat64-
+	rj45 rj45-
+	packgen packgen
+	stpswitch stpswitch
+	wlan wlan
+}
+
 set option_defaults {
 	auto_etc_hosts		0
 	IPv4autoAssign		1
@@ -149,6 +166,8 @@ set isOSwin false
 # Set default node type list
 set default_node_types "lanswitch hub rj45 stpswitch filter packgen \
 	router host pc nat64 ext"
+set node_types "lanswitch hub rj45 stpswitch filter packgen \
+	router host pc vm nat64 ext"
 # Set default supported router models
 set supp_router_models "frr quagga static"
 
