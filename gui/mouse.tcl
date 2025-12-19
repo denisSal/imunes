@@ -110,6 +110,7 @@ proc removeLinkGUI { link_id atomic { keep_ifaces 0 } } {
 			$new_link_id != "" ||
 			$keep_ifaces ||
 			"rj45" in "$node1_type $node2_type" ||
+			"vm" in "$node1_type $node2_type" ||
 			$lifaces_refresh
 		} {
 			redrawAll
