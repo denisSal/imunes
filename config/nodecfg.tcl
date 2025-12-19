@@ -850,7 +850,7 @@ proc listLANNodes { l2node_id l2peers } {
 
 		set peer_type [getNodeType $peer_id]
 		if {
-			$peer_type != "rj45" &&
+			$peer_type ni "rj45 vm" &&
 			[invokeTypeProc $peer_type "netlayer"] == "LINK"
 		} {
 			set l2peers [listLANNodes $peer_id $l2peers]
@@ -1152,6 +1152,10 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 
 			"custom_image" {
 				setNodeCustomImage $node_id $new_value
+			}
+
+			"vm_parameters" {
+				setNodeVMConfig $node_id $new_value
 			}
 
 			"docker_attach" {

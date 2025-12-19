@@ -1154,6 +1154,11 @@ proc isNodeStarted { node_id } {
 	global nodecreate_timeout
 
 	set node_type [getNodeType $node_id]
+	if { $node_type in "vm" } {
+		# XXX: unsupported
+		return false
+	}
+
 	if { [invokeTypeProc $node_type "virtlayer"] != "VIRTUALIZED" } {
 		if { $node_type in "rj45 ext" } {
 			return true

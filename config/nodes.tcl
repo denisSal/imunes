@@ -609,6 +609,35 @@ proc setNodeCustomImage { node_id img } {
 	trigger_nodeRecreate $node_id
 }
 
+#****f* nodecfg.tcl/getNodeVMConfig
+# NAME
+#   getNodeVMConfig -- get node VM configuration.
+# SYNOPSIS
+#   set value [getNodeVMConfig $node_id]
+# FUNCTION
+#   Returns node VM setting.
+# INPUTS
+#   * node_id -- node id
+#****
+proc getNodeVMConfig { node_id } {
+	return [cfgGet "nodes" $node_id "vm_parameters"]
+}
+
+#****f* nodecfg.tcl/setNodeVMConfig
+# NAME
+#   setNodeVMConfig -- set node VM configuration.
+# SYNOPSIS
+#   setNodeVMConfig $node_id $img
+# FUNCTION
+#   Sets node VM parameters.
+# INPUTS
+#   * node_id -- node id
+#   * vm_parameters -- VM parameters
+#****
+proc setNodeVMConfig { node_id vm_parameters } {
+	cfgSet "nodes" $node_id "vm_parameters" $vm_parameters
+}
+
 #****f* nodes.tcl/getNodeDockerAttach
 # NAME
 #   getNodeDockerAttach -- get node docker ext iface attach.

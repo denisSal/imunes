@@ -199,6 +199,7 @@ if { ! [info exists eid_base] } {
 # bases for naming new nodes
 array set nodeNamingBase {
 	pc pc
+	vm vm
 	ext ext
 	filter filter
 	router router
@@ -306,7 +307,7 @@ set runnable_node_types {}
 
 # Set default node type list
 set node_types "lanswitch hub rj45 stpswitch filter packgen \
-	router host pc nat64 ext"
+	router host pc vm nat64 ext"
 # Set default supported router models
 set supp_router_models "frr quagga static"
 

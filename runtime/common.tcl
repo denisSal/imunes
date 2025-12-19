@@ -57,6 +57,16 @@ proc getVrootDir {} {
 	}
 }
 
+proc getExperimentRuntimeDir { { eid "" } } {
+	global runtimeDir
+
+	if { $eid == "" } {
+		set eid [getFromRunning "eid"]
+	}
+
+	return $runtimeDir/$eid
+}
+
 proc prepareInstantiateVars { { force "" } } {
 	if { ! [getFromRunning "cfg_deployed"] && $force == "" } {
 		return
@@ -891,6 +901,33 @@ proc setOperMode { new_oper_mode } {
 		if { [checkExternalInterfaces] } {
 			return
 		}
+
+		foreach node_id [getFromRunning "node_list"] {
+			if { [getNodeType $node_id] != "vm" } {
+				continue
+			}
+
+			set vm_cfg [getNodeVMConfig $node_id]
+			if { [dictGet $vm_cfg "create_hdd"] != 1 } {
+				continue
+			}
+
+			set hdd_path [dictGet $vm_cfg "hdd_path"]
+			catch { rexec ls $hdd_path } status
+			if { ! [catch { rexec ls $hdd_path } status] } {
+				set err "ERROR: Cannot create $hdd_path for node $node_id ([getNodeName $node_id]) - file already exists!"
+				if { $gui } {
+					after idle { .dialog1.msg configure -wraplength 4i }
+					tk_dialog .dialog1 "IMUNES error" \
+						"$err" \
+						info 0 Dismiss
+				} else {
+					puts stderr $err
+				}
+
+				return
+			}
+		}
 	}
 
 	#.panwin.f1.left.select configure -state active
@@ -1012,6 +1049,12 @@ proc setOperMode { new_oper_mode } {
 proc spawnShellExec {} {
 	set node_id [lindex [.panwin.f1.c gettags "(node || nodelabel || node_running) && current"] 1]
 	if { $node_id == "" } {
+		return
+	}
+
+	if { [getNodeType $node_id] == "vm" } {
+		exec vncviewer "[getExperimentRuntimeDir]/$node_id-vnc.socket" &
+
 		return
 	}
 

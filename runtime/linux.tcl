@@ -485,7 +485,7 @@ proc getNodeNetns { eid node_id } {
 	global devfs_number
 
 	# Top-level experiment netns
-	if { $node_id == "" || [getNodeType $node_id] == "rj45" } {
+	if { $node_id == "" || [getNodeType $node_id] in "rj45 vm" } {
 		return $eid
 	}
 
@@ -622,7 +622,7 @@ proc isNodeStarted { node_id } {
 	global nodecreate_timeout
 
 	set node_type [getNodeType $node_id]
-	if { [invokeTypeProc $node_type "virtlayer"] != "VIRTUALIZED" } {
+	if { [invokeTypeProc $node_type "virtlayer"] != "VIRTUALIZED" && $node_type != "vm" } {
 		if { $node_type in "rj45 ext" } {
 			return true
 		}
@@ -636,6 +636,28 @@ proc isNodeStarted { node_id } {
 		}
 
 		return true
+	}
+
+	if { $node_type == "vm" } {
+		set cmds {printf "{\"execute\":\"qmp_capabilities\"}\n{\"execute\":\"query-status\"}\n" | socat -t100 - UNIX-CONNECT:}
+		set cmds "\'$cmds[getExperimentRuntimeDir]/$node_id-control.socket\'"
+
+		try {
+			if { $nodecreate_timeout >= 0 } {
+				rexec timeout [expr $nodecreate_timeout/5.0] sh -c $cmds
+			} else {
+				rexec sh -c $cmds
+			}
+		} on ok status {
+			set dict_status [json::json2dict "{[lindex $status end]}"]
+
+			if { [dictGet $dict_status "return" "running"] == "true" } {
+				return true
+			}
+		} on error {} {
+		}
+
+		return false
 	}
 
 	set docker_id "[getFromRunning "eid"].$node_id"
@@ -864,6 +886,29 @@ proc isNodeInitNet { node_id } {
 	global nodecreate_timeout
 
 	set docker_id "[getFromRunning "eid"].$node_id"
+
+	if { [getNodeType $node_id] == "vm" } {
+		return true
+
+		set cmds {printf "{\"execute\":\"qmp_capabilities\"}\n{\"execute\":\"query-pci\"}\n" | socat -t100 - UNIX-CONNECT:}
+		set cmds "\'$cmds[getExperimentRuntimeDir]/$node_id-control.socket\'"
+
+		try {
+			if { $nodecreate_timeout >= 0 } {
+				rexec timeout [expr $nodecreate_timeout/5.0] sh -c $cmds
+			} else {
+				rexec sh -c $cmds
+			}
+		} on ok status {
+			set dict_status [json::json2dict "{[lindex $status end]}"]
+
+			if { [dictGet $dict_status "return" "running"] == "true" } {
+				return true
+			}
+		}
+
+		return false
+	}
 
 	try {
 		if { $nodecreate_timeout >= 0 } {
@@ -1164,8 +1209,12 @@ proc isNodeIfacesCreated { node_id ifaces } {
 	global ifacesconf_timeout
 
 	set node_type [getNodeType $node_id]
-	if { [invokeTypeProc $node_type "virtlayer"] == "NATIVE" && $node_type != "rj45" } {
+	if { [invokeTypeProc $node_type "virtlayer"] == "NATIVE" && $node_type ni "rj45 vm" } {
 		# TODO: other nodes?
+		return $ifaces
+	}
+
+	if { $node_type == "vm" } {
 		return $ifaces
 	}
 
@@ -1179,7 +1228,7 @@ proc isNodeIfacesCreated { node_id ifaces } {
 
 		set iface_name [getIfcName $node_id $iface_id]
 
-		if { $node_type == "rj45" } {
+		if { $node_type in "rj45 vm" } {
 			if { [getIfcName $node_id $iface_id] == "UNASSIGNED" } {
 				# skip UNASSIGNED
 				append cmds "retval=\"\$retval $iface_id\" ;\n"
@@ -1220,6 +1269,10 @@ proc isNodeIfacesConfigured { node_id } {
 	global ifacesconf_timeout
 
 	set docker_id "[getFromRunning "eid"].$node_id"
+
+	if { [getNodeType $node_id] == "vm" } {
+		return true
+	}
 
 	if { [invokeNodeProc $node_id "virtlayer"] == "NATIVE" } {
 		return true
@@ -1275,6 +1328,10 @@ proc isNodeConfigured { node_id } {
 
 	set docker_id "[getFromRunning "eid"].$node_id"
 
+	if { [getNodeType $node_id] == "vm" } {
+		return true
+	}
+
 	if { [invokeNodeProc $node_id "virtlayer"] == "NATIVE" } {
 		return true
 	}
@@ -1295,6 +1352,10 @@ proc isNodeConfigured { node_id } {
 
 proc isNodeError { node_id } {
 	global nodeconf_timeout
+
+	if { [getNodeType $node_id] == "vm" } {
+		return false
+	}
 
 	if { [invokeNodeProc $node_id "virtlayer"] == "NATIVE" } {
 		return false
@@ -1322,6 +1383,10 @@ proc isNodeError { node_id } {
 
 proc isNodeErrorIfaces { node_id } {
 	global ifacesconf_timeout
+
+	if { [getNodeType $node_id] == "vm" } {
+		return false
+	}
 
 	if { [invokeNodeProc $node_id "virtlayer"] == "NATIVE" } {
 		return false
@@ -1357,6 +1422,10 @@ proc isNodeUnconfigured { node_id } {
 		return true
 	}
 
+	if { [getNodeType $node_id] == "vm" } {
+		return true
+	}
+
 	set docker_id "[getFromRunning "eid"].$node_id"
 
 	if { [invokeNodeProc $node_id "virtlayer"] == "NATIVE" } {
@@ -1387,6 +1456,10 @@ proc isNodeIfacesUnconfigured { node_id } {
 		return true
 	}
 
+	if { [getNodeType $node_id] == "vm" } {
+		return true
+	}
+
 	set docker_id "[getFromRunning "eid"].$node_id"
 
 	if { [invokeNodeProc $node_id "virtlayer"] == "NATIVE" } {
@@ -1414,6 +1487,10 @@ proc isNodeStopped { node_id } {
 		$node_id in $skip_nodes ||
 		[getFromRunning "${node_id}_running"] ni "true delete"
 	} {
+		return true
+	}
+
+	if { [getNodeType $node_id] == "vm" } {
 		return true
 	}
 
@@ -1487,7 +1564,12 @@ proc isNodeIfacesDestroyed { node_id ifaces } {
 	set eid [getFromRunning "eid"]
 	set docker_id "$eid.$node_id"
 
-	if { [getNodeType $node_id] == "ext" } {
+	set node_type [getNodeType $node_id]
+	if { $node_type == "vm" } {
+		return true
+	}
+
+	if { $node_type == "ext" } {
 		catch { rexec ip link show $eid-$node_id } status
 		if { [string match -nocase "*does not exist*" $status] } {
 			return true
@@ -1540,7 +1622,30 @@ proc isNodeDestroyed { node_id } {
 		return true
 	}
 
-	if { [invokeNodeProc $node_id "virtlayer"] != "VIRTUALIZED" } {
+	set node_type [getNodeType $node_id]
+	if { $node_type == "vm" } {
+		set cmds {printf "{\"execute\":\"qmp_capabilities\"}\n{\"execute\":\"query-status\"}\n" | socat -t100 - UNIX-CONNECT:}
+		set cmds "\'$cmds[getExperimentRuntimeDir]/$node_id-control.socket\'"
+
+		try {
+			if { $nodecreate_timeout >= 0 } {
+				rexec timeout [expr $nodecreate_timeout/5.0] sh -c $cmds
+			} else {
+				rexec sh -c $cmds
+			}
+		} on ok status {
+			set dict_status [json::json2dict "{[lindex $status end]}"]
+
+			if { [dictGet $dict_status "return" "running"] == "true" } {
+				return false
+			}
+		} on error {} {
+		}
+
+		return true
+	}
+
+	if { [invokeTypeProc $node_type "virtlayer"] != "VIRTUALIZED" } {
 		return true
 	}
 
@@ -1565,7 +1670,12 @@ proc isNodeDestroyedFS { node_id } {
 		return true
 	}
 
-	if { [invokeNodeProc $node_id "virtlayer"] != "VIRTUALIZED" } {
+	set node_type [getNodeType $node_id]
+	if { $node_type == "vm" } {
+		return true
+	}
+
+	if { [invokeTypeProc $node_type "virtlayer"] != "VIRTUALIZED" } {
 		return true
 	}
 
@@ -1793,6 +1903,9 @@ proc captureExtIfc { eid node_id iface_id } {
 
 	set nsstrx ""
 	set iface_name [getIfcName $node_id $iface_id]
+	if { [getNodeType $node_id] == "vm" } {
+		set iface_name "$node_id-$iface_name"
+	}
 	set link_id [getIfcLink $node_id $iface_id]
 
 	# we need to create a VLAN device
@@ -2716,4 +2829,52 @@ proc startRoutingDaemons { node_id } {
 	set cmds "$cmds; frrinit.sh restart"
 
 	pipesExec "docker exec -d [getFromRunning "eid"].$node_id sh -c '$cmds'" "hold"
+}
+
+proc startVM { eid node_id } {
+	global runtimeDir
+
+	set vm_cfg [getNodeVMConfig $node_id]
+	set hdd_path [dictGet $vm_cfg "hdd_path"]
+	set iso_path [dictGet $vm_cfg "iso_path"]
+	set cpu_count [dictGet $vm_cfg "cpu_count"]
+
+	if { [dictGet $vm_cfg "create_hdd"] == 1 } {
+		set size [dictGet $vm_cfg "create_hdd_size"]
+		dputs "qemu-img create -f qcow2 $hdd_path $size"
+		pipesExec "qemu-img create -f qcow2 $hdd_path $size" "hold"
+	}
+
+	set args ""
+	set args "$args -m [dictGet $vm_cfg "memory_size"]"
+	if { $iso_path != "" } {
+		set args "$args -cdrom $iso_path -boot d"
+	}
+	set args "$args -smp $cpu_count"
+	set args "$args -hda $hdd_path"
+	set args "$args -cpu host"
+	set args "$args --enable-kvm"
+	set args "$args -daemonize"
+
+	foreach iface_id [ifcList $node_id] {
+		set iface_name [getIfcName $node_id $iface_id]
+		set mac [getIfcMACaddr $node_id $iface_id]
+		set args "$args -netdev tap,id=$node_id-$iface_name,ifname=$node_id-$iface_name,script=no,downscript=no -device virtio-net,netdev=$node_id-$iface_name,mac=$mac"
+	}
+
+	set exp_runtime_dir [getExperimentRuntimeDir]
+	set args "$args -qmp unix:$exp_runtime_dir/$node_id-control.socket,server,nowait"
+	set args "$args -vnc unix:$exp_runtime_dir/$node_id-vnc.socket"
+
+	dputs "qemu-system-x86_64 $args"
+
+	pipesExec "qemu-system-x86_64 $args" "hold"
+
+	return "success"
+}
+
+proc powerOffVM { eid node_id } {
+	global runtimeDir
+
+	pipesExec "echo '{\"execute\": \"qmp_capabilities\"} {\"execute\": \"system_powerdown\"}' | sudo socat unix-connect:[getExperimentRuntimeDir]/$node_id-control.socket -" "hold"
 }
