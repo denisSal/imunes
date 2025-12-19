@@ -63,7 +63,7 @@ proc randomizeMACbytes {} {
 #****
 proc autoMACaddr { node_id iface_id } {
 	set node_type [getNodeType $node_id]
-	if { $node_type != "ext" && [invokeTypeProc $node_type "virtlayer"] != "VIRTUALIZED" } {
+	if { $node_type ni "ext vm" && [invokeTypeProc $node_type "virtlayer"] != "VIRTUALIZED" } {
 		return ""
 	}
 
