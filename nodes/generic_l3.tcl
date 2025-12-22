@@ -857,6 +857,47 @@ proc genericL3.nodeIfacesConfigure_check { eid node_id ifaces } {
 	return $ifaces_configured
 }
 
+proc genericL3.attachToLink { node_id iface_id link_id direct } {
+	global isOSlinux isOSfreebsd
+
+	if { $isOSlinux } {
+		if { $direct } {
+			# link already created, except in some cases
+
+			return
+		}
+
+		lassign [invokeNodeProc $node_id "getHookData" $node_id $iface_id] public_iface -
+		setNsIfcMaster [getFromRunning "eid"] $public_iface $link_id "up"
+
+		return
+	}
+
+	if { $isOSfreebsd } {
+		# nothing to do, createLinkBetween does everything
+		return
+	}
+}
+
+proc genericL3.detachFromLink { node_id iface_id link_id { direct "" } } {
+	global isOSlinux isOSfreebsd
+
+	if { $isOSlinux } {
+		if { $direct != "" } {
+			# link already destroyed, except in some cases
+
+			return
+		}
+
+		return
+	}
+
+	if { $isOSfreebsd } {
+		# nothing to do, destroyLinkBetween does everything
+		return
+	}
+}
+
 proc genericL3.nodeConfigure { eid node_id } {
 	global isOSlinux isOSfreebsd
 	global nodeconf_timeout
