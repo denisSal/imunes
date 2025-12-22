@@ -813,53 +813,62 @@ proc createLinkBetween { node1_id node2_id iface1_id iface2_id link_id } {
 
 	setToRunning "${link_id}_running" "creating"
 
+	#if {
+	#	[getLinkDirect $link_id] ||
+	#	"wlan" in "[getNodeType $node1_id] [getNodeType $node2_id]"
+	#} {
+	#	# on Linux, there is no mechanism for rj45-rj45 direct links so we create a
+	#	# bridge in the default namespace
+	#	if { "[getNodeType $node1_id] [getNodeType $node2_id]" == "rj45 rj45" } {
+	#		global devfs_number
+
+	#		# create link bridge in the default netns
+	#		createNsLinkBridge "imunes_$devfs_number" $eid-$link_id
+
+	#		set physical_ifc1 [getIfcName $node1_id $iface1_id]
+	#		set vlan [getIfcVlanTag $node1_id $iface1_id]
+	#		if { $vlan != "" && [getIfcVlanDev $node1_id $iface1_id] != "" } {
+	#			set physical_ifc1 $physical_ifc1.$vlan
+	#		}
+
+	#		set physical_ifc2 [getIfcName $node2_id $iface2_id]
+	#		set vlan [getIfcVlanTag $node2_id $iface2_id]
+	#		if { $vlan != "" && [getIfcVlanDev $node2_id $iface2_id] != "" } {
+	#			set physical_ifc2 $physical_ifc2.$vlan
+	#		}
+
+	#		setNsIfcMaster "imunes_$devfs_number" $physical_ifc1 $eid-$link_id "up"
+	#		setNsIfcMaster "imunes_$devfs_number" $physical_ifc2 $eid-$link_id "up"
+	#	}
+
+	#	return
+	#}
+
+	set direct [getLinkDirect $link_id]
 	if {
-		[getLinkDirect $link_id] ||
-		"wlan" in "[getNodeType $node1_id] [getNodeType $node2_id]"
+		! $direct &&
+		"wlan" ni "[getNodeType $node1_id] [getNodeType $node2_id]"
 	} {
-		# on Linux, there is no mechanism for rj45-rj45 direct links so we create a
-		# bridge in the default namespace
-		if { "[getNodeType $node1_id] [getNodeType $node2_id]" == "rj45 rj45" } {
-			global devfs_number
-
-			# create link bridge in the default netns
-			createNsLinkBridge "imunes_$devfs_number" $eid-$link_id
-
-			set physical_ifc1 [getIfcName $node1_id $iface1_id]
-			set vlan [getIfcVlanTag $node1_id $iface1_id]
-			if { $vlan != "" && [getIfcVlanDev $node1_id $iface1_id] != "" } {
-				set physical_ifc1 $physical_ifc1.$vlan
-			}
-
-			set physical_ifc2 [getIfcName $node2_id $iface2_id]
-			set vlan [getIfcVlanTag $node2_id $iface2_id]
-			if { $vlan != "" && [getIfcVlanDev $node2_id $iface2_id] != "" } {
-				set physical_ifc2 $physical_ifc2.$vlan
-			}
-
-			setNsIfcMaster "imunes_$devfs_number" $physical_ifc1 $eid-$link_id "up"
-			setNsIfcMaster "imunes_$devfs_number" $physical_ifc2 $eid-$link_id "up"
-		}
-
-		return
+		# create link bridge in experiment netns
+		createNsLinkBridge $eid $link_id
 	}
-
-	# create link bridge in experiment netns
-	createNsLinkBridge $eid $link_id
 
 	# add nodes iface hooks to link bridge and bring them up
 	foreach node_id "$node1_id $node2_id" iface_id "$iface1_id $iface2_id" {
-		#if { [getNodeType $node_id] == "rj45" } {
-		#	set public_iface [getIfcName $node_id $iface_id]
-		#	if { [getIfcVlanDev $node_id $iface_id] != "" } {
-		#		set vlan [getIfcVlanTag $node_id $iface_id]
-		#		set public_iface $public_iface.$vlan
-		#	}
-		#} else {
-		#	lassign [invokeNodeProc $node_id "getHookData" $node_id $iface_id] public_iface -
-		#}
+		invokeNodeProc $node_id "attachToLink" $node_id $iface_id $link_id $direct
 
-		lassign [invokeNodeProc $node_id "getHookData" $node_id $iface_id] public_iface -
+		continue
+
+		if { [getNodeType $node_id] == "rj45" } {
+			set public_iface [getIfcName $node_id $iface_id]
+			if { [getIfcVlanDev $node_id $iface_id] != "" } {
+				set vlan [getIfcVlanTag $node_id $iface_id]
+				set public_iface $public_iface.$vlan
+			}
+		} else {
+			lassign [invokeNodeProc $node_id "getHookData" $node_id $iface_id] public_iface -
+		}
+
 		setNsIfcMaster $eid $public_iface $link_id "up"
 	}
 }
@@ -1399,20 +1408,23 @@ proc terminate_removeExperimentFiles { eid } {
 proc destroyLinkBetween { eid node1_id node2_id iface1_id iface2_id link_id } {
 	setToRunning "${link_id}_running" "stopping"
 
+	set direct [getLinkDirect $link_id]
 	if {
-		! [getLinkDirect $link_id] &&
+		! $direct &&
 		"wlan" ni "[getNodeType $node1_id] [getNodeType $node2_id]"
 	} {
 		pipesExec "ip -n $eid link del $link_id" "hold"
-
-		return
 	}
 
-	if { "[getNodeType $node1_id] [getNodeType $node2_id]" == "rj45 rj45" } {
-		global devfs_number
-
-		pipesExec "ip -n imunes_$devfs_number link del $eid-$link_id" "hold"
+	foreach node_id "$node1_id $node2_id" iface_id "$iface1_id $iface2_id" {
+		invokeNodeProc $node_id "detachFromLink" $node_id $iface_id $link_id $direct
 	}
+
+	#if { "[getNodeType $node1_id] [getNodeType $node2_id]" == "rj45 rj45" } {
+	#	global devfs_number
+
+	#	pipesExec "ip -n imunes_$devfs_number link del $eid-$link_id" "hold"
+	#}
 }
 
 #****f* linux.tcl/nodeIfacesDestroy

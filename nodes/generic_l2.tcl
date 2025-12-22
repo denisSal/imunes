@@ -439,6 +439,45 @@ proc genericL2.nodeIfacesConfigure_check { eid node_id ifaces } {
 	return true
 }
 
+proc genericL2.attachToLink { node_id iface_id link_id direct } {
+	global isOSlinux isOSfreebsd
+
+	if { $isOSlinux } {
+		if { $direct } {
+			return
+		}
+
+		lassign [invokeNodeProc $node_id "getHookData" $node_id $iface_id] public_iface -
+		setNsIfcMaster [getFromRunning "eid"] $public_iface $link_id "up"
+
+		return
+	}
+
+	if { $isOSfreebsd } {
+		# nothing to do, createLinkBetween does everything
+		return
+	}
+}
+
+proc genericL2.detachFromLink { node_id iface_id link_id { direct "" } } {
+	global isOSlinux isOSfreebsd
+
+	if { $isOSlinux } {
+		if { $direct != "" } {
+			# link already destroyed, except in some cases
+
+			return
+		}
+
+		return
+	}
+
+	if { $isOSfreebsd } {
+		# nothing to do, destroyLinkBetween does everything
+		return
+	}
+}
+
 proc genericL2.nodeConfigure { eid node_id } {
 }
 
