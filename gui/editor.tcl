@@ -1305,3 +1305,17 @@ proc _invokeNodeProc { node_cfg proc_name args } {
 
 	return $retval
 }
+
+proc nodeTypeToolbarLocation { node_type } {
+	if { [info procs $node_type.toolbarLocation] != "" } {
+		set retval [$node_type.toolbarLocation]
+	} else {
+		if { [$node_type.netlayer] == "LINK" } {
+			set retval [genericL2.toolbarLocation]
+		} elseif { [$node_type.netlayer] == "NETWORK" } {
+			set retval [genericL3.toolbarLocation]
+		}
+	}
+
+	return $retval
+}

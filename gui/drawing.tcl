@@ -10,12 +10,8 @@ proc refreshToolBarNodes {} {
 	foreach node_type $all_modules_list {
 		set image [image create photo -file [$node_type.icon toolbar]]
 
-		set tool ""
-		if { [$node_type.netlayer] == "LINK" } {
-			set tool "link"
-		} elseif { [$node_type.netlayer] == "NETWORK" } {
-			set tool "net"
-		}
+		set tool [nodeTypeToolbarLocation $node_type]
+		set tool [lindex [split $tool "_"] 0]
 
 		set background_color ""
 		if { $node_type ni $runnable_node_types } {

@@ -972,11 +972,7 @@ foreach b "select link" {
 }
 
 foreach node_type $all_modules_list {
-	if { [$node_type.netlayer] == "LINK" } {
-		addTool "link_layer" $node_type
-	} elseif { [$node_type.netlayer] == "NETWORK" } {
-		addTool "net_layer" $node_type
-	}
+	addTool [nodeTypeToolbarLocation $node_type] $node_type
 }
 
 refreshToolBarNodes
