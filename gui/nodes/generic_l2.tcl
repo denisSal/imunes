@@ -26,79 +26,41 @@
 # and Technology through the research contract #IP-2003-143.
 #
 
-# $Id: hub.tcl 129 2015-02-13 11:14:44Z valter $
-
-
-#****h* imunes/hub.tcl
-# NAME
-#  hub.tcl -- defines hub specific procedures
-# FUNCTION
-#  This module is used to define all the hub specific procedures.
-# NOTES
-#  Procedures in this module start with the keyword hub and
-#  end with function specific part that is the same for all the
-#  node types that work on the same layer.
-#****
-
-#****f* hub.tcl/hub.toolbarIconDescr
-# NAME
-#   hub.toolbarIconDescr -- toolbar icon description
-# SYNOPSIS
-#   hub.toolbarIconDescr
-# FUNCTION
-#   Returns this module's toolbar icon description.
-# RESULT
-#   * descr -- string describing the toolbar icon
-#****
 proc genericL2.toolbarIconDescr {} {
-	return "Add new Hub"
+	return "Add new L2 node"
+}
+
+proc genericL2.toolbarLocation {} {
+	return "link_layer"
 }
 
 proc genericL2._confNewIfc { node_cfg iface_id } {
 	return $node_cfg
 }
 
-#****f* hub.tcl/hub.icon
-# NAME
-#   hub.icon -- icon
-# SYNOPSIS
-#   hub.icon $size
-# FUNCTION
-#   Returns path to node icon, depending on the specified size.
-# INPUTS
-#   * size -- "normal", "small" or "toolbar"
-# RESULT
-#   * path -- path to icon
-#****
 proc genericL2.icon { size } {
 	global ROOTDIR LIBDIR
 
 	switch $size {
 		normal {
-			return $ROOTDIR/$LIBDIR/icons/normal/hub.gif
+			return $ROOTDIR/$LIBDIR/icons/normal/gl2.gif
 		}
 		small {
-			return $ROOTDIR/$LIBDIR/icons/small/hub.gif
+			return $ROOTDIR/$LIBDIR/icons/small/gl2.gif
 		}
 		toolbar {
-			return $ROOTDIR/$LIBDIR/icons/tiny/hub.gif
+			return $ROOTDIR/$LIBDIR/icons/tiny/gl2.gif
 		}
 	}
 }
 
-#****f* hub.tcl/hub.configGUI
-# NAME
-#   hub.configGUI -- configuration GUI
-# SYNOPSIS
-#   hub.configGUI $c $node_id
-# FUNCTION
-#   Defines the structure of the hub configuration window by calling
-#   procedures for creating and organising the window, as well as procedures
-#   for adding certain modules to that window.
-# INPUTS
-#   * c -- tk canvas
-#   * node_id -- node id
-#****
+proc genericL2.notebookDimensions { wi } {
+	set h 210
+	set w 507
+
+	return [list $h $w]
+}
+
 proc genericL2.configGUI { c node_id } {
 	global wi
 	#
@@ -121,7 +83,7 @@ proc genericL2.configGUI { c node_id } {
 	set node_existing_ipv6 [getFromRunning "ipv6_used_list"]
 
 	configGUI_createConfigPopupWin $c
-	wm title $wi "hub configuration"
+	wm title $wi "[_getNodeType $node_cfg] ($node_id) configuration"
 
 	configGUI_nodeName $wi $node_id "Node name:"
 
@@ -137,20 +99,6 @@ proc genericL2.configGUI { c node_id } {
 	configGUI_buttonsACNode $wi $node_id
 }
 
-#****f* hub.tcl/hub.configInterfacesGUI
-# NAME
-#   hub.configInterfacesGUI -- configuration of interfaces GUI
-# SYNOPSIS
-#   hub.configInterfacesGUI $wi $node_id $iface_id
-# FUNCTION
-#   Defines which modules for changing interfaces parameters are contained in
-#   the hub configuration window. It is done by calling procedures for adding
-#   certain modules to the window.
-# INPUTS
-#   * wi -- widget
-#   * node_id -- node id
-#   * iface_id -- interface id
-#****
 proc genericL2.configInterfacesGUI { wi node_id iface_id } {
 	global guielements
 

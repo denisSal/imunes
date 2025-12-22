@@ -1124,7 +1124,7 @@ proc button3node { c x y } {
 			-command [lreplace $tmp_command end end "ifaces_reconfig"]
 	}
 
-	if { [$type.netlayer] != "LINK" } {
+	if { [invokeTypeProc $type "netlayer"] != "LINK" } {
 		.button3menu add separator
 	}
 
@@ -1163,7 +1163,7 @@ proc button3node { c x y } {
 	# Node settings
 	#
 	.button3menu.sett delete 0 end
-	if { [$type.netlayer] == "NETWORK" } {
+	if { [invokeTypeProc $type "netlayer"] == "NETWORK" } {
 		.button3menu add cascade -label "Settings" \
 			-menu .button3menu.sett
 

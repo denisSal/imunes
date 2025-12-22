@@ -8,7 +8,7 @@ proc refreshToolBarNodes {} {
 	menu $mf.left.net_nodes -title "Network layer nodes"
 
 	foreach node_type $all_modules_list {
-		set image [image create photo -file [$node_type.icon toolbar]]
+		set image [image create photo -file [invokeTypeProc $node_type "icon" toolbar]]
 
 		set tool [invokeTypeProc $node_type "toolbarLocation"]
 		set tool [lindex [split $tool "_"] 0]
@@ -25,7 +25,7 @@ proc refreshToolBarNodes {} {
 		}
 
 		$mf.left.${tool}_nodes add command -image $image -hidemargin 1 \
-			-compound left -label [string range [$node_type.toolbarIconDescr] 8 end] \
+			-compound left -label [string range [invokeTypeProc $node_type "toolbarIconDescr"] 8 end] \
 			-command "setActiveTool ${tool}_layer $node_type" {*}$background_color
 	}
 }

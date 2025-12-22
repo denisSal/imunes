@@ -743,14 +743,14 @@ proc bindEventsToTree {} {
 		set type [getNodeType $node_id]
 		set tmp_command \
 			"$f.tree item $node_id -open false; \
-			$type.configGUI .panwin.f1.c $node_id"
+			\[invokeTypeProc $type \"configGUI\"\] .panwin.f1.c $node_id"
 		$f.tree tag bind $node_id <Double-1> $tmp_command
 		$f.tree tag bind $node_id <Key-Return> $tmp_command
 
 		foreach iface_id [lsort -dictionary [ifcList $node_id]] {
 			set tmp_command \
 				"set selectedIfc $iface_id; \
-				$type.configGUI .panwin.f1.c $node_id; \
+				\[invokeTypeProc $type \"configGUI\"\] .panwin.f1.c $node_id; \
 				set selectedIfc \"\""
 			$f.tree tag bind $node_id$iface_id <Double-1> $tmp_command
 			$f.tree tag bind $node_id$iface_id <Key-Return> $tmp_command

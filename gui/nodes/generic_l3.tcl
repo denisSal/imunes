@@ -23,32 +23,12 @@
 # SUCH DAMAGE.
 #
 
-# $Id: pc.tcl 63 2013-10-03 12:17:50Z valter $
-
-
-#****h* imunes/pc.tcl
-# NAME
-#  pc.tcl -- defines pc specific procedures
-# FUNCTION
-#  This module is used to define all the pc specific procedures.
-# NOTES
-#  Procedures in this module start with the keyword pc and
-#  end with function specific part that is the same for all the node
-#  types that work on the same layer.
-#****
-
-#****f* pc.tcl/pc.toolbarIconDescr
-# NAME
-#   pc.toolbarIconDescr -- toolbar icon description
-# SYNOPSIS
-#   pc.toolbarIconDescr
-# FUNCTION
-#   Returns this module's toolbar icon description.
-# RESULT
-#   * descr -- string describing the toolbar icon
-#****
 proc genericL3.toolbarIconDescr {} {
-	return "Add new PC"
+	return "Add new L3 node"
+}
+
+proc genericL3.toolbarLocation {} {
+	return "net_layer"
 }
 
 proc genericL3._confNewIfc { node_cfg iface_id } {
@@ -69,46 +49,22 @@ proc genericL3._confNewIfc { node_cfg iface_id } {
 	return $node_cfg
 }
 
-#****f* pc.tcl/pc.icon
-# NAME
-#   pc.icon -- icon
-# SYNOPSIS
-#   pc.icon $size
-# FUNCTION
-#   Returns path to node icon, depending on the specified size.
-# INPUTS
-#   * size -- "normal", "small" or "toolbar"
-# RESULT
-#   * path -- path to icon
-#****
 proc genericL3.icon { size } {
 	global ROOTDIR LIBDIR
 
 	switch $size {
 		normal {
-			return $ROOTDIR/$LIBDIR/icons/normal/pc.gif
+			return $ROOTDIR/$LIBDIR/icons/normal/gl3.gif
 		}
 		small {
-			return $ROOTDIR/$LIBDIR/icons/small/pc.gif
+			return $ROOTDIR/$LIBDIR/icons/small/gl3.gif
 		}
 		toolbar {
-			return $ROOTDIR/$LIBDIR/icons/tiny/pc.gif
+			return $ROOTDIR/$LIBDIR/icons/tiny/gl3.gif
 		}
 	}
 }
 
-#****f* pc.tcl/pc.notebookDimensions
-# NAME
-#   pc.notebookDimensions -- notebook dimensions
-# SYNOPSIS
-#   pc.notebookDimensions $wi
-# FUNCTION
-#   Returns the specified notebook height and width.
-# INPUTS
-#   * wi -- widget
-# RESULT
-#   * size -- notebook size as {height width}
-#****
 proc genericL3.notebookDimensions { wi } {
 	set h 210
 	set w 507
@@ -125,19 +81,6 @@ proc genericL3.notebookDimensions { wi } {
 	return [list $h $w]
 }
 
-#****f* pc.tcl/pc.configGUI
-# NAME
-#   pc.configGUI -- configuration GUI
-# SYNOPSIS
-#   pc.configGUI $c $node_id
-# FUNCTION
-#   Defines the structure of the pc configuration window by calling
-#   procedures for creating and organising the window, as well as
-#   procedures for adding certain modules to that window.
-# INPUTS
-#   * c -- tk canvas
-#   * node_id -- node id
-#****
 proc genericL3.configGUI { c node_id } {
 	global wi
 	#
@@ -160,7 +103,7 @@ proc genericL3.configGUI { c node_id } {
 	set node_existing_ipv6 [getFromRunning "ipv6_used_list"]
 
 	configGUI_createConfigPopupWin $c
-	wm title $wi "pc configuration"
+	wm title $wi "[_getNodeType $node_cfg] ($node_id) configuration"
 
 	configGUI_nodeName $wi $node_id "Node name:"
 
@@ -195,20 +138,6 @@ proc genericL3.configGUI { c node_id } {
 	configGUI_buttonsACNode $wi $node_id
 }
 
-#****f* pc.tcl/pc.configInterfacesGUI
-# NAME
-#   pc.configInterfacesGUI -- configuration of interfaces GUI
-# SYNOPSIS
-#   pc.configInterfacesGUI $wi $node_id $iface_id
-# FUNCTION
-#   Defines which modules for changing interfaces parameters are contained in
-#   the pc configuration window. It is done by calling procedures for adding
-#   certain modules to the window.
-# INPUTS
-#   * wi -- widget
-#   * node_id -- node id
-#   * iface_id -- interface name
-#****
 proc genericL3.configInterfacesGUI { wi node_id iface_id } {
 	global guielements
 
