@@ -29,30 +29,30 @@ proc l2node.nodeCreate { eid node_id } {
 	pipesExec "ip netns exec $nodeNs ip link set $node_id up" "hold"
 }
 
-#****f* linux.tcl/l2node.nodeDestroy
-# NAME
-#   l2node.nodeDestroy -- destroy
-# SYNOPSIS
-#   l2node.nodeDestroy $eid $node_id
-# FUNCTION
-#   Destroys a l2 node.
-# INPUTS
-#   * eid -- experiment id
-#   * node_id -- id of the node
-#****
-proc l2node.nodeDestroy { eid node_id } {
-	set type [getNodeType $node_id]
-
-	set nodeNs [getNodeNetns $eid $node_id]
-
-	set nsstr ""
-	if { $nodeNs != "" } {
-		set nsstr "-n $nodeNs"
-	}
-	pipesExec "ip $nsstr link delete $node_id" "hold"
-
-	removeNodeNetns $eid $node_id
-}
+##****f* linux.tcl/l2node.nodeDestroy
+## NAME
+##   l2node.nodeDestroy -- destroy
+## SYNOPSIS
+##   l2node.nodeDestroy $eid $node_id
+## FUNCTION
+##   Destroys a l2 node.
+## INPUTS
+##   * eid -- experiment id
+##   * node_id -- id of the node
+##****
+#proc l2node.nodeDestroy { eid node_id } {
+#	set type [getNodeType $node_id]
+#
+#	set nodeNs [getNodeNetns $eid $node_id]
+#
+#	set nsstr ""
+#	if { $nodeNs != "" } {
+#		set nsstr "-n $nodeNs"
+#	}
+#	pipesExec "ip $nsstr link delete $node_id" "hold"
+#
+#	removeNodeNetns $eid $node_id
+#}
 
 #****f* linux.tcl/writeDataToNodeFile
 # NAME
@@ -459,12 +459,6 @@ proc getHostIfcVlanExists { node_id iface_name } {
 	return 1
 }
 
-proc removeNodeFS { eid node_id } {
-	set VROOT_BASE [getVrootDir]
-
-	pipesExec "rm -fr $VROOT_BASE/$eid/$node_id" "hold"
-}
-
 proc getNodeNetns { eid node_id } {
 	global devfs_number
 
@@ -482,48 +476,24 @@ proc getNodeNetns { eid node_id } {
 	return $eid-$node_id
 }
 
-proc destroyNodeVirtIfcs { eid node_id } {
-	set docker_id "$eid.$node_id"
-
-	pipesExec "docker exec -d $docker_id sh -c 'for iface in `ls /sys/class/net` ; do ip link del \$iface; done'" "hold"
-}
-
 proc loadKernelModules {} {
 	global all_modules_list
 
 	foreach module $all_modules_list {
-		if { [info procs $module.prepareSystem] == "$module.prepareSystem" } {
+		if { [info procs $module.prepareSystem] != "" } {
 			$module.prepareSystem
+		} else {
+			if { [$module.netlayer] == "LINK" } {
+				genericL2.prepareSystem
+			} elseif { [$module.netlayer] == "NETWORK" } {
+				genericL3.prepareSystem
+			}
 		}
 	}
 }
 
 proc prepareVirtualFS {} {
 	rexec mkdir -p /var/run/netns
-}
-
-proc attachToL3NodeNamespace { node_id } {
-	set eid [getFromRunning "eid"]
-
-	if { [getNodeDockerAttach $node_id] != "true" } {
-		pipesExec "docker network disconnect imunes-bridge $eid.$node_id &" "hold"
-	}
-
-	# VIRTUALIZED nodes use docker netns
-	set cmds "docker_ns=\$(docker inspect -f '{{.State.Pid}}' $eid.$node_id)"
-	set cmds "$cmds; ip netns del \$docker_ns > /dev/null 2>/dev/null"
-	set cmds "$cmds; ip netns attach $eid-$node_id \$docker_ns"
-	set cmds "$cmds; docker exec -d $eid.$node_id umount /etc/resolv.conf /etc/hosts"
-
-	pipesExec "sh -c \'$cmds\' &" "hold"
-}
-
-proc createNamespace { ns } {
-	pipesExec "ip netns add $ns" "hold"
-}
-
-proc destroyNamespace { ns } {
-	pipesExec "ip netns del $ns" "hold"
 }
 
 proc createExperimentContainer {} {
@@ -536,79 +506,17 @@ proc createExperimentContainer {} {
 	rexec ip netns add [getFromRunning "eid"]
 }
 
-#****f* linux.tcl/prepareFilesystemForNode
-# NAME
-#   prepareFilesystemForNode -- prepare node filesystem
-# SYNOPSIS
-#   prepareFilesystemForNode $node_id
-# FUNCTION
-#   Prepares the node virtual filesystem.
-# INPUTS
-#   * node_id -- node id
-#****
-proc prepareFilesystemForNode { node_id } {
-	set VROOTDIR /var/imunes
-	set VROOT_RUNTIME $VROOTDIR/[getFromRunning "eid"]/$node_id
-
-	pipesExec "mkdir -p $VROOT_RUNTIME &" "hold"
-}
-
-#****f* linux.tcl/createNodeContainer
-# NAME
-#   createNodeContainer -- creates a virtual node container
-# SYNOPSIS
-#   createNodeContainer $node_id
-# FUNCTION
-#   Creates a docker instance using the defined template and
-#   assigns the hostname. Waits for the node to be up.
-# INPUTS
-#   * node_id -- node id
-#****
-proc createNodeContainer { node_id } {
-	global VROOT_MASTER ULIMIT_FILE ULIMIT_PROC
-	global nodecreate_timeout
-
-	set docker_id "[getFromRunning "eid"].$node_id"
-
-	set network "imunes-bridge"
-	#if { [getNodeDockerAttach $node_id] == "true" } {
-	#	set network "bridge"
-	#}
-
-	set vroot [getNodeCustomImage $node_id]
-	if { $vroot == "" } {
-		set vroot $VROOT_MASTER
-	}
-
-	if { $ULIMIT_FILE != "" } {
-		set ulimit_file_str "--ulimit nofile=$ULIMIT_FILE"
-	} else {
-		set ulimit_file_str ""
-	}
-
-	if { $ULIMIT_PROC != "" } {
-		set ulimit_proc_str "--ulimit nproc=$ULIMIT_PROC"
-	} else {
-		set ulimit_proc_str ""
-	}
-
-	set docker_cmd "docker run --detach --init --tty \
-		--privileged --cap-add=ALL --net=$network \
-		--name $docker_id --hostname=[getNodeName $node_id] \
-		--volume /tmp/.X11-unix:/tmp/.X11-unix \
-		--sysctl net.ipv6.conf.all.disable_ipv6=0 \
-		$ulimit_file_str $ulimit_proc_str $vroot"
-
-	dputs "Node $node_id -> '$docker_cmd'"
-
-	pipesExec "$docker_cmd" "hold"
-}
-
 proc isNodeStarted { node_id } {
+	return [invokeNodeProc $node_id "nodeCreate_check" [getFromRunning "eid"] $node_id]
+
 	global nodecreate_timeout
+
+	if { [getFromRunning "${node_id}_running"] == "true" } {
+		return true
+	}
 
 	set node_type [getNodeType $node_id]
-	if { [$node_type.virtlayer] != "VIRTUALIZED" } {
+	if { [invokeNodeProc $node_id "virtlayer"] != "VIRTUALIZED" } {
 		if { $node_type in "rj45 ext" } {
 			return true
 		}
@@ -636,6 +544,8 @@ proc isNodeStarted { node_id } {
 }
 
 proc isNodeNamespaceCreated { node_id } {
+	return [invokeNodeProc $node_id "nodeNamespaceSetup_check" [getFromRunning "eid"] $node_id]
+
 	set nodeNs [getNodeNetns [getFromRunning "eid"] $node_id]
 
 	if { $nodeNs == "" } {
@@ -672,7 +582,7 @@ proc nodePhysIfacesCreate { node_id ifaces } {
 		setToRunning "${node_id}|${iface_id}_running" "creating"
 
 		set iface_name [getIfcName $node_id $iface_id]
-		set public_hook $node_id-$iface_name
+		set public_iface $node_id-$iface_name
 		set public_ns $eid
 		set prefix [string trimright $iface_name "0123456789"]
 		if { $node_type == "ext" } {
@@ -701,9 +611,9 @@ proc nodePhysIfacesCreate { node_id ifaces } {
 				continue
 			}
 
-			set public_hook [getIfcName $peer_id $peer_iface_id]
+			set public_iface [getIfcName $peer_id $peer_iface_id]
 			if { [getNodeType $peer_id] in "ext extnat" } {
-				set public_hook $peer_id
+				set public_iface $peer_id
 			}
 
 			set public_ns [getNodeNetns $eid $peer_id]
@@ -715,13 +625,13 @@ proc nodePhysIfacesCreate { node_id ifaces } {
 			eth {
 				# Create a veth pair - private hook in node netns and public hook
 				# in the experiment netns
-				createNsVethPair $iface_name $nodeNs $public_hook $public_ns
+				createNsVethPair $iface_name $nodeNs $public_iface $public_ns
 			}
 		}
 
 		if { $this_link_id != "" && [getLinkDirect $this_link_id] } {
-			if { [[getNodeType $peer_id].virtlayer] == "NATIVE" } {
-				setNsIfcMaster $public_ns $public_hook $peer_id "up"
+			if { [invokeNodeProc $peer_id "virtlayer"] == "NATIVE" } {
+				setNsIfcMaster $public_ns $public_iface $peer_id "up"
 			}
 		}
 
@@ -763,20 +673,6 @@ proc nodePhysIfacesCreate { node_id ifaces } {
 	}
 
 	pipesExec ""
-}
-
-#****f* linux.tcl/killProcess
-# NAME
-#   killProcess -- kill processes with the given regex
-# SYNOPSIS
-#   killProcess $regex
-# FUNCTION
-#   Executes a pkill command to kill all processes with a corresponding regex.
-# INPUTS
-#   * regex -- regularl expression of the processes
-#****
-proc killExtProcess { regex } {
-	pipesExec "pkill -f \"$regex\"" "hold"
 }
 
 proc checkHangingTCPs { eid nodes } {}
@@ -846,21 +742,23 @@ proc nodeLogIfacesCreate { node_id ifaces } {
 # INPUTS
 #   * node_id -- node id
 #****
-proc configureICMPoptions { node_id } {
-	array set sysctl_icmp {
-		net.ipv4.icmp_ratelimit					0
-		net.ipv4.icmp_echo_ignore_broadcasts	1
-	}
-
-	foreach {name val} [array get sysctl_icmp] {
-		lappend cmd "sysctl $name=$val"
-	}
-	set cmds [join $cmd "; "]
-
-	pipesExec "docker exec -d [getFromRunning "eid"].$node_id sh -c '$cmds ; touch /tmp/init'" "hold"
-}
+#proc configureICMPoptions { node_id } {
+#	array set sysctl_icmp {
+#		net.ipv4.icmp_ratelimit					0
+#		net.ipv4.icmp_echo_ignore_broadcasts	1
+#	}
+#
+#	foreach {name val} [array get sysctl_icmp] {
+#		lappend cmd "sysctl $name=$val"
+#	}
+#	set cmds [join $cmd "; "]
+#
+#	pipesExec "docker exec -d [getFromRunning "eid"].$node_id sh -c '$cmds ; touch /tmp/init'" "hold"
+#}
 
 proc isNodeInitNet { node_id } {
+	return [invokeNodeProc $node_id "nodeInitConfigure_check" [getFromRunning "eid"] $node_id]
+
 	global nodecreate_timeout
 
 	set docker_id "[getFromRunning "eid"].$node_id"
@@ -878,64 +776,42 @@ proc isNodeInitNet { node_id } {
 	return true
 }
 
-proc createNsLinkBridge { netNs link } {
-	set nsstr ""
-	if { $netNs != "" } {
-		set nsstr "-n $netNs"
-	}
-
-	pipesExec "ip $nsstr link add name $link type bridge ageing_time 0 mcast_snooping 0" "hold"
-	pipesExec "ip $nsstr link set $link multicast off" "hold"
-	pipesExec "ip netns exec $netNs sysctl net.ipv6.conf.$link.disable_ipv6=1" "hold"
-	pipesExec "ip $nsstr link set $link up" "hold"
+proc createNsLinkBridge { node_ns link } {
+	pipesExec "ip -n $node_ns link add name $link type bridge ageing_time 0 mcast_snooping 0" "hold"
+	pipesExec "ip -n $node_ns link set $link multicast off" "hold"
+	pipesExec "ip netns exec $node_ns sysctl net.ipv6.conf.$link.disable_ipv6=1" "hold"
+	pipesExec "ip -n $node_ns link set $link up" "hold"
 }
 
-proc createNsVethPair { ifname1 netNs1 ifname2 netNs2 } {
+proc createNsVethPair { ifname1 netns1 ifname2 netns2 } {
 	global devfs_number
 
 	set eid [getFromRunning "eid"]
 
-	set nsstr1 ""
-	set nsstr1x ""
-	if { $netNs1 != "imunes_$devfs_number" } {
-		set nsstr1 "netns $netNs1"
-		set nsstr1x "-n $netNs1"
+	pipesExec "ip link add name $eid-$ifname1 netns $netns1 type veth peer name $eid-$ifname2 netns $netns2" "hold"
+
+	if { $netns1 != "imunes_$devfs_number" } {
+		pipesExec "ip -n $netns1 link set $eid-$ifname1 name $ifname1" "hold"
 	}
 
-	set nsstr2 ""
-	set nsstr2x ""
-	if { $netNs2 != "imunes_$devfs_number" } {
-		set nsstr2 "netns $netNs2"
-		set nsstr2x "-n $netNs2"
+	if { $netns2 != "imunes_$devfs_number" } {
+		pipesExec "ip -n $netns2 link set $eid-$ifname2 name $ifname2" "hold"
 	}
 
-	pipesExec "ip link add name $eid-$ifname1 $nsstr1 type veth peer name $eid-$ifname2 $nsstr2" "hold"
-
-	if { $nsstr1x != "" } {
-		pipesExec "ip $nsstr1x link set $eid-$ifname1 name $ifname1" "hold"
-	}
-
-	if { $nsstr2x != "" } {
-		pipesExec "ip $nsstr2x link set $eid-$ifname2 name $ifname2" "hold"
-	}
-
-	if { $netNs2 == $eid } {
+	if { $netns2 == $eid } {
 		pipesExec "ip netns exec $eid ip link set $ifname2 multicast off" "hold"
 		pipesExec "ip netns exec $eid sysctl net.ipv6.conf.$ifname2.disable_ipv6=1" "hold"
 	}
 }
 
-proc setNsIfcMaster { netNs iface_name master state } {
-	set nsstr ""
-	if { $netNs != "" } {
-		set nsstr "-n $netNs"
-	}
-
-	pipesExec "ip $nsstr link set $iface_name master $master $state" "hold"
+proc setNsIfcMaster { node_ns iface_name master state } {
+	pipesExec "ip -n $node_ns link set $iface_name master $master $state" "hold"
 }
 
 proc createLinkBetween { node1_id node2_id iface1_id iface2_id link_id } {
 	set eid [getFromRunning "eid"]
+
+	setToRunning "${link_id}_running" "creating"
 
 	if {
 		[getLinkDirect $link_id] ||
@@ -973,17 +849,18 @@ proc createLinkBetween { node1_id node2_id iface1_id iface2_id link_id } {
 
 	# add nodes iface hooks to link bridge and bring them up
 	foreach node_id "$node1_id $node2_id" iface_id "$iface1_id $iface2_id" {
-		if { [getNodeType $node_id] == "rj45" } {
-			set iface_name [getIfcName $node_id $iface_id]
-			if { [getIfcVlanDev $node_id $iface_id] != "" } {
-				set vlan [getIfcVlanTag $node_id $iface_id]
-				set iface_name $iface_name.$vlan
-			}
-		} else {
-			set iface_name $node_id-[getIfcName $node_id $iface_id]
-		}
+		#if { [getNodeType $node_id] == "rj45" } {
+		#	set public_iface [getIfcName $node_id $iface_id]
+		#	if { [getIfcVlanDev $node_id $iface_id] != "" } {
+		#		set vlan [getIfcVlanTag $node_id $iface_id]
+		#		set public_iface $public_iface.$vlan
+		#	}
+		#} else {
+		#	lassign [invokeNodeProc $node_id "getHookData" $node_id $iface_id] public_iface -
+		#}
 
-		setNsIfcMaster $eid $iface_name $link_id "up"
+		lassign [invokeNodeProc $node_id "getHookData" $node_id $iface_id] public_iface -
+		setNsIfcMaster $eid $public_iface $link_id "up"
 	}
 }
 
@@ -997,15 +874,11 @@ proc configureLinkBetween { node1_id node2_id iface1_id iface2_id link_id } {
 	set dup [expr [getLinkDup $link_id] + 0]
 
 	foreach node_id "$node1_id $node2_id" iface_id "$iface1_id $iface2_id" {
-		set devname [getIfcName $node_id $iface_id]
-
-		if { [getNodeType $node_id] != "rj45" } {
-			set devname $node_id-$devname
-		}
-
+		set private_ns [invokeNodeProc $node_id "getPrivateNs" $eid $node_id]
+		set iface_name [getIfcName $node_id $iface_id]
 		set netem_cfg [getNetemConfigLine $bandwidth $delay $loss $dup]
 
-		pipesExec "ip netns exec $eid tc qdisc replace dev $devname root netem $netem_cfg" "hold"
+		pipesExec "ip netns exec $private_ns tc qdisc replace dev $iface_name root netem $netem_cfg" "hold"
 
 		# XXX: Now on Linux we don't care about queue lengths and we don't limit
 		# maximum data and burst size.
@@ -1032,134 +905,20 @@ proc configureLinkBetween { node1_id node2_id iface1_id iface2_id link_id } {
 
 proc unconfigureLinkBetween { eid node1_id node2_id iface1_id iface2_id link_id } {
 	foreach node_id "$node1_id $node2_id" iface_id "$iface1_id $iface2_id" {
-		set devname [getIfcName $node_id $iface_id]
+		set private_ns [invokeNodeProc $node_id "getPrivateNs" $eid $node_id]
+		set iface_name [getIfcName $node_id $iface_id]
 
-		if { [getNodeType $node_id] != "rj45" } {
-			set devname $node_id-$devname
-		}
-
-		pipesExec "ip netns exec $eid tc qdisc del dev $devname root" "hold"
+		pipesExec "ip netns exec $private_ns tc qdisc del dev $iface_name root" "hold"
 	}
-}
-
-#****f* linux.tcl/runConfOnNode
-# NAME
-#   runConfOnNode -- run configuration script on node
-# SYNOPSIS
-#   runConfOnNode $node_id
-# FUNCTION
-#   Run startup configuration file on the given node.
-# INPUTS
-#   * node_id -- node id
-#****
-proc runConfOnNode { node_id } {
-	set eid [getFromRunning "eid"]
-
-	set docker_id "$eid.$node_id"
-
-	set custom_selected [getNodeCustomConfigSelected $node_id "NODE_CONFIG"]
-	if { [getNodeCustomEnabled $node_id] == true && $custom_selected ni "\"\" DISABLED" } {
-		set bootcmd [getNodeCustomConfigCommand $node_id "NODE_CONFIG" $custom_selected]
-		set bootcfg [getNodeCustomConfig $node_id "NODE_CONFIG" $custom_selected]
-		set bootcfg "$bootcfg\n[join [[getNodeType $node_id].generateConfig $node_id] "\n"]"
-		set confFile "custom.conf"
-	} else {
-		set bootcfg [join [[getNodeType $node_id].generateConfig $node_id] "\n"]
-		set bootcmd [[getNodeType $node_id].bootcmd $node_id]
-		set confFile "boot.conf"
-	}
-
-	generateHostsFile $node_id
-
-	set cfg "set -x\n$bootcfg"
-	writeDataToNodeFile $node_id /tout.log ""
-	writeDataToNodeFile $node_id /$confFile $cfg
-	set cmds "rm -f /out.log /err.log ;"
-	set cmds "$cmds $bootcmd /$confFile >> /tout.log 2>> /terr.log ;"
-	# renaming the file signals that we're done
-	set cmds "$cmds mv /tout.log /out.log ;"
-	set cmds "$cmds mv /terr.log /err.log"
-	pipesExec "docker exec -d $docker_id sh -c '$cmds'" "hold"
-}
-
-proc startNodeIfaces { node_id ifaces } {
-	set eid [getFromRunning "eid"]
-
-	set docker_id "$eid.$node_id"
-
-	set custom_selected [getNodeCustomConfigSelected $node_id "IFACES_CONFIG"]
-	if { [getNodeCustomEnabled $node_id] == true && $custom_selected ni "\"\" DISABLED" } {
-		set bootcmd [getNodeCustomConfigCommand $node_id "IFACES_CONFIG" $custom_selected]
-		set bootcfg [getNodeCustomConfig $node_id "IFACES_CONFIG" $custom_selected]
-		set confFile "custom_ifaces.conf"
-	} else {
-		set bootcfg [join [[getNodeType $node_id].generateConfigIfaces $node_id $ifaces] "\n"]
-		set bootcmd [[getNodeType $node_id].bootcmd $node_id]
-		set confFile "boot_ifaces.conf"
-	}
-
-	set cfg "set -x\n$bootcfg"
-	writeDataToNodeFile $node_id /tout_ifaces.log ""
-	writeDataToNodeFile $node_id /$confFile $cfg
-	set cmds "rm -f /out_ifaces.log /err_ifaces.log ;"
-	set cmds "$cmds $bootcmd /$confFile >> /tout_ifaces.log 2>> /terr_ifaces.log ;"
-	# renaming the file signals that we're done
-	set cmds "$cmds mv /tout_ifaces.log /out_ifaces.log ;"
-	set cmds "$cmds mv /terr_ifaces.log /err_ifaces.log"
-	pipesExec "docker exec -d $docker_id sh -c '$cmds'" "hold"
-}
-
-proc unconfigNode { eid node_id } {
-	set docker_id "$eid.$node_id"
-
-	set custom_selected [getNodeCustomConfigSelected $node_id "NODE_CONFIG"]
-	if { [getNodeCustomEnabled $node_id] == true && $custom_selected ni "\"\" DISABLED" } {
-		return
-	}
-
-	set bootcfg [join [[getNodeType $node_id].generateUnconfig $node_id] "\n"]
-	set bootcmd [[getNodeType $node_id].bootcmd $node_id]
-	set confFile "unboot.conf"
-
-	set cfg "set -x\n$bootcfg"
-	writeDataToNodeFile $node_id /tout.log ""
-	writeDataToNodeFile $node_id /$confFile $cfg
-	set cmds "rm -f /out.log /err.log ;"
-	set cmds "$cmds $bootcmd /$confFile >> /tout.log 2>> /terr.log ;"
-	# renaming the file signals that we're done
-	set cmds "$cmds mv /tout.log /out.log ;"
-	set cmds "$cmds mv /terr.log /err.log"
-	pipesExec "docker exec -d $docker_id sh -c '$cmds'" "hold"
-}
-
-proc unconfigNodeIfaces { eid node_id ifaces } {
-	set docker_id "$eid.$node_id"
-
-	set custom_selected [getNodeCustomConfigSelected $node_id "IFACES_CONFIG"]
-	if { [getNodeCustomEnabled $node_id] == true && $custom_selected ni "\"\" DISABLED" } {
-		return
-	}
-
-	set bootcfg [join [[getNodeType $node_id].generateUnconfigIfaces $node_id $ifaces] "\n"]
-	set bootcmd [[getNodeType $node_id].bootcmd $node_id]
-	set confFile "unboot_ifaces.conf"
-
-	set cfg "set -x\n$bootcfg"
-	writeDataToNodeFile $node_id /tout_ifaces.log ""
-	writeDataToNodeFile $node_id /$confFile $cfg
-	set cmds "rm -f /out_ifaces.log /err_ifaces.log ;"
-	set cmds "$cmds $bootcmd /$confFile >> /tout_ifaces.log 2>> /terr_ifaces.log ;"
-	# renaming the file signals that we're done
-	set cmds "$cmds mv /tout_ifaces.log /out_ifaces.log ;"
-	set cmds "$cmds mv /terr_ifaces.log /err_ifaces.log"
-	pipesExec "docker exec -d $docker_id sh -c '$cmds'" "hold"
 }
 
 proc isNodeIfacesCreated { node_id ifaces } {
+	return [invokeNodeProc $node_id "nodePhysIfacesCreate_check" [getFromRunning "eid"] $node_id $ifaces]
+
 	global ifacesconf_timeout
 
 	set node_type [getNodeType $node_id]
-	if { [$node_type.virtlayer] == "NATIVE" && $node_type != "rj45" } {
+	if { [invokeNodeProc $node_id "virtlayer"] == "NATIVE" && $node_type != "rj45" } {
 		# TODO: other nodes?
 		return $ifaces
 	}
@@ -1211,21 +970,23 @@ proc isNodeIfacesCreated { node_id ifaces } {
 	return $created_ifaces
 }
 
-proc isNodeIfacesConfigured { node_id } {
+proc isNodeIfacesConfigured { node_id ifaces } {
+	return [invokeNodeProc $node_id "nodeIfacesConfigure_check" [getFromRunning "eid"] $node_id $ifaces]
+
 	global ifacesconf_timeout
 
 	set docker_id "[getFromRunning "eid"].$node_id"
 
-	if { [[getNodeType $node_id].virtlayer] == "NATIVE" } {
+	if { [invokeNodeProc $node_id "virtlayer"] == "NATIVE" } {
 		return true
 	}
 
 	try {
-		set cmd "\'test ! -f /tout_ifaces.log && test -f /out_ifaces.log\'"
+		set cmd "\'test -f /startup_ifaces.pid && ! kill -0 \$(cat /startup_ifaces.pid) 2>/dev/null\'"
 		if { $ifacesconf_timeout >= 0 } {
-			rexec timeout [expr $ifacesconf_timeout/5.0] docker exec -t $docker_id sh -c {*}$cmd
+			rexec timeout [expr $ifacesconf_timeout/5.0] docker exec -t $docker_id sh -c $cmd
 		} else {
-			rexec docker exec -t $docker_id sh -c {*}$cmd
+			rexec docker exec -t $docker_id sh -c $cmd
 		}
 	} on error {} {
 		return false
@@ -1235,7 +996,17 @@ proc isNodeIfacesConfigured { node_id } {
 }
 
 proc isLinkStarted { link_id } {
-	global nodecreate_timeout
+	global nodecreate_timeout skip_links
+
+	if { [getFromRunning "${link_id}_running"] == "true" } {
+		return true
+	}
+
+	if { [getFromRunning "${link_id}_running"] != "creating" } {
+		lappend skip_links $link_id
+
+		return false
+	}
 
 	set mirror_link_id [getLinkMirror $link_id]
 	if { $mirror_link_id != "" && [getFromRunning "${mirror_link_id}_running"] == "true" } {
@@ -1266,11 +1037,13 @@ proc isLinkStarted { link_id } {
 }
 
 proc isNodeConfigured { node_id } {
+	return [invokeNodeProc $node_id "nodeConfigure_check" [getFromRunning "eid"] $node_id]
+
 	global nodeconf_timeout
 
 	set docker_id "[getFromRunning "eid"].$node_id"
 
-	if { [[getNodeType $node_id].virtlayer] == "NATIVE" } {
+	if { [invokeNodeProc $node_id "virtlayer"] == "NATIVE" } {
 		return true
 	}
 
@@ -1291,7 +1064,7 @@ proc isNodeConfigured { node_id } {
 proc isNodeError { node_id } {
 	global nodeconf_timeout
 
-	if { [[getNodeType $node_id].virtlayer] == "NATIVE" } {
+	if { [invokeNodeProc $node_id "virtlayer"] == "NATIVE" } {
 		return false
 	}
 
@@ -1318,7 +1091,7 @@ proc isNodeError { node_id } {
 proc isNodeErrorIfaces { node_id } {
 	global ifacesconf_timeout
 
-	if { [[getNodeType $node_id].virtlayer] == "NATIVE" } {
+	if { [invokeNodeProc $node_id "virtlayer"] == "NATIVE" } {
 		return false
 	}
 
@@ -1343,6 +1116,8 @@ proc isNodeErrorIfaces { node_id } {
 }
 
 proc isNodeUnconfigured { node_id } {
+	return [invokeNodeProc $node_id "nodeUnconfigure_check" [getFromRunning "eid"] $node_id]
+
 	global skip_nodes nodeconf_timeout
 
 	if {
@@ -1354,7 +1129,7 @@ proc isNodeUnconfigured { node_id } {
 
 	set docker_id "[getFromRunning "eid"].$node_id"
 
-	if { [[getNodeType $node_id].virtlayer] == "NATIVE" } {
+	if { [invokeNodeProc $node_id "virtlayer"] == "NATIVE" } {
 		return true
 	}
 
@@ -1373,6 +1148,8 @@ proc isNodeUnconfigured { node_id } {
 }
 
 proc isNodeIfacesUnconfigured { node_id } {
+	return [invokeNodeProc $node_id "nodeIfacesUnconfigure_check" [getFromRunning "eid"] $node_id]
+
 	global skip_nodes ifacesconf_timeout
 
 	if {
@@ -1384,7 +1161,7 @@ proc isNodeIfacesUnconfigured { node_id } {
 
 	set docker_id "[getFromRunning "eid"].$node_id"
 
-	if { [[getNodeType $node_id].virtlayer] == "NATIVE" } {
+	if { [invokeNodeProc $node_id "virtlayer"] == "NATIVE" } {
 		return true
 	}
 
@@ -1403,7 +1180,13 @@ proc isNodeIfacesUnconfigured { node_id } {
 }
 
 proc isNodeStopped { node_id } {
+	return [invokeNodeProc $node_id "nodeShutdown_check" [getFromRunning "eid"] $node_id]
+
 	global skip_nodes nodeconf_timeout
+
+	if { [getFromRunning "${node_id}_running"] == "false" } {
+		return true
+	}
 
 	if {
 		$node_id in $skip_nodes ||
@@ -1412,7 +1195,7 @@ proc isNodeStopped { node_id } {
 		return true
 	}
 
-	if { [[getNodeType $node_id].virtlayer] == "NATIVE" } {
+	if { [invokeNodeProc $node_id "virtlayer"] == "NATIVE" } {
 		return true
 	}
 
@@ -1433,6 +1216,16 @@ proc isNodeStopped { node_id } {
 
 proc isLinkDestroyed { link_id } {
 	global nodecreate_timeout skip_links
+
+	if { [getFromRunning "${link_id}_running"] == "false" } {
+		return true
+	}
+
+	if { [getFromRunning "${link_id}_running"] ni "delete stopping" } {
+		lappend skip_links $link_id
+
+		return false
+	}
 
 	if {
 		$link_id in $skip_links ||
@@ -1470,6 +1263,8 @@ proc isLinkDestroyed { link_id } {
 }
 
 proc isNodeIfacesDestroyed { node_id ifaces } {
+	return [invokeNodeProc $node_id "nodeIfacesDestroy_check" [getFromRunning "eid"] $node_id $ifaces]
+
 	global skip_nodes ifacesconf_timeout
 
 	if {
@@ -1527,17 +1322,19 @@ proc isNodeIfacesDestroyed { node_id ifaces } {
 }
 
 proc isNodeDestroyed { node_id } {
+	return [invokeNodeProc $node_id "nodeDestroy_check" [getFromRunning "eid"] $node_id]
+
 	global skip_nodes nodecreate_timeout
 
 	if {
 		$node_id in $skip_nodes ||
-		[getFromRunning "${node_id}_running"] ni "true delete"
+		[getFromRunning "${node_id}_running"] == "false"
 	} {
 		return true
 	}
 
 	set node_type [getNodeType $node_id]
-	if { [$node_type.virtlayer] != "VIRTUALIZED" } {
+	if { [invokeNodeProc $node_id "virtlayer"] != "VIRTUALIZED" } {
 		return true
 	}
 
@@ -1553,17 +1350,19 @@ proc isNodeDestroyed { node_id } {
 }
 
 proc isNodeDestroyedFS { node_id } {
+	return [invokeNodeProc $node_id "nodeDestroyFS_check" [getFromRunning "eid"] $node_id]
+
 	global skip_nodes nodecreate_timeout
 
 	if {
 		$node_id in $skip_nodes ||
-		[getFromRunning "${node_id}_running"] ni "true delete"
+		[getFromRunning "${node_id}_running"] ni "delete stopping"
 	} {
 		return true
 	}
 
 	set node_type [getNodeType $node_id]
-	if { [$node_type.virtlayer] != "VIRTUALIZED" } {
+	if { [invokeNodeProc $node_id "virtlayer"] != "VIRTUALIZED" } {
 		return true
 	}
 
@@ -1588,14 +1387,6 @@ proc removeNetns { netns } {
 	}
 }
 
-proc removeNodeNetns { eid node_id } {
-	set netns [getNodeNetns $eid $node_id]
-
-	if { $netns != "" } {
-		pipesExec "ip netns del $netns" "hold"
-	}
-}
-
 proc terminate_removeExperimentContainer { eid } {
 	removeNetns $eid
 }
@@ -1605,32 +1396,23 @@ proc terminate_removeExperimentFiles { eid } {
 	catch { rexec rm -fr $VROOT_BASE/$eid & }
 }
 
-proc removeNodeContainer { eid node_id } {
-	set docker_id $eid.$node_id
-
-	pipesExec "docker kill $docker_id" "hold"
-	pipesExec "docker rm $docker_id" "hold"
-}
-
-proc killAllNodeProcesses { eid node_id } {
-	set docker_id "$eid.$node_id"
-
-	# kill all processes except pid 1 and its child(ren)
-	pipesExec "docker exec -d $docker_id sh -c 'killall5 -9 -o 1 -o \$(pgrep -P 1) ; touch /tmp/shut'" "hold"
-}
-
 proc destroyLinkBetween { eid node1_id node2_id iface1_id iface2_id link_id } {
-	if { [getLinkDirect $link_id] || "wlan" in "[getNodeType $node1_id] [getNodeType $node2_id]" } {
-		if { "[getNodeType $node1_id] [getNodeType $node2_id]" == "rj45 rj45" } {
-			global devfs_number
+	setToRunning "${link_id}_running" "stopping"
 
-			pipesExec "ip -n imunes_$devfs_number link del $eid-$link_id" "hold"
-		}
+	if {
+		! [getLinkDirect $link_id] &&
+		"wlan" ni "[getNodeType $node1_id] [getNodeType $node2_id]"
+	} {
+		pipesExec "ip -n $eid link del $link_id" "hold"
 
 		return
 	}
 
-	pipesExec "ip -n $eid link del $link_id" "hold"
+	if { "[getNodeType $node1_id] [getNodeType $node2_id]" == "rj45 rj45" } {
+		global devfs_number
+
+		pipesExec "ip -n imunes_$devfs_number link del $eid-$link_id" "hold"
+	}
 }
 
 #****f* linux.tcl/nodeIfacesDestroy
@@ -1838,7 +1620,7 @@ proc captureExtIfc { eid node_id iface_id } {
 	}
 
 	# if peer is NATIVE, just set it as master
-	if { $peer_type ni "ext extnat" && [$peer_type.virtlayer] == "NATIVE" } {
+	if { $peer_type ni "ext extnat" && [invokeNodeProc $peer_id "virtlayer"] == "NATIVE" } {
 		captureExtIfcByName $eid $iface_name $peer_id
 		setNsIfcMaster $peer_ns $iface_name $peer_id "up"
 	}
@@ -2389,10 +2171,10 @@ proc execSetIfcVlanConfig { node_id iface_id } {
 	set vlantag [getIfcVlanTag $node_id $iface_id]
 
 	set iface_name [getIfcName $node_id $iface_id]
-	set nsstr "netns exec [getFromRunning "eid"]-$node_id"
+	set private_ns [invokeNodeProc $node_id "getPrivateNs"]
 
 	if { $vlantag != 1 || $vlantype in "\"\" trunk"} {
-		pipesExec "ip $nsstr bridge vlan del dev $iface_name vid 1" "hold"
+		pipesExec "ip netns exec $private_ns exec bridge vlan del dev $iface_name vid 1" "hold"
 	}
 
 	if { $vlantype == "trunk" } {
@@ -2400,11 +2182,11 @@ proc execSetIfcVlanConfig { node_id iface_id } {
 			set ifc_vlantype [getIfcVlanType $node_id $id]
 			if { $ifc_vlantype == "access" } {
 				set id_vlantag [getIfcVlanTag $node_id $id]
-				pipesExec "ip $nsstr bridge vlan add dev $iface_name vid $id_vlantag tagged" "hold"
+				pipesExec "ip netns exec $private_ns bridge vlan add dev $iface_name vid $id_vlantag tagged" "hold"
 			}
 		}
 	} else {
-		pipesExec "ip $nsstr bridge vlan add dev $iface_name vid $vlantag pvid untagged" "hold"
+		pipesExec "ip netns exec $private_ns bridge vlan add dev $iface_name vid $vlantag pvid untagged" "hold"
 	}
 }
 
@@ -2421,15 +2203,15 @@ proc execSetIfcVlanConfig { node_id iface_id } {
 #   iface_id -- interface name
 #****
 proc execDelIfcVlanConfig { eid node_id iface_id } {
-	set iface_name [getIfcName $node_id $iface_id]
-	set nsstr "netns exec $eid-$node_id"
-
 	set vlantag [getIfcVlanTag $node_id $iface_id]
 	set vlantype [getIfcVlanType $node_id $iface_id]
 
 	if { $vlantag != 1 || $vlantype != "access"} {
-		pipesExec "ip $nsstr bridge vlan del dev $iface_name vid 1-4094" "hold"
-		pipesExec "ip $nsstr bridge vlan add dev $iface_name vid 1 pvid untagged" "hold"
+		set iface_name [getIfcName $node_id $iface_id]
+		set private_ns "netns exec [invokeNodeProc $node_id "getPrivateNs" $eid $node_id]"
+
+		pipesExec "ip netns exec $private_ns bridge vlan del dev $iface_name vid 1-4094" "hold"
+		pipesExec "ip netns exec $private_ns bridge vlan add dev $iface_name vid 1 pvid untagged" "hold"
 	}
 }
 

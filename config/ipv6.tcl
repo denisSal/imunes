@@ -123,8 +123,7 @@ proc autoIPv6addr { node_id iface_id { use_autorenumbered "" } } {
 	#change_subnet6 - to change the subnet (1) or not (0)
 	#autorenumbered_ifcs6 - list of all interfaces that changed an address
 
-	set node_type [getNodeType $node_id]
-	if { [$node_type.netlayer] != "NETWORK" } {
+	if { [invokeNodeProc $node_id "netlayer"] != "NETWORK" } {
 		#
 		# Shouldn't get called at all for link-layer nodes
 		#
@@ -141,7 +140,7 @@ proc autoIPv6addr { node_id iface_id { use_autorenumbered "" } } {
 	set has_router 0
 	set best_choice_ip ""
 	if { $peer_id != "" } {
-		if { [[getNodeType $peer_id].netlayer] == "LINK" } {
+		if { [invokeNodeProc $peer_id "netlayer"] == "LINK" } {
 			foreach l2node [listLANNodes $peer_id {}] {
 				foreach l2node_iface_id [ifcList $l2node] {
 					lassign [logicalPeerByIfc $l2node $l2node_iface_id] new_peer_id new_peer_iface_id
@@ -175,10 +174,10 @@ proc autoIPv6addr { node_id iface_id { use_autorenumbered "" } } {
 	}
 
 	if { $peers_ip6addrs != "" && $change_subnet6 == 0 && $best_choice_ip != "" } {
-		set targetbyte [expr 0x[$node_type.IPAddrRange]]
+		set targetbyte [expr 0x[invokeNodeProc $node_id "IPAddrRange"]]
 		set addr [nextFreeIP6Addr $best_choice_ip $targetbyte $peers_ip6addrs]
 	} else {
-		set addr [getNextIPv6addr $node_type [getFromRunning "ipv6_used_list"]]
+		set addr [getNextIPv6addr [getNodeType $node_id] [getFromRunning "ipv6_used_list"]]
 	}
 
 	setIfcIPv6addrs $node_id $iface_id $addr
@@ -192,7 +191,17 @@ proc getNextIPv6addr { node_type existing_addrs } {
 		return
 	}
 
-	set targetbyte [expr 0x[$node_type.IPAddrRange]]
+	set targetbyte 0
+	if { [info procs $node_type.IPAddrRange] != "" } {
+		set targetbyte [$node_type.IPAddrRange]
+	} else {
+		if { [$node_type.netlayer] == "LINK" } {
+			set targetbyte [genericL2.IPAddrRange]
+		} elseif { [$node_type.netlayer] == "NETWORK" } {
+			set targetbyte [genericL3.IPAddrRange]
+		}
+	}
+	set targetbyte [expr 0x$targetbyte]
 
 	# TODO: enable changing IPv6 pool mask
 	return "[findFreeIPv6Net 64 $existing_addrs][format %x $targetbyte]/64"

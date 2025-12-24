@@ -93,10 +93,10 @@ proc removeLink { link_id { keep_ifaces 0 } } {
 	setToRunning "link_list" [removeFromList [getFromRunning "link_list"] $link_id]
 
 	cfgUnset "links" $link_id
-	if { [getFromRunning "${link_id}_running"] == "true" } {
-		setToRunning "${link_id}_running" "delete"
-	} else {
+	if { [getFromRunning "${link_id}_running"] == "false" } {
 		unsetRunning "${link_id}_running"
+	} else {
+		setToRunning "${link_id}_running" "delete"
 	}
 
 	# after deleting the link, refresh nodes auto default routes
@@ -307,12 +307,12 @@ proc newLinkWithIfaces { node1_id iface1_id node2_id iface2_id } {
 	setLinkPeersIfaces $link_id "$iface1_id $iface2_id"
 	lappendToRunning "link_list" $link_id
 
-	if { $config_iface1 && [info procs [getNodeType $node1_id].confNewIfc] != "" } {
-		[getNodeType $node1_id].confNewIfc $node1_id $iface1_id
+	if { $config_iface1 } {
+		invokeNodeProc $node1_id "confNewIfc" $node1_id $iface1_id
 	}
 
-	if { $config_iface2 && [info procs [getNodeType $node2_id].confNewIfc] != "" } {
-		[getNodeType $node2_id].confNewIfc $node2_id $iface2_id
+	if { $config_iface2 } {
+		invokeNodeProc $node2_id "confNewIfc" $node2_id $iface2_id
 	}
 
 	trigger_linkCreate $link_id

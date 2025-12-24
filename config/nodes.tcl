@@ -306,7 +306,7 @@ proc setNodeName { node_id name } {
 		recalculateNumType $node_type $nodeNamingBase($node_type)
 	}
 
-	if { [$node_type.virtlayer] == "NATIVE" } {
+	if { [invokeNodeProc $node_id "virtlayer"] == "NATIVE" } {
 		return
 	}
 

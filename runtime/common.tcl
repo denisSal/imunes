@@ -1018,12 +1018,12 @@ proc spawnShellExec {} {
 
 	if {
 		[isPseudoNode $node_id] ||
-		[[getNodeType $node_id].virtlayer] != "VIRTUALIZED" ||
+		[invokeNodeProc $node_id "virtlayer"] != "VIRTUALIZED" ||
 		[getFromRunning "${node_id}_running"] == "false"
 	} {
 		nodeConfigGUI .panwin.f1.c $node_id
 	} else {
-		set cmd [existingShells [[getNodeType $node_id].shellcmds] $node_id "first_only"]
+		set cmd [existingShells [invokeNodeProc $node_id "shellcmds"] $node_id "first_only"]
 		if { $cmd == "" } {
 			return
 		}
@@ -1500,3 +1500,18 @@ proc redeployCfg {} {
 	deployCfg
 	mainPipeClose
 }
+
+#****f* common.tcl/killExtProcess
+# NAME
+#   killExtProcess -- kill processes with the given regex
+# SYNOPSIS
+#   killExtProcess $regex
+# FUNCTION
+#   Executes a pkill command to kill all processes with a corresponding regex.
+# INPUTS
+#   * regex -- regularl expression of the processes
+#****
+proc killExtProcess { regex } {
+	pipesExec "pkill -f \"$regex\"" "hold"
+}
+

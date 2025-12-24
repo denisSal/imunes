@@ -400,10 +400,10 @@ proc removeNode { node_id { keep_other_ifaces 0 } } {
 	}
 
 	cfgUnset "nodes" $node_id
-	if { [getFromRunning "${node_id}_running"] == "true" } {
-		setToRunning "${node_id}_running" "delete"
-	} else {
+	if { [getFromRunning "${node_id}_running"] == "false" } {
 		unsetRunning "${node_id}_running"
+	} else {
+		setToRunning "${node_id}_running" "delete"
 	}
 }
 
@@ -442,6 +442,12 @@ proc newNode { type } {
 
 	if { [info procs $type.confNewNode] == "$type.confNewNode" } {
 		$type.confNewNode $node_id
+	} else {
+		if { [$type.netlayer] == "LINK" } {
+			genericL2.confNewNode $node_id
+		} else {
+			genericL3.confNewNode $node_id
+		}
 	}
 
 	return $node_id
@@ -847,7 +853,7 @@ proc listLANNodes { l2node_id l2peers } {
 			continue
 		}
 
-		if { [[getNodeType $peer_id].netlayer] == "LINK" && [getNodeType $peer_id] != "rj45" } {
+		if { [invokeNodeProc $peer_id "netlayer"] == "LINK" && [getNodeType $peer_id] != "rj45" } {
 			if { $peer_id ni $l2peers } {
 				set l2peers [listLANNodes $peer_id $l2peers]
 			}
@@ -877,7 +883,7 @@ proc transformNodes { nodes to_type } {
 	lassign $rdconfig ripEnable ripngEnable ospfEnable ospf6Enable bgpEnable ldpEnable
 
 	foreach node_id $nodes {
-		if { [[getNodeType $node_id].netlayer] == "NETWORK" } {
+		if { [invokeNodeProc $node_id "netlayer"] == "NETWORK" } {
 			set from_type [getNodeType $node_id]
 
 			# replace type
