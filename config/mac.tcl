@@ -62,7 +62,7 @@ proc randomizeMACbytes {} {
 #     address will be assigned
 #****
 proc autoMACaddr { node_id iface_id } {
-	if { [getNodeType $node_id] != "ext" && [[getNodeType $node_id].virtlayer] != "VIRTUALIZED" } {
+	if { [getNodeType $node_id] != "ext" && [invokeNodeProc $node_id "virtlayer"] != "VIRTUALIZED" } {
 		return ""
 	}
 

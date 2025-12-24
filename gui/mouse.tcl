@@ -448,18 +448,18 @@ proc button3link { c x y } {
 	# Toggle direct link
 	#
 	if { [isPseudoLink $link_id] } {
-		lassign [linkFromPseudoLink $link_id] - peer1_id peer1_iface
-		lassign [logicalPeerByIfc $peer1_id $peer1_iface] peer2_id peer2_iface
+		lassign [linkFromPseudoLink $link_id] - peer1_id peer1_iface_id
+		lassign [logicalPeerByIfc $peer1_id $peer1_iface_id] peer2_id peer2_iface_id
 	} else {
 		lassign [getLinkPeers $link_id] peer1_id peer2_id
-		lassign [getLinkPeersIfaces $link_id] peer1_iface peer2_iface
+		lassign [getLinkPeersIfaces $link_id] peer1_iface_id peer2_iface_id
 	}
 
 	if {
 		! $isOSlinux ||
 		$oper_mode == "edit" ||
-		([getFromRunning "${peer1_id}|${peer1_iface}_running"] == true &&
-		[getFromRunning "${peer2_id}|${peer2_iface}_running"] == true)
+		([isRunningNodeIface $peer1_id $peer1_iface_id] == true &&
+		[isRunningNodeIface $peer2_id $peer2_iface_id] == true)
 	} {
 		.button3menu add checkbutton -label "Direct link" \
 			-underline 5 -variable linkDirect_$real_link_id \
@@ -488,8 +488,8 @@ proc button3link { c x y } {
 		$oper_mode == "edit" ||
 		([getFromRunning "stop_sched"] &&
 		(! $isOSlinux || ! [set linkDirect_$real_link_id] ||
-		(! [getFromRunning "${peer1_id}|${peer1_iface}_running"] == true &&
-		! [getFromRunning "${peer2_id}|${peer2_iface}_running"] == true)))
+		(! [isRunningNodeIface $peer1_id $peer1_iface_id] == true &&
+		! [isRunningNodeIface $peer2_id $peer2_iface_id] == true)))
 	} {
 		.button3menu add command -label "Delete (keep interfaces)" \
 			-command "removeLinkGUI $link_id atomic 1"
@@ -1009,7 +1009,7 @@ proc button3node { c x y } {
 				}
 
 				if {
-					[getFromRunning ${node_id}_running] != "true" &&
+					! [isRunningNode $node_id] &&
 					($action in "node_destroy" ||
 					$action in "node_config node_unconfig node_reconfig" ||
 					$action in "ifaces_config ifaces_unconfig ifaces_reconfig")
@@ -1019,7 +1019,7 @@ proc button3node { c x y } {
 
 				switch -exact -- $action {
 					"node_create" {
-						if { [getFromRunning ${node_id}_running] != "true" } {
+						if { ! [isRunningNode $node_id] } {
 							trigger_nodeCreate $node_id
 						}
 					}
@@ -1133,8 +1133,8 @@ proc button3node { c x y } {
 	.button3menu.services delete 0 end
 	if {
 		$oper_mode == "exec" &&
-		[$type.virtlayer] == "VIRTUALIZED" &&
-		[getFromRunning ${node_id}_running] == "true"
+		[invokeNodeProc $node_id "virtlayer"] == "VIRTUALIZED" &&
+		[isRunningNode $node_id]
 	} {
 		global all_services_list
 
@@ -1169,7 +1169,7 @@ proc button3node { c x y } {
 		#
 		# Import Running Configuration
 		#
-		if { $oper_mode == "exec" && [$type.virtlayer] == "VIRTUALIZED" } {
+		if { $oper_mode == "exec" && [invokeNodeProc $node_id "virtlayer"] == "VIRTUALIZED" } {
 			.button3menu.sett add command -label "Import Running Configuration" \
 				-command "fetchNodesConfiguration"
 		}
@@ -1281,14 +1281,14 @@ proc button3node { c x y } {
 	if {
 		$type != "ext" &&
 		$oper_mode == "exec" &&
-		[$type.virtlayer] == "VIRTUALIZED" &&
-		[getFromRunning ${node_id}_running] == "true"
+		[invokeNodeProc $node_id "virtlayer"] == "VIRTUALIZED" &&
+		[isRunningNode $node_id]
 	} {
 		.button3menu add separator
 		.button3menu add cascade -label "Shell window" \
 			-menu .button3menu.shell
 
-		foreach cmd [existingShells [$type.shellcmds] $node_id] {
+		foreach cmd [existingShells [invokeNodeProc $node_id "shellcmds"] $node_id] {
 			.button3menu.shell add command -label "[lindex [split $cmd /] end]" \
 				-command "spawnShell $node_id $cmd"
 		}
@@ -1327,8 +1327,8 @@ proc button3node { c x y } {
 		}
 	} elseif {
 		$oper_mode == "exec" &&
-		[$type.virtlayer] == "VIRTUALIZED" &&
-		[getFromRunning ${node_id}_running] == "true"
+		[invokeNodeProc $node_id "virtlayer"] == "VIRTUALIZED" &&
+		[isRunningNode $node_id]
 	} {
 		#
 		# Wireshark
@@ -2373,15 +2373,15 @@ proc nodeEnter { c } {
 
 	#Show node error only if in exec mode
 	if { [getFromRunning "cfg_deployed"] } {
-		if { [getFromRunning "${node_id}_running_error"] != "" } {
-			.bottom.textbox configure -text "ERROR: [getFromRunning "${node_id}_running_error"]" -foreground "red"
+		if { [getStateErrorMsgNode $node_id] != "" } {
+			.bottom.textbox configure -text "{$node_id} ERROR: [getStateErrorMsgNode $node_id]" -foreground "red"
 
 			return
 		}
 
 		set line ""
 		foreach iface_id [ifcList $node_id] {
-			set iface_error [getFromRunning "${node_id}|${iface_id}_running_error"]
+			set iface_error [getStateErrorMsgNodeIface $node_id $iface_id]
 			if { $iface_error == "" } {
 				continue
 			}
@@ -2392,7 +2392,7 @@ proc nodeEnter { c } {
 		if { $line != "" } {
 			# remove last \n
 			set line [string range $line 0 end-1]
-			.bottom.textbox config -text "IFACES ERRORS: $line" -foreground "red"
+			.bottom.textbox config -text "{$node_id} IFACES ERRORS: $line" -foreground "red"
 
 			return
 		}
@@ -2734,7 +2734,7 @@ proc changeAddressRange {} {
 
 	# all L2 nodes are saved in link_nodes_selected list
 	foreach node_id [lsort -dictionary $selected_nodes] {
-		if { [[getNodeType $node_id].netlayer] == "LINK" } {
+		if { [invokeNodeProc $node_id "netlayer"] == "LINK" } {
 			lappend link_nodes_selected $node_id
 		}
 	}
@@ -2757,7 +2757,7 @@ proc changeAddressRange {} {
 			set autorenumber_nodes ""
 			foreach iface_id [ifcList $node_id] {
 				lassign [logicalPeerByIfc $node_id $iface_id] peer_id peer_iface_id
-				if { $peer_id != "" && [[getNodeType $peer_id].netlayer] != "LINK" && $peer_id in $selected_nodes } {
+				if { $peer_id != "" && [invokeNodeProc $peer_id "netlayer"] != "LINK" && $peer_id in $selected_nodes } {
 					lappend autorenumber_nodes "$peer_id $peer_iface_id"
 				}
 			}
@@ -2786,10 +2786,10 @@ proc changeAddressRange {} {
 			continue
 		}
 
-		if { [[getNodeType $node_id].netlayer] != "LINK" } {
+		if { [invokeNodeProc $node_id "netlayer"] != "LINK" } {
 			foreach iface_id [ifcList $node_id] {
 				lassign [logicalPeerByIfc $node_id $iface_id] peer_id -
-				if { $peer_id != "" && [[getNodeType $peer_id].netlayer] != "LINK" && $peer_id in $selected_nodes } {
+				if { $peer_id != "" && [invokeNodeProc $peer_id "netlayer"] != "LINK" && $peer_id in $selected_nodes } {
 					lappend autorenumber_ifcs "$node_id $iface_id"
 					if { [lsearch $autorenumber_nodes $node_id] == -1 } {
 						lappend autorenumber_nodes $node_id
@@ -2858,7 +2858,7 @@ proc changeAddressRange6 {} {
 
 	# all L2 nodes are saved in link_nodes_selected list
 	foreach node_id [lsort -dictionary $selected_nodes] {
-		if { [[getNodeType $node_id].netlayer] == "LINK" } {
+		if { [invokeNodeProc $node_id "netlayer"] == "LINK" } {
 			lappend link_nodes_selected $node_id
 		}
 	}
@@ -2881,7 +2881,7 @@ proc changeAddressRange6 {} {
 			set autorenumber_nodes ""
 			foreach iface_id [ifcList $node_id] {
 				lassign [logicalPeerByIfc $node_id $iface_id] peer_id peer_iface_id
-				if { $peer_id != "" && [[getNodeType $peer_id].netlayer] != "LINK" && $peer_id in $selected_nodes } {
+				if { $peer_id != "" && [invokeNodeProc $peer_id "netlayer"] != "LINK" && $peer_id in $selected_nodes } {
 					lappend autorenumber_nodes "$peer_id $peer_iface_id"
 				}
 			}
@@ -2911,10 +2911,10 @@ proc changeAddressRange6 {} {
 			continue
 		}
 
-		if { [[getNodeType $node_id].netlayer] != "LINK" } {
+		if { [invokeNodeProc $node_id "netlayer"] != "LINK" } {
 			foreach iface_id [ifcList $node_id] {
 				lassign [logicalPeerByIfc $node_id $iface_id] peer_id -
-				if { $peer_id != "" && [[getNodeType $peer_id].netlayer] != "LINK" && $peer_id in $selected_nodes } {
+				if { $peer_id != "" && [invokeNodeProc $peer_id "netlayer"] != "LINK" && $peer_id in $selected_nodes } {
 					lappend autorenumber_ifcs "$node_id $iface_id"
 					if { [lsearch $autorenumber_nodes $node_id] == -1 } {
 						lappend autorenumber_nodes $node_id

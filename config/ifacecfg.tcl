@@ -359,7 +359,13 @@ proc nodeCfggenIfcIPv6 { node_id iface_id } {
 #   * iface_id -- the first available name for a interface of the specified type
 #****
 proc newIface { node_id iface_type auto_config { stolen_iface "" } } {
-	set iface_id [newObjectId [allIfcList $node_id] "ifc"]
+	set iface_id ""
+	while { $iface_id == "" } {
+		set iface_id [newObjectId [allIfcList $node_id] "ifc"]
+		if { [getStateNodeIface $node_id $iface_id] != "" } {
+			removeIface $node_id $iface_id
+		}
+	}
 
 	switch -exact $iface_type {
 		"lo" -
@@ -367,7 +373,7 @@ proc newIface { node_id iface_type auto_config { stolen_iface "" } } {
 			set iface_name [newObjectId [allIfacesNames $node_id] $iface_type]
 		}
 		"phys" {
-			set iface_name [newObjectId [allIfacesNames $node_id] [[getNodeType $node_id].ifacePrefix]]
+			set iface_name [newObjectId [allIfacesNames $node_id] [invokeNodeProc $node_id "ifacePrefix"]]
 		}
 		"stolen" {
 			if { $stolen_iface != "UNASSIGNED" && $stolen_iface in [allIfacesNames $node_id] } {
@@ -378,17 +384,13 @@ proc newIface { node_id iface_type auto_config { stolen_iface "" } } {
 		}
 	}
 
-	if { [getFromRunning "${node_id}|${iface_id}_running"] == "" } {
-		setToRunning "${node_id}|${iface_id}_running" "false"
-	}
-
 	setNodeIface $node_id $iface_id {}
 
 	setIfcType $node_id $iface_id $iface_type
 	setIfcName $node_id $iface_id $iface_name
 
 	if { $auto_config } {
-		[getNodeType $node_id].confNewIfc $node_id $iface_id
+		invokeNodeProc $node_id "confNewIfc" $node_id $iface_id
 	}
 
 	trigger_ifaceCreate $node_id $iface_id
@@ -430,10 +432,8 @@ proc removeIface { node_id iface_id { keep_other_ifaces 1} } {
 	set iface_name [getIfcName $node_id $iface_id]
 
 	cfgUnset "nodes" $node_id "ifaces" $iface_id
-	if { [getFromRunning "${node_id}|${iface_id}_running"] == "true" } {
-		setToRunning "${node_id}|${iface_id}_running" "delete"
-	} else {
-		unsetRunning "${node_id}|${iface_id}_running"
+	if { ! [isRunningNodeIface $node_id $iface_id] } {
+		unsetStateNodeIface $node_id $iface_id
 	}
 
 	foreach {logiface_id iface_cfg} [cfgGet "nodes" $node_id "ifaces"] {

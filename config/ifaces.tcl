@@ -358,7 +358,7 @@ proc setIfcIPv4addrs { node_id iface_id addrs4 } {
 		}
 
 		set subnet_node_type [getNodeType $subnet_node]
-		if { $subnet_node_type == "ext" || [$subnet_node_type.netlayer] != "NETWORK" } {
+		if { $subnet_node_type == "ext" || [invokeTypeProc $subnet_node_type "netlayer"] != "NETWORK" } {
 			# skip extnat and L2 nodes
 			continue
 		}
@@ -498,7 +498,7 @@ proc setIfcIPv6addrs { node_id iface_id addrs6 } {
 		}
 
 		set subnet_node_type [getNodeType $subnet_node]
-		if { $subnet_node_type == "ext" || [$subnet_node_type.netlayer] != "NETWORK" } {
+		if { $subnet_node_type == "ext" || [invokeTypeProc $subnet_node_type "netlayer"] != "NETWORK" } {
 			# skip extnat and L2 nodes
 			continue
 		}

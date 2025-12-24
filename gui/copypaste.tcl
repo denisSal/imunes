@@ -153,7 +153,7 @@ proc paste {} {
 		set new_node_id [newObjectId [getFromRunning "node_list"] "n"]
 		set node_map($node_orig) $new_node_id
 		cfgSet "nodes" $new_node_id $node_orig_cfg
-		setToRunning "${new_node_id}_running" "false"
+		setStateNode $new_node_id "exists"
 		lappendToRunning "node_list" $new_node_id
 		lappend copypaste_list $new_node_id
 
@@ -185,7 +185,7 @@ proc paste {} {
 		set new_node_id $node_map($node_orig)
 
 		foreach iface_id [ifcList $new_node_id] {
-			setToRunning "${new_node_id}|${iface_id}_running" "false"
+			setStateNodeIface $new_node_id $iface_id "exists"
 			#set new_peer_id $node_map([getIfcPeer $new_node_id $iface_id])
 			#cfgSet "nodes" $new_node_id "ifaces" $iface_id "peer" $new_link_id
 

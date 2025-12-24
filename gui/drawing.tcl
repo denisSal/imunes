@@ -10,12 +10,8 @@ proc refreshToolBarNodes {} {
 	foreach node_type $all_modules_list {
 		set image [image create photo -file [$node_type.icon toolbar]]
 
-		set tool ""
-		if { [$node_type.netlayer] == "LINK" } {
-			set tool "link"
-		} elseif { [$node_type.netlayer] == "NETWORK" } {
-			set tool "net"
-		}
+		set tool [invokeTypeProc $node_type "toolbarLocation"]
+		set tool [lindex [split $tool "_"] 0]
 
 		set background_color ""
 		if { $node_type ni $runnable_node_types } {
@@ -250,7 +246,7 @@ proc drawNode { node_id } {
 			set errstr ""
 			if {
 				[getFromRunning "cfg_deployed"] &&
-				[getFromRunning "${node_id}|${iface_id}_running_error"] != ""
+				[getStateErrorMsgNodeIface $node_id $iface_id] != ""
 			} {
 				set errstr "ERROR"
 			}
@@ -270,7 +266,7 @@ proc drawNode { node_id } {
 		}
 	}
 
-	if { [getFromRunning "${node_id}_running"] == "true" } {
+	if { [isRunningNode $node_id] } {
 		global running_indicator_palette running_mask_image
 
 		.panwin.f1.c create image \
@@ -549,14 +545,14 @@ proc updateIfcLabel { link_id node_id iface_id } {
 	set str ""
 	if {
 		[getIfcOperState $node_id $iface_id] == "down" ||
-		([getFromRunning "cfg_deployed"] && [getFromRunning "${node_id}|${iface_id}_running"] != "true")
+		([getFromRunning "cfg_deployed"] && ! [isRunningNodeIface $node_id $iface_id])
 	} {
 		set str "*"
 	}
 
 	if {
 		[getFromRunning "cfg_deployed"] &&
-		[getFromRunning "${node_id}|${iface_id}_running_error"] != ""
+		[getStateErrorMsgNodeIface $node_id $iface_id] != ""
 	} {
 		set str "ERROR "
 	}

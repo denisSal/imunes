@@ -66,7 +66,7 @@ proc nodeConfigGUI { c node_id } {
 	}
 
 	set badentry 0
-	[getNodeType $node_id].configGUI $c $node_id
+	invokeNodeProc $node_id "configGUI" $c $node_id
 }
 
 #****f* nodecfgGUI.tcl/configGUI_createConfigPopupWin
@@ -287,7 +287,7 @@ proc configGUI_addTree { wi node_id } {
 		}
 	}
 
-	if { [[_getNodeType $node_cfg].virtlayer] == "VIRTUALIZED" } {
+	if { [_invokeNodeProc $node_cfg "virtlayer"] == "VIRTUALIZED" } {
 		$wi.panwin.f1.tree insert {} end -id logIfcFrame -text \
 			"Logical Interfaces" -open true -tags logIfcFrame
 
@@ -405,7 +405,7 @@ proc configGUI_addTree { wi node_id } {
 		$wi.panwin.f1.tree tag bind $iface_id <Key-Down> $tmp_command
 	}
 
-	if { [[_getNodeType $node_cfg].virtlayer] == "VIRTUALIZED" } {
+	if { [_invokeNodeProc $node_cfg "virtlayer"] == "VIRTUALIZED" } {
 		$wi.panwin.f1.tree tag bind [lindex $sorted_iface_list end] <Key-Down> \
 			"configGUI_showIfcInfo $wi.panwin.f2 0 $node_id logIfcFrame"
 
@@ -643,7 +643,7 @@ proc configGUI_refreshIfcsTree { wi node_id } {
 		}
 	}
 
-	if { [[_getNodeType $node_cfg].virtlayer] == "VIRTUALIZED" } {
+	if { [_invokeNodeProc $node_cfg "virtlayer"] == "VIRTUALIZED" } {
 		$wi insert {} end -id logIfcFrame -text \
 			"Logical Interfaces" -open true -tags logIfcFrame
 
@@ -716,7 +716,7 @@ proc configGUI_refreshIfcsTree { wi node_id } {
 		$wi tag bind $iface_id <Key-Down> $tmp_command
 	}
 
-	if { [[_getNodeType $node_cfg].virtlayer] == "VIRTUALIZED" } {
+	if { [_invokeNodeProc $node_cfg "virtlayer"] == "VIRTUALIZED" } {
 		$wi tag bind [lindex $sorted_iface_list end] <Key-Down> \
 			"configGUI_showIfcInfo $wi_bind.panwin.f2 0 $node_id logIfcFrame"
 
@@ -1495,7 +1495,7 @@ proc configGUI_nodeRestart { wi node_id } {
 	pack $w.label -side left -padx 2
 	pack $w.options -side left -padx 2
 
-	if { [getFromRunning "oper_mode"] == "edit" || [getFromRunning "${node_id}_running"] == "false" } {
+	if { [getFromRunning "oper_mode"] == "edit" || ! [isRunningNode $node_id] } {
 		set disabled 1
 	} else {
 		set disabled 0
@@ -3824,17 +3824,16 @@ proc customConfigGUIFillDefaults { wi node_id selected_hook } {
 	global custom_node_cfg
 
 	set cfg_id [$wi.nb tab current -text]
-	set node_type [_getNodeType $custom_node_cfg]
-	set cmd [$node_type.bootcmd $node_id]
+	set cmd [invokeNodeProc $node_id "bootcmd" $node_id]
 
 	set tmp_status [getNodeCustomEnabled $node_id]
 	setNodeCustomEnabled $node_id false
 	switch -exact -- $selected_hook {
 		"IFACES_CONFIG" {
-			set cfg [$node_type.generateConfigIfaces $node_id "*"]
+			set cfg [invokeNodeProc $node_id "generateConfigIfaces" $node_id "*"]
 		}
 		"NODE_CONFIG" {
-			set cfg [$node_type.generateConfig $node_id]
+			set cfg [invokeNodeProc $node_id "generateConfig" $node_id]
 		}
 	}
 	setNodeCustomEnabled $node_id $tmp_status
@@ -6305,7 +6304,8 @@ proc configGUI_showBridgeIfcInfo { wi phase node_id iface_id } {
 		#parameters of selected interface
 		if { $iface_id != "" && $iface_id != $shownifc } {
 			configGUI_ifcBridgeMainFrame $wi $node_id $iface_id
-			[_getNodeType $node_cfg].configBridgeInterfacesGUI $wi $node_id $iface_id
+			# XXX
+			_invokeNodeProc $node_cfg "configBridgeInterfacesGUI" $wi $node_id $iface_id
 		}
 	}
 }

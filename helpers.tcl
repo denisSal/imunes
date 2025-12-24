@@ -403,6 +403,9 @@ proc reloadSources {} {
 		safeSourceFile $file_path
 	}
 
+	safeSourceFile "$ROOTDIR/$LIBDIR/nodes/generic_l2.tcl"
+	safeSourceFile "$ROOTDIR/$LIBDIR/nodes/generic_l3.tcl"
+
 	# Node base libraries
 	foreach node_type $node_types {
 		safeSourceFile "$ROOTDIR/$LIBDIR/nodes/$node_type.tcl"
@@ -419,6 +422,9 @@ proc reloadSources {} {
 		if { $gui } {
 			safePackageRequire Tk "To run the IMUNES GUI, Tk must be installed."
 		}
+
+		safeSourceFile "$ROOTDIR/$LIBDIR/gui/nodes/generic_l2.tcl"
+		safeSourceFile "$ROOTDIR/$LIBDIR/gui/nodes/generic_l3.tcl"
 
 		# Node GUI base libraries
 		foreach node_type $node_types {
@@ -470,4 +476,43 @@ proc rexec { args } {
 
 		return -code error $err
 	}
+}
+
+proc isOk { args } {
+	try {
+		rexec {*}$args
+	} on ok {} {
+		return true
+	} on error {} {
+		return false
+	}
+}
+
+proc isNotOk { args } {
+	try {
+		rexec {*}$args
+	} on ok {} {
+		return false
+	} on error {} {
+		return true
+	}
+}
+
+proc invokeTypeProc { node_type proc_name args } {
+	set retval ""
+	if { [info procs $node_type.$proc_name] != "" } {
+		set retval [$node_type.$proc_name {*}$args]
+	} else {
+		if { [$node_type.netlayer] == "LINK" } {
+			set retval [genericL2.$proc_name {*}$args]
+		} elseif { [$node_type.netlayer] == "NETWORK" } {
+			set retval [genericL3.$proc_name {*}$args]
+		}
+	}
+
+	return $retval
+}
+
+proc invokeNodeProc { node_id proc_name args } {
+	return [invokeTypeProc [getNodeType $node_id] $proc_name {*}$args]
 }
