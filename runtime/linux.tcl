@@ -3,57 +3,6 @@ set VROOT_MASTER "imunes/template"
 set ULIMIT_FILE "1024:16384"
 set ULIMIT_PROC "1024:16384"
 
-#****f* linux.tcl/l2node.nodeCreate
-# NAME
-#   l2node.nodeCreate -- nodeCreate
-# SYNOPSIS
-#   l2node.nodeCreate $eid $node_id
-# FUNCTION
-#   Procedure l2node.nodeCreate creates a new netgraph node of the appropriate type.
-# INPUTS
-#   * eid -- experiment id
-#   * node_id -- id of the node (type of the node is either lanswitch or hub)
-#****
-proc l2node.nodeCreate { eid node_id } {
-	set type [getNodeType $node_id]
-
-	set ageing_time ""
-	if { $type == "hub" } {
-		set ageing_time "ageing_time 0"
-	}
-
-	set vlanfiltering "vlan_filtering [getNodeVlanFiltering $node_id]"
-
-	set nodeNs [getNodeNetns $eid $node_id]
-	pipesExec "ip netns exec $nodeNs ip link add name $node_id type bridge $vlanfiltering $ageing_time" "hold"
-	pipesExec "ip netns exec $nodeNs ip link set $node_id up" "hold"
-}
-
-##****f* linux.tcl/l2node.nodeDestroy
-## NAME
-##   l2node.nodeDestroy -- destroy
-## SYNOPSIS
-##   l2node.nodeDestroy $eid $node_id
-## FUNCTION
-##   Destroys a l2 node.
-## INPUTS
-##   * eid -- experiment id
-##   * node_id -- id of the node
-##****
-#proc l2node.nodeDestroy { eid node_id } {
-#	set type [getNodeType $node_id]
-#
-#	set nodeNs [getNodeNetns $eid $node_id]
-#
-#	set nsstr ""
-#	if { $nodeNs != "" } {
-#		set nsstr "-n $nodeNs"
-#	}
-#	pipesExec "ip $nsstr link delete $node_id" "hold"
-#
-#	removeNodeNetns $eid $node_id
-#}
-
 #****f* linux.tcl/writeDataToNodeFile
 # NAME
 #   writeDataToNodeFile -- write data to virtual node
@@ -2096,67 +2045,6 @@ proc execSetIfcQDisc { eid node_id iface_id qdisc } {
 #****
 proc execSetIfcQLen { eid node_id iface_id qlen } {
 	pipesExec "ip -n $eid.$node_id l set [getIfcName $node_id $iface_id] txqueuelen $qlen" "hold"
-}
-
-#****f* linux.tcl/execSetIfcVlanConfig
-# NAME
-#   execSetIfcVlanConfig -- in exec mode set interface vlan configuration
-# SYNOPSIS
-#   execSetIfcVlanConfig $eid $node_id $iface_id
-# FUNCTION
-#   Configures VLAN type and tag during the simulation.
-# INPUTS
-#   eid -- experiment id
-#   node_id -- node id
-#   iface_id -- interface name
-#****
-proc execSetIfcVlanConfig { node_id iface_id } {
-	set vlantype [getIfcVlanType $node_id $iface_id]
-	set vlantag [getIfcVlanTag $node_id $iface_id]
-
-	set iface_name [getIfcName $node_id $iface_id]
-	set private_ns [invokeNodeProc $node_id "getPrivateNs"]
-
-	if { $vlantag != 1 || $vlantype in "\"\" trunk"} {
-		pipesExec "ip netns exec $private_ns exec bridge vlan del dev $iface_name vid 1" "hold"
-	}
-
-	if { $vlantype == "trunk" } {
-		foreach id [ifcList $node_id] {
-			set ifc_vlantype [getIfcVlanType $node_id $id]
-			if { $ifc_vlantype == "access" } {
-				set id_vlantag [getIfcVlanTag $node_id $id]
-				pipesExec "ip netns exec $private_ns bridge vlan add dev $iface_name vid $id_vlantag tagged" "hold"
-			}
-		}
-	} else {
-		pipesExec "ip netns exec $private_ns bridge vlan add dev $iface_name vid $vlantag pvid untagged" "hold"
-	}
-}
-
-#****f* linux.tcl/execDelIfcVlanConfig
-# NAME
-#   execDelIfcVlanConfig -- in exec mode restore interface vlan configuration
-# SYNOPSIS
-#   execDelIfcVlanConfig $eid $node_id $iface_id
-# FUNCTION
-#   Restores VLAN configuration to the default state during the simulation.
-# INPUTS
-#   eid -- experiment id
-#   node_id -- node id
-#   iface_id -- interface name
-#****
-proc execDelIfcVlanConfig { eid node_id iface_id } {
-	set vlantag [getIfcVlanTag $node_id $iface_id]
-	set vlantype [getIfcVlanType $node_id $iface_id]
-
-	if { $vlantag != 1 || $vlantype != "access"} {
-		set iface_name [getIfcName $node_id $iface_id]
-		set private_ns "netns exec [invokeNodeProc $node_id "getPrivateNs" $eid $node_id]"
-
-		pipesExec "ip netns exec $private_ns bridge vlan del dev $iface_name vid 1-4094" "hold"
-		pipesExec "ip netns exec $private_ns bridge vlan add dev $iface_name vid 1 pvid untagged" "hold"
-	}
 }
 
 proc getNetemConfigLine { bandwidth delay loss dup } {

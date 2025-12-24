@@ -60,7 +60,7 @@ proc genExperimentId {} {
 proc checkExternalInterfaces {} {
 	global execMode isOSlinux gui
 
-	set extifcs [getHostIfcList]
+	set eid [getFromRunning "eid"]
 
 	set nodes_ifcpairs {}
 	foreach node_id [getFromRunning "node_list"] {
@@ -68,12 +68,39 @@ proc checkExternalInterfaces {} {
 			continue
 		}
 
-		if { [getNodeType $node_id] == "rj45" } {
-			foreach ifaces [getNodeStolenIfaces $node_id] {
-				lappend nodes_ifcpairs [list $node_id $ifaces]
+		set ifaces [ifcList $node_id]
+		if { ! [invokeNodeProc $node_id "checkIfacesPrerequisites" $eid $node_id $ifaces] } {
+			foreach iface_id $ifaces {
+				set msg [getStateErrorMsgNodeIface $node_id $iface_id]
+				if { $msg == "" } {
+					continue
+				}
+
+				if { "wireless" in [getStateNodeIface $node_id $iface_id] } {
+					set severity "WARNING"
+				} else {
+					set severity "ERROR"
+				}
+
+				set msg "[getNodeName $node_id] - $iface_id\n$msg"
+				if { ! $gui || $execMode == "batch" } {
+					puts stderr "IMUNES $severity: $msg"
+				} else {
+					after idle { .dialog1.msg configure -wraplength 4i }
+					tk_dialog .dialog1 "IMUNES $severity" $msg \
+						info 0 Dismiss
+				}
+
+				if { $severity == "ERROR" } {
+					return 1
+				}
 			}
 		}
 	}
+
+	return 0
+
+	set extifcs [getHostIfcList]
 
 	foreach node_ifcpair $nodes_ifcpairs {
 		lassign $node_ifcpair node_id ifcpair
