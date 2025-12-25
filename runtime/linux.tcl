@@ -1398,32 +1398,6 @@ proc getCpuCount {} {
 	return [lindex [rexec grep -c processor /proc/cpuinfo] 0]
 }
 
-#****f* linux.tcl/enableIPforwarding
-# NAME
-#   enableIPforwarding -- enable IP forwarding
-# SYNOPSIS
-#   enableIPforwarding $node_id
-# FUNCTION
-#   Enables IPv4 and IPv6 forwarding on the given node.
-# INPUTS
-#   * node_id -- node id
-#****
-proc enableIPforwarding { node_id } {
-	array set sysctl_ipfwd {
-		net.ipv6.conf.all.forwarding	1
-		net.ipv4.conf.all.forwarding	1
-		net.ipv4.conf.default.rp_filter	0
-		net.ipv4.conf.all.rp_filter		0
-	}
-
-	foreach {name val} [array get sysctl_ipfwd] {
-		lappend cmd "sysctl $name=$val"
-	}
-	set cmds [join $cmd "; "]
-
-	pipesExec "docker exec -d [getFromRunning "eid"].$node_id sh -c \'$cmds\'" "hold"
-}
-
 #****f* linux.tcl/captureExtIfc
 # NAME
 #   captureExtIfc -- capture external interface

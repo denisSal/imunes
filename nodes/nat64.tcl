@@ -167,7 +167,7 @@ proc $MODULE.nghook { eid node_id iface_id } {
 #   Does nothing
 #****
 proc $MODULE.prepareSystem {} {
-	router.prepareSystem
+	#router.prepareSystem
 }
 
 proc $MODULE.nodeCreate { eid node_id } {

@@ -58,24 +58,6 @@ proc $MODULE.toolbarIconDescr {} {
 	return "Add new Router"
 }
 
-proc $MODULE._confNewIfc { node_cfg iface_id } {
-	global node_existing_mac node_existing_ipv4 node_existing_ipv6
-
-	set ipv4addr [getNextIPv4addr [_getNodeType $node_cfg] $node_existing_ipv4]
-	lappend node_existing_ipv4 $ipv4addr
-	set node_cfg [_setIfcIPv4addrs $node_cfg $iface_id $ipv4addr]
-
-	set ipv6addr [getNextIPv6addr [_getNodeType $node_cfg] $node_existing_ipv6]
-	lappend node_existing_ipv6 $ipv6addr
-	set node_cfg [_setIfcIPv6addrs $node_cfg $iface_id $ipv6addr]
-
-	set macaddr [getNextMACaddr $node_existing_mac]
-	lappend node_existing_mac $macaddr
-	set node_cfg [_setIfcMACaddr $node_cfg $iface_id $macaddr]
-
-	return $node_cfg
-}
-
 #****f* genericrouter.tcl/router.icon
 # NAME
 #   router.icon -- icon
@@ -173,7 +155,7 @@ proc $MODULE.configGUI { c node_id } {
 	set node_existing_ipv6 [getFromRunning "ipv6_used_list"]
 
 	configGUI_createConfigPopupWin $c
-	wm title $wi "router configuration"
+	wm title $wi "[_getNodeType $node_cfg] ($node_id) configuration"
 
 	configGUI_nodeName $wi $node_id "Node name:"
 
@@ -209,28 +191,4 @@ proc $MODULE.configGUI { c node_id } {
 
 	configGUI_nodeRestart $wi $node_id
 	configGUI_buttonsACNode $wi $node_id
-}
-
-#****f* genericrouter.tcl/router.configInterfacesGUI
-# NAME
-#   router.configInterfacesGUI -- configuration of interfaces GUI
-# SYNOPSIS
-#   router.configInterfacesGUI $wi $node_id $iface_id
-# FUNCTION
-#   Defines which modules for changing interfaces parameters are contained in
-#   the router configuration window. It is done by calling procedures for
-#   adding certain modules to the window.
-# INPUTS
-#   * wi -- widget
-#   * node_id -- node id
-#   * iface_id -- interface name
-#****
-proc $MODULE.configInterfacesGUI { wi node_id iface_id } {
-	global guielements
-
-	configGUI_ifcEssentials $wi $node_id $iface_id
-	configGUI_ifcQueueConfig $wi $node_id $iface_id
-	configGUI_ifcMACAddress $wi $node_id $iface_id
-	configGUI_ifcIPv4Address $wi $node_id $iface_id
-	configGUI_ifcIPv6Address $wi $node_id $iface_id
 }
