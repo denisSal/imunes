@@ -28,7 +28,7 @@
 
 global vroot_unionfs vroot_linprocfs ifc_dad_disable \
 	devfs_number auto_etc_hosts linkJitterConfiguration ipsecSecrets \
-	ipsecConf ipFastForwarding
+	ipsecConf
 
 set linkJitterConfiguration 0
 set vroot_unionfs 1
@@ -36,7 +36,6 @@ set vroot_linprocfs 0
 set ifc_dad_disable 0
 set devfs_number 46837
 set auto_etc_hosts 0
-set ipFastForwarding 0
 
 #****f* common.tcl/getVrootDir
 # NAME

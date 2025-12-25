@@ -2181,28 +2181,6 @@ proc releaseExtIfcByName { eid ifname node_id } {
 	pipesExec "ifconfig $ifname up -promisc" "hold"
 }
 
-#****f* freebsd.tcl/enableIPforwarding
-# NAME
-#   enableIPforwarding -- enable IP forwarding
-# SYNOPSIS
-#   enableIPforwarding $node_id
-# FUNCTION
-#   Enables IPv4 and IPv6 forwarding on the given node.
-# INPUTS
-#   * node_id -- node id
-#****
-proc enableIPforwarding { node_id } {
-	global ipFastForwarding
-
-	set eid [getFromRunning "eid"]
-
-	pipesExec "jexec $eid\.$node_id sysctl net.inet.ip.forwarding=1" "hold"
-	if { $ipFastForwarding } {
-		pipesExec "jexec $eid\.$node_id sysctl net.inet.ip.fastforwarding=1" "hold"
-	}
-	pipesExec "jexec $eid\.$node_id sysctl net.inet6.ip6.forwarding=1" "hold"
-}
-
 proc getStateIfcCmd { iface_name state } {
 	return "ifconfig $iface_name $state"
 }
