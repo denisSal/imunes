@@ -47,6 +47,12 @@ registerModule $MODULE
 ########################### CONFIGURATION PROCEDURES ###########################
 ################################################################################
 
+#### required for every node
+proc $MODULE.netlayer {} {
+	return [genericL2.netlayer]
+}
+#### /required for every node
+
 #****f* rj45.tcl/rj45.confNewNode
 # NAME
 #   rj45.confNewNode -- configure new node
@@ -63,32 +69,6 @@ proc $MODULE.confNewNode { node_id } {
 	setNodeName $node_id [getNewNodeNameType rj45 $nodeNamingBase(rj45)]
 }
 
-#****f* rj45.tcl/rj45.confNewIfc
-# NAME
-#   rj45.confNewIfc -- configure new interface
-# SYNOPSIS
-#   rj45.confNewIfc $node_id $ifc
-# FUNCTION
-#   Configures new interface for the specified node.
-# INPUTS
-#   * node_id -- node id
-#   * ifc -- interface name
-#****
-proc $MODULE.confNewIfc { node_id ifc } {
-}
-
-proc $MODULE.generateConfigIfaces { node_id ifaces } {
-}
-
-proc $MODULE.generateUnconfigIfaces { node_id ifaces } {
-}
-
-proc $MODULE.generateConfig { node_id } {
-}
-
-proc $MODULE.generateUnconfig { node_id } {
-}
-
 #****f* rj45.tcl/rj45.ifacePrefix
 # NAME
 #   rj45.ifacePrefix -- interface name prefix
@@ -103,59 +83,51 @@ proc $MODULE.ifacePrefix {} {
 	return "x"
 }
 
-#****f* rj45.tcl/rj45.netlayer
-# NAME
-#   rj45.netlayer -- layer
-# SYNOPSIS
-#   set layer [rj45.netlayer]
-# FUNCTION
-#   Returns the layer on which the rj45 operates, i.e. returns LINK.
-# RESULT
-#   * layer -- set to LINK
-#****
-proc $MODULE.netlayer {} {
-	return LINK
-}
+proc $MODULE.getPrivateNs { eid node_id } {
+	global isOSlinux isOSfreebsd
 
-#****f* rj45.tcl/rj45.virtlayer
-# NAME
-#   rj45.virtlayer -- virtual layer
-# SYNOPSIS
-#   set layer [rj45.virtlayer]
-# FUNCTION
-#   Returns the layer on which the rj45 node is instantiated,
-#   i.e. returns NATIVE.
-# RESULT
-#   * layer -- set to NATIVE
-#****
-proc $MODULE.virtlayer {} {
-	return NATIVE
-}
-
-#****f* rj45.tcl/rj45.nghook
-# NAME
-#   rj45.nghook
-# SYNOPSIS
-#   rj45.nghook $eid $node_id $iface_id
-# FUNCTION
-#   Returns the id of the netgraph node and the netgraph hook name. In this
-#   case netgraph node name correspondes to the name of the physical interface.
-# INPUTS
-#   * eid -- experiment id
-#   * node_id -- node id
-#   * iface_id -- interface id
-# RESULT
-#   * nghook -- the list containing netgraph node name and
-#     the netraph hook name (in this case: lower).
-#****
-proc $MODULE.nghook { eid node_id iface_id } {
-	set iface_name [getIfcName $node_id $iface_id]
-	set vlan [getIfcVlanTag $node_id $iface_id]
-	if { $vlan != "" && [getIfcVlanDev $node_id $iface_id] != "" } {
-		set iface_name ${iface_name}_$vlan
+	if { $isOSlinux } {
+		return $eid
 	}
 
-	return [list $iface_name lower]
+	if { $isOSfreebsd } {
+		return $eid
+	}
+}
+
+proc $MODULE.getPublicNs { eid node_id } {
+	global isOSlinux isOSfreebsd
+
+	if { $isOSlinux } {
+		# nothing
+		return
+	}
+
+	if { $isOSfreebsd } {
+		# nothing
+		return
+	}
+}
+
+proc $MODULE.getHookData { node_id iface_id } {
+	global isOSlinux isOSfreebsd
+
+	set public_elem [getIfcName $node_id $iface_id]
+	set vlan [getIfcVlanTag $node_id $iface_id]
+
+	if { $vlan != "" && [getIfcVlanDev $node_id $iface_id] != "" } {
+		set public_elem ${public_elem}_$vlan
+	}
+
+	if { $isOSlinux } {
+		set hook_name ""
+	}
+
+	if { $isOSfreebsd } {
+		set hook_name "lower"
+	}
+
+	return [list $public_elem $hook_name]
 }
 
 ################################################################################
@@ -171,7 +143,17 @@ proc $MODULE.nghook { eid node_id iface_id } {
 #   Loads ng_ether into the kernel.
 #****
 proc $MODULE.prepareSystem {} {
-	catch { rexec kldload ng_ether }
+	global isOSlinux isOSfreebsd
+
+	if { $isOSlinux } {
+		return
+	}
+
+	if { $isOSfreebsd } {
+		catch { rexec kldload ng_ether }
+
+		return
+	}
 }
 
 #****f* rj45.tcl/rj45.nodeCreate
@@ -188,6 +170,10 @@ proc $MODULE.prepareSystem {} {
 proc $MODULE.nodeCreate { eid node_id } {
 }
 
+proc $MODULE.nodeCreate_check { eid node_id } {
+	return true
+}
+
 #****f* rj45.tcl/rj45.nodeNamespaceSetup
 # NAME
 #   rj45.nodeNamespaceSetup -- rj45 node nodeNamespaceSetup
@@ -202,19 +188,8 @@ proc $MODULE.nodeCreate { eid node_id } {
 proc $MODULE.nodeNamespaceSetup { eid node_id } {
 }
 
-#****f* rj45.tcl/rj45.nodeInitConfigure
-# NAME
-#   rj45.nodeInitConfigure -- rj45 node nodeInitConfigure
-# SYNOPSIS
-#   rj45.nodeInitConfigure $eid $node_id
-# FUNCTION
-#   Runs initial L3 configuration, such as creating logical interfaces and
-#   configuring sysctls.
-# INPUTS
-#   * eid -- experiment id
-#   * node_id -- node id
-#****
-proc $MODULE.nodeInitConfigure { eid node_id } {
+proc $MODULE.nodeNamespaceSetup_check { eid node_id } {
+	return true
 }
 
 proc $MODULE.nodePhysIfacesCreate { eid node_id ifaces } {
@@ -237,7 +212,58 @@ proc $MODULE.nodePhysIfacesCreate { eid node_id ifaces } {
 	}
 }
 
-proc $MODULE.nodeLogIfacesCreate { eid node_id ifaces } {
+proc $MODULE.nodePhysIfacesCreate_check { eid node_id ifaces } {
+	global isOSlinux isOSfreebsd
+
+	foreach iface_id $ifaces {
+		if { [getFromRunning "${node_id}|${iface_id}_running"] == "true" } {
+			continue
+		}
+
+		set iface_name [getIfcName $node_id $iface_id]
+
+		if { [getIfcName $node_id $iface_id] == "UNASSIGNED" } {
+			continue
+		}
+	}
+
+	if { $isOSlinux } {
+	}
+
+	if { $isOSfreebsd } {
+	}
+}
+
+proc $MODULE.nodePhysIfacesCreateDirect { eid node_id ifaces } {
+	global isOSlinux isOSfreebsd
+
+	if { $isOSlinux } {
+	}
+
+	if { $isOSfreebsd } {
+	}
+}
+
+proc $MODULE.nodePhysIfacesCreateDirect_check { eid node_id ifaces } {
+	global isOSlinux isOSfreebsd
+
+	foreach iface_id $ifaces {
+		if { [getFromRunning "${node_id}|${iface_id}_running"] == "true" } {
+			continue
+		}
+
+		set iface_name [getIfcName $node_id $iface_id]
+
+		if { [getIfcName $node_id $iface_id] == "UNASSIGNED" } {
+			continue
+		}
+	}
+
+	if { $isOSlinux } {
+	}
+
+	if { $isOSfreebsd } {
+	}
 }
 
 #****f* rj45.tcl/rj45.nodeIfacesConfigure
