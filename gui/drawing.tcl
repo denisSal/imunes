@@ -247,10 +247,18 @@ proc drawNode { node_id } {
 		if { $type == "wlan" } {
 			set label_str "$label_str [getIfcIPv4addrs $node_id $iface_id]"
 		} elseif { $link_id == "" } {
+			set errstr ""
+			if {
+				[getFromRunning "cfg_deployed"] &&
+				[getFromRunning "${node_id}|${iface_id}_running_error"] != ""
+			} {
+				set errstr "ERROR"
+			}
+
 			if { [getIfcType $node_id $iface_id] == "stolen" } {
-				set iflabel "\[[getIfcName $node_id $iface_id]\]"
+				set iflabel "\[$errstr [getIfcName $node_id $iface_id]\]"
 			} else {
-				set iflabel "[getIfcName $node_id $iface_id]"
+				set iflabel "$errstr [getIfcName $node_id $iface_id]"
 			}
 
 			if { $has_empty_ifaces == 0 } {
@@ -539,8 +547,18 @@ proc updateIfcLabel { link_id node_id iface_id } {
 	}
 
 	set str ""
-	if { [getIfcOperState $node_id $iface_id] == "down" } {
+	if {
+		[getIfcOperState $node_id $iface_id] == "down" ||
+		([getFromRunning "cfg_deployed"] && [getFromRunning "${node_id}|${iface_id}_running"] != "true")
+	} {
 		set str "*"
+	}
+
+	if {
+		[getFromRunning "cfg_deployed"] &&
+		[getFromRunning "${node_id}|${iface_id}_running_error"] != ""
+	} {
+		set str "ERROR "
 	}
 
 	if { [getIfcNatState $node_id $iface_id] == "on" } {
