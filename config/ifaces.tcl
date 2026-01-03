@@ -580,11 +580,7 @@ proc getIfcVlanDev { node_id iface_id } {
 proc setIfcVlanDev { node_id iface_id dev } {
 	cfgSet "nodes" $node_id "ifaces" $iface_id "vlan_dev" $dev
 
-	if { [getNodeType $node_id] == "rj45" } {
-		trigger_nodeRecreate $node_id
-	} else {
-		trigger_ifaceRecreate $node_id $iface_id
-	}
+	trigger_ifaceRecreate $node_id $iface_id
 }
 
 #****f* ifaces.tcl/getIfcVlanTag
@@ -626,9 +622,7 @@ proc setIfcVlanTag { node_id iface_id tag } {
 	cfgSet "nodes" $node_id "ifaces" $iface_id "vlan_tag" $tag
 
 	set node_type [getNodeType $node_id]
-	if { [getNodeType $node_id] == "rj45" } {
-		trigger_nodeRecreate $node_id
-	} elseif { [getNodeType $node_id] == "lanswitch" } {
+	if { [getNodeType $node_id] == "lanswitch" } {
 		foreach other_iface_id [ifcList $node_id] {
 			if { $iface_id != $other_iface_id && [getIfcVlanType $node_id $other_iface_id] != "trunk" } {
 				continue
