@@ -458,8 +458,9 @@ proc button3link { c x y } {
 	if {
 		! $isOSlinux ||
 		$oper_mode == "edit" ||
-		([isRunningNodeIface $peer1_id $peer1_iface_id] == true &&
-		[isRunningNodeIface $peer2_id $peer2_iface_id] == true)
+		! [getFromRunning "auto_execution"] ||
+		([isRunningNode $peer1_id] &&
+		[isRunningNode $peer2_id])
 	} {
 		.button3menu add checkbutton -label "Direct link" \
 			-underline 5 -variable linkDirect_$real_link_id \
@@ -486,10 +487,7 @@ proc button3link { c x y } {
 	#
 	if {
 		$oper_mode == "edit" ||
-		([getFromRunning "stop_sched"] &&
-		(! $isOSlinux || ! [set linkDirect_$real_link_id] ||
-		(! [isRunningNodeIface $peer1_id $peer1_iface_id] == true &&
-		! [isRunningNodeIface $peer2_id $peer2_iface_id] == true)))
+		[getFromRunning "stop_sched"]
 	} {
 		.button3menu add command -label "Delete (keep interfaces)" \
 			-command "removeLinkGUI $link_id atomic 1"
@@ -716,8 +714,7 @@ proc button3node { c x y } {
 		lassign [linkFromPseudoLink [getPseudoNodeLink $node_id]] real_link_id - -
 		if {
 			$oper_mode == "edit" ||
-			([getFromRunning "stop_sched"] &&
-			(! $isOSlinux || ($real_link_id != "" && ! [getLinkDirect $real_link_id])))
+			[getFromRunning "stop_sched"]
 		} {
 			.button3menu add command \
 				-label "Delete (keep interfaces)" \
@@ -961,8 +958,7 @@ proc button3node { c x y } {
 	#
 	if {
 		$oper_mode == "edit" ||
-		([getFromRunning "stop_sched"] &&
-		((! $isOSlinux || ! $has_direct_links)))
+		[getFromRunning "stop_sched"]
 	} {
 		.button3menu add command \
 			-label "Delete (keep interfaces)" \
