@@ -458,8 +458,9 @@ proc button3link { c x y } {
 	if {
 		! $isOSlinux ||
 		$oper_mode == "edit" ||
-		([isRunningNodeIface $peer1_id $peer1_iface_id] == true &&
-		[isRunningNodeIface $peer2_id $peer2_iface_id] == true)
+		! [getFromRunning "auto_execution"] ||
+		([isRunningNode $peer1_id] &&
+		[isRunningNode $peer2_id])
 	} {
 		.button3menu add checkbutton -label "Direct link" \
 			-underline 5 -variable linkDirect_$real_link_id \
