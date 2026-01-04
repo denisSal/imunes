@@ -66,7 +66,7 @@ proc nodeConfigGUI { c node_id } {
 	}
 
 	set badentry 0
-	invokeNodeProc $node_id "configGUI" $c $node_id
+	invokeNodeProc $node_id "gui::configGUI" $c $node_id
 }
 
 #****f* nodecfgGUI.tcl/configGUI_createConfigPopupWin
@@ -131,7 +131,7 @@ proc configGUI_addNotebook { wi node_id labels } {
 	}
 
 	bind $wi.nbook <<NotebookTabChanged>> \
-		"notebookSize $wi $node_id"
+		"notebookSize $wi"
 
 	global selectedIfc
 	if { $selectedIfc != "" } {
@@ -152,8 +152,10 @@ proc configGUI_addNotebook { wi node_id labels } {
 #   * wi - widget
 #   * node_id - node id
 #****
-proc notebookSize { wi node_id } {
-	set dim [invokeNodeProc $node_id "notebookDimensions" $wi]
+proc notebookSize { wi } {
+	global node_cfg
+
+	set dim [_invokeNodeProc $node_cfg "gui::notebookDimensions" $wi]
 	set configh [lindex $dim 0]
 	set configw [lindex $dim 1]
 
@@ -875,7 +877,7 @@ proc configGUI_showIfcInfo { wi phase node_id iface_id { force "" } } {
 			} elseif { $iface_id != "logIfcFrame" } {
 				#physical interfaces
 				configGUI_ifcMainFrame $wi $node_id $iface_id
-				_invokeNodeProc $node_cfg "configInterfacesGUI" $wi $node_id $iface_id
+				_invokeNodeProc $node_cfg "gui::configInterfacesGUI" $wi $node_id $iface_id
 			} else {
 				#manage logical interfaces
 				configGUI_logicalInterfaces $wi $node_id $iface_id
@@ -1932,7 +1934,7 @@ proc configGUI_addNotebookRj45 { wi node_id ifaces } {
 	}
 
 	bind $wi.nbook <<NotebookTabChanged>> \
-		"notebookSize $wi $node_id"
+		"notebookSize $wi"
 
 	set tabs [$wi.nbook tabs]
 
@@ -6362,7 +6364,7 @@ proc configGUI_showBridgeIfcInfo { wi phase node_id iface_id } {
 		#parameters of selected interface
 		if { $iface_id != "" && $iface_id != $shownifc } {
 			configGUI_ifcBridgeMainFrame $wi $node_id $iface_id
-			_invokeNodeProc $node_cfg "configBridgeInterfacesGUI" $wi $node_id $iface_id
+			_invokeNodeProc $node_cfg "gui::configBridgeInterfacesGUI" $wi $node_id $iface_id
 		}
 	}
 }
@@ -6432,7 +6434,7 @@ proc configGUI_addNotebookFilter { wi node_id ifaces } {
 	}
 
 	bind $wi.nbook <<NotebookTabChanged>> \
-		"notebookSize $wi $node_id"
+		"notebookSize $wi"
 
 	set tabs [$wi.nbook tabs]
 
@@ -6801,7 +6803,7 @@ proc configGUI_showFilterIfcRuleInfo { wi phase node_id iface_id rule } {
 		#parameters of selected interface
 		if { $rule != "" && $rule != $shownrule } {
 			configGUI_ruleMainFrame $wi $node_id $iface_id $rule
-			_invokeNodeProc $node_cfg "configIfcRulesGUI" $wi $node_id $iface_id $rule
+			_invokeNodeProc $node_cfg "gui::configIfcRulesGUI" $wi $node_id $iface_id $rule
 		}
 	}
 }
@@ -7227,7 +7229,7 @@ proc configGUI_addNotebookPackgen { wi node_id } {
 	configGUI_addPackgenPanedWin $wi.nbook.nfConfiguration
 
 	bind $wi.nbook <<NotebookTabChanged>> \
-		"notebookSize $wi $node_id"
+		"notebookSize $wi"
 
 	set tabs [$wi.nbook tabs]
 
@@ -7620,7 +7622,7 @@ proc configGUI_showPacketInfo { wi phase node_id pac } {
 		#parameters of selected interface
 		if { $pac != "" && $pac != $shownpac } {
 			configGUI_packetMainFrame $wi $node_id $pac
-			_invokeNodeProc $node_cfg "configPacketsGUI" $wi $node_id $pac
+			_invokeNodeProc $node_cfg "gui::configPacketsGUI" $wi $node_id $pac
 		}
 	}
 }
