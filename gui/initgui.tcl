@@ -1062,11 +1062,7 @@ foreach b "select link" {
 }
 
 foreach node_type $all_modules_list {
-	if { [invokeTypeProc $node_type "netlayer"] == "LINK" } {
-		addTool "link_layer" $node_type
-	} elseif { [invokeTypeProc $node_type "netlayer"] == "NETWORK" } {
-		addTool "net_layer" $node_type
-	}
+	addTool [invokeTypeProc $node_type "toolbarLocation"] $node_type
 }
 
 set image [image create photo -file $ROOTDIR/$LIBDIR/icons/tiny/l2.gif]

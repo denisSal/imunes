@@ -22,118 +22,66 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 #
-# This work was supported in part by Croatian Ministry of Science
-# and Technology through the research contract #IP-2003-143.
-#
 
-# $Id: frr.tcl 128 2014-12-19 11:59:09Z denis $
-
-
-#****h* imunes/frr.tcl
-# NAME
-#  router.frr.tcl -- defines specific procedures for router
-#  using frr routing model
-# FUNCTION
-#  This module defines all the specific procedures for a router
-#  which uses frr routing model.
-# NOTES
-#  Procedures in this module start with the keyword router.frr and
-#  end with function specific part that is the same for all the node
-#  types that work on the same layer.
-#****
-
-set MODULE router
-
-#****f* genericrouter.tcl/router.toolbarIconDescr
-# NAME
-#   router.toolbarIconDescr -- toolbar icon description
-# SYNOPSIS
-#   router.toolbarIconDescr
-# FUNCTION
-#   Returns this module's toolbar icon description.
-# RESULT
-#   * descr -- string describing the toolbar icon
-#****
-proc $MODULE.toolbarIconDescr {} {
-	return "Add new Router"
+proc genericL3.toolbarIconDescr {} {
+	return "Add new L3 node"
 }
 
-#****f* genericrouter.tcl/router.icon
-# NAME
-#   router.icon -- icon
-# SYNOPSIS
-#   router.icon $size
-# FUNCTION
-#   Returns path to node icon, depending on the specified size.
-# INPUTS
-#   * size -- "normal", "small" or "toolbar"
-# RESULT
-#   * path -- path to icon
-#****
-proc $MODULE.icon { size } {
+proc genericL3.toolbarLocation {} {
+	return "net_layer"
+}
+
+proc genericL3._confNewIfc { node_cfg iface_id } {
+	global node_existing_mac node_existing_ipv4 node_existing_ipv6
+
+	set ipv4addr [getNextIPv4addr [_getNodeType $node_cfg] $node_existing_ipv4]
+	lappend node_existing_ipv4 $ipv4addr
+	set node_cfg [_setIfcIPv4addrs $node_cfg $iface_id $ipv4addr]
+
+	set ipv6addr [getNextIPv6addr [_getNodeType $node_cfg] $node_existing_ipv6]
+	lappend node_existing_ipv6 $ipv6addr
+	set node_cfg [_setIfcIPv6addrs $node_cfg $iface_id $ipv6addr]
+
+	set macaddr [getNextMACaddr $node_existing_mac]
+	lappend node_existing_mac $macaddr
+	set node_cfg [_setIfcMACaddr $node_cfg $iface_id $macaddr]
+
+	return $node_cfg
+}
+
+proc genericL3.icon { size } {
 	global ROOTDIR LIBDIR
 
 	switch $size {
 		normal {
-			return $ROOTDIR/$LIBDIR/icons/normal/router.gif
+			return $ROOTDIR/$LIBDIR/icons/normal/gl3.gif
 		}
 		small {
-			return $ROOTDIR/$LIBDIR/icons/small/router.gif
+			return $ROOTDIR/$LIBDIR/icons/small/gl3.gif
 		}
 		toolbar {
-			return $ROOTDIR/$LIBDIR/icons/tiny/router.gif
+			return $ROOTDIR/$LIBDIR/icons/tiny/gl3.gif
 		}
 	}
 }
 
-#****f* genericrouter.tcl/router.notebookDimensions
-# NAME
-#   router.notebookDimensions -- notebook dimensions
-# SYNOPSIS
-#   router.notebookDimensions $wi
-# FUNCTION
-#   Returns the specified notebook height and width.
-# INPUTS
-#   * wi -- widget
-# RESULT
-#   * size -- notebook size as {height width}
-#****
-proc $MODULE.notebookDimensions { wi } {
-	set h 250
+proc genericL3.notebookDimensions { wi } {
+	set h 210
 	set w 507
 
 	if { [string trimleft [$wi.nbook select] "$wi.nbook.nf"] == "Configuration" } {
-		set h 400
+		set h 350
 		set w 507
 	}
-
 	if { [string trimleft [$wi.nbook select] "$wi.nbook.nf"] == "Interfaces" } {
 		set h 370
-		set w 507
-	}
-
-	if { [string trimleft [$wi.nbook select] "$wi.nbook.nf"] == "IPsec" } {
-		set h 320
 		set w 507
 	}
 
 	return [list $h $w]
 }
 
-#****f* genericrouter.tcl/router.configGUI
-# NAME
-#   router.configGUI -- configuration GUI
-# SYNOPSIS
-#   router.configGUI $c $node_id
-# FUNCTION
-#   Defines the structure of the router configuration window by calling
-#   procedures for creating and organising the window, as well as procedures
-#   for adding certain modules to that window.
-# INPUTS
-#   * c -- tk canvas
-#   * node_id -- node id
-#****
-proc $MODULE.configGUI { c node_id } {
+proc genericL3.configGUI { c node_id } {
 	global wi
 	#
 	#guielements - the list of modules contained in the configuration window
@@ -143,7 +91,7 @@ proc $MODULE.configGUI { c node_id } {
 	#treecolumns - the list of columns in the interfaces tree (each element
 	#		consists of the column id and the column name)
 	#
-	global guielements treecolumns ipsecEnable
+	global guielements treecolumns
 	global node_cfg node_cfg_gui node_existing_mac node_existing_ipv4 node_existing_ipv6
 
 	set guielements {}
@@ -162,19 +110,16 @@ proc $MODULE.configGUI { c node_id } {
 	set labels {
 		"Configuration"
 		"Interfaces"
-		"IPsec"
 	}
 	lassign [configGUI_addNotebook $wi $node_id $labels] \
-		configtab ifctab ipsectab
+		configtab ifctab
 
-	configGUI_routingModel $configtab $node_id
 	configGUI_customImage $configtab $node_id
 	configGUI_attachDockerToExt $configtab $node_id
 	configGUI_servicesConfig $configtab $node_id
 	configGUI_staticRoutes $configtab $node_id
 	configGUI_snapshots $configtab $node_id
 	configGUI_customConfig $configtab $node_id
-	configGUI_ipsec $ipsectab $node_id
 
 	set treecolumns {
 		"OperState State"
@@ -191,4 +136,14 @@ proc $MODULE.configGUI { c node_id } {
 
 	configGUI_nodeRestart $wi $node_id
 	configGUI_buttonsACNode $wi $node_id
+}
+
+proc genericL3.configInterfacesGUI { wi node_id iface_id } {
+	global guielements
+
+	configGUI_ifcEssentials $wi $node_id $iface_id
+	configGUI_ifcQueueConfig $wi $node_id $iface_id
+	configGUI_ifcMACAddress $wi $node_id $iface_id
+	configGUI_ifcIPv4Address $wi $node_id $iface_id
+	configGUI_ifcIPv6Address $wi $node_id $iface_id
 }
