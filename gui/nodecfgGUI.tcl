@@ -131,7 +131,7 @@ proc configGUI_addNotebook { wi node_id labels } {
 	}
 
 	bind $wi.nbook <<NotebookTabChanged>> \
-		"notebookSize $wi $node_id"
+		"notebookSize $wi"
 
 	global selectedIfc
 	if { $selectedIfc != "" } {
@@ -152,8 +152,10 @@ proc configGUI_addNotebook { wi node_id labels } {
 #   * wi - widget
 #   * node_id - node id
 #****
-proc notebookSize { wi node_id } {
-	set dim [invokeNodeProc $node_id "notebookDimensions" $wi]
+proc notebookSize { wi } {
+	global node_cfg
+
+	set dim [_invokeNodeProc $node_cfg "notebookDimensions" $wi]
 	set configh [lindex $dim 0]
 	set configw [lindex $dim 1]
 
@@ -1935,7 +1937,7 @@ proc configGUI_addNotebookRj45 { wi node_id ifaces } {
 	}
 
 	bind $wi.nbook <<NotebookTabChanged>> \
-		"notebookSize $wi $node_id"
+		"notebookSize $wi"
 
 	set tabs [$wi.nbook tabs]
 
@@ -6371,7 +6373,7 @@ proc configGUI_addNotebookFilter { wi node_id ifaces } {
 	}
 
 	bind $wi.nbook <<NotebookTabChanged>> \
-		"notebookSize $wi $node_id"
+		"notebookSize $wi"
 
 	set tabs [$wi.nbook tabs]
 
@@ -7164,7 +7166,7 @@ proc configGUI_addNotebookPackgen { wi node_id } {
 	configGUI_addPackgenPanedWin $wi.nbook.nfConfiguration
 
 	bind $wi.nbook <<NotebookTabChanged>> \
-		"notebookSize $wi $node_id"
+		"notebookSize $wi"
 
 	set tabs [$wi.nbook tabs]
 
