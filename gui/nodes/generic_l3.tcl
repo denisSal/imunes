@@ -22,98 +22,68 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 #
-# This work was supported in part by Croatian Ministry of Science
-# and Technology through the research contract #IP-2003-143.
-#
 
-# $Id: rj45.tcl 130 2015-02-24 09:52:19Z valter $
-
-
-#****h* imunes/rj45.tcl
-# NAME
-#  rj45.tcl -- defines rj45 specific procedures
-# FUNCTION
-#  This module is used to define all the rj45 specific procedures.
-# NOTES
-#  Procedures in this module start with the keyword rj45 and
-#  end with function specific part that is the same for all the
-#  node types that work on the same layer.
-#****
-
-set MODULE rj45
-
-namespace eval ${MODULE}::gui {
-	namespace import ::genericL2::gui::*
+namespace eval genericL3::gui {
 	namespace export *
 
-	#****f* rj45.tcl/rj45.toolbarIconDescr
-	# NAME
-	#   rj45.toolbarIconDescr -- toolbar icon description
-	# SYNOPSIS
-	#   rj45.toolbarIconDescr
-	# FUNCTION
-	#   Returns this module's toolbar icon description.
-	# RESULT
-	#   * descr -- string describing the toolbar icon
-	#****
 	proc toolbarIconDescr {} {
-		return "Add new External interface"
+		return "Add new L3 node"
 	}
 
-	proc _confNewIfc { node_id ifc } {
-		global node_cfg
-
-		set node_cfg [_setIfcName $node_cfg $ifc "UNASSIGNED"]
+	proc toolbarLocation {} {
+		return "net_layer"
 	}
 
-	#****f* rj45.tcl/rj45.icon
-	# NAME
-	#   rj45.icon -- icon
-	# SYNOPSIS
-	#   rj45.icon $size
-	# FUNCTION
-	#   Returns path to node icon, depending on the specified size.
-	# INPUTS
-	#   * size -- "normal", "small" or "toolbar"
-	# RESULT
-	#   * path -- path to icon
-	#****
+	proc _confNewIfc { node_cfg iface_id } {
+		global node_existing_mac node_existing_ipv4 node_existing_ipv6
+
+		set ipv4addr [getNextIPv4addr [_getNodeType $node_cfg] $node_existing_ipv4]
+		lappend node_existing_ipv4 $ipv4addr
+		set node_cfg [_setIfcIPv4addrs $node_cfg $iface_id $ipv4addr]
+
+		set ipv6addr [getNextIPv6addr [_getNodeType $node_cfg] $node_existing_ipv6]
+		lappend node_existing_ipv6 $ipv6addr
+		set node_cfg [_setIfcIPv6addrs $node_cfg $iface_id $ipv6addr]
+
+		set macaddr [getNextMACaddr $node_existing_mac]
+		lappend node_existing_mac $macaddr
+		set node_cfg [_setIfcMACaddr $node_cfg $iface_id $macaddr]
+
+		return $node_cfg
+	}
+
 	proc icon { size } {
 		global ROOTDIR LIBDIR
 
 		switch $size {
 			normal {
-				return $ROOTDIR/$LIBDIR/icons/normal/rj45.gif
+				return $ROOTDIR/$LIBDIR/icons/normal/gl3.gif
 			}
 			small {
-				return $ROOTDIR/$LIBDIR/icons/small/rj45.gif
+				return $ROOTDIR/$LIBDIR/icons/small/gl3.gif
 			}
 			toolbar {
-				return $ROOTDIR/$LIBDIR/icons/tiny/rj45.gif
+				return $ROOTDIR/$LIBDIR/icons/tiny/gl3.gif
 			}
 		}
 	}
 
 	proc notebookDimensions { wi } {
-		set h 160
-		set w 100
+		set h 210
+		set w 507
+
+		if { [string trimleft [$wi.nbook select] "$wi.nbook.nf"] == "Configuration" } {
+			set h 350
+			set w 507
+		}
+		if { [string trimleft [$wi.nbook select] "$wi.nbook.nf"] == "Interfaces" } {
+			set h 370
+			set w 507
+		}
 
 		return [list $h $w]
 	}
 
-	#****f* rj45.tcl/rj45.configGUI
-	# NAME
-	#   rj45.configGUI -- configuration GUI
-	# SYNOPSIS
-	#   rj45.configGUI $c $node_id
-	# FUNCTION
-	#   Defines the structure of the rj45 configuration window by calling
-	#   procedures for creating and organising the window, as well as procedures
-	#   for adding certain modules to that window.
-	# INPUTS
-	#   * c -- tk canvas
-	#   * node_id -- node id
-	#****
 	proc configGUI { c node_id } {
 		global wi
 		#
@@ -136,12 +106,48 @@ namespace eval ${MODULE}::gui {
 		set node_existing_ipv6 [getFromRunning "ipv6_used_list"]
 
 		configGUI_createConfigPopupWin $c
-		wm title $wi "rj45 configuration"
+		wm title $wi "[_getNodeType $node_cfg] ($node_id) configuration"
 
 		configGUI_nodeName $wi $node_id "Node name:"
-		set tabs [configGUI_addNotebookRj45 $wi $node_id [lsort [_ifcList $node_cfg]]]
+
+		set labels {
+			"Configuration"
+			"Interfaces"
+		}
+		lassign [configGUI_addNotebook $wi $node_id $labels] \
+			configtab ifctab
+
+		configGUI_customImage $configtab $node_id
+		configGUI_attachDockerToExt $configtab $node_id
+		configGUI_servicesConfig $configtab $node_id
+		configGUI_staticRoutes $configtab $node_id
+		configGUI_snapshots $configtab $node_id
+		configGUI_customConfig $configtab $node_id
+
+		set treecolumns {
+			"OperState State"
+			"NatState Nat"
+			"IPv4addrs IPv4 addrs"
+			"IPv6addrs IPv6 addrs"
+			"MACaddr MAC addr"
+			"MTU MTU"
+			"QLen Queue len"
+			"QDisc Queue disc"
+			"QDrop Queue drop"
+		}
+		configGUI_addTree $ifctab $node_id
 
 		configGUI_nodeRestart $wi $node_id
 		configGUI_buttonsACNode $wi $node_id
+	}
+
+	proc configInterfacesGUI { wi node_id iface_id } {
+		global guielements
+
+		configGUI_ifcEssentials $wi $node_id $iface_id
+		configGUI_ifcQueueConfig $wi $node_id $iface_id
+		configGUI_ifcMACAddress $wi $node_id $iface_id
+		configGUI_ifcIPv4Address $wi $node_id $iface_id
+		configGUI_ifcIPv6Address $wi $node_id $iface_id
 	}
 }
