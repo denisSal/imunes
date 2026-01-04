@@ -1122,9 +1122,12 @@ proc button3node { c x y } {
 			-command [lreplace $tmp_command end end "ifaces_reconfig"]
 	}
 
-	if { [invokeTypeProc $node_type "netlayer"] != "LINK" } {
+	set node_netlayer [invokeTypeProc $node_type "netlayer"]
+	if { $node_netlayer != "LINK" } {
 		.button3menu add separator
 	}
+
+	set node_virtlayer [invokeTypeProc $node_type "virtlayer"]
 
 	#
 	# Services menu
@@ -1132,7 +1135,7 @@ proc button3node { c x y } {
 	.button3menu.services delete 0 end
 	if {
 		$oper_mode == "exec" &&
-		[invokeTypeProc $node_type "virtlayer"] == "VIRTUALIZED" &&
+		$node_virtlayer == "VIRTUALIZED" &&
 		[isRunningNode $node_id]
 	} {
 		global all_services_list
@@ -1161,14 +1164,14 @@ proc button3node { c x y } {
 	# Node settings
 	#
 	.button3menu.sett delete 0 end
-	if { [invokeTypeProc $node_type "netlayer"] == "NETWORK" } {
+	if { $node_netlayer == "NETWORK" } {
 		.button3menu add cascade -label "Settings" \
 			-menu .button3menu.sett
 
 		#
 		# Import Running Configuration
 		#
-		if { $oper_mode == "exec" && [invokeTypeProc $node_type "virtlayer"] == "VIRTUALIZED" } {
+		if { $oper_mode == "exec" && $node_virtlayer == "VIRTUALIZED" } {
 			.button3menu.sett add command -label "Import Running Configuration" \
 				-command "fetchNodesConfiguration"
 		}
@@ -1276,7 +1279,7 @@ proc button3node { c x y } {
 	if {
 		$node_type != "ext" &&
 		$oper_mode == "exec" &&
-		[invokeTypeProc $node_type "virtlayer"] == "VIRTUALIZED" &&
+		$node_virtlayer == "VIRTUALIZED" &&
 		[isRunningNode $node_id]
 	} {
 		.button3menu add separator
@@ -1322,7 +1325,7 @@ proc button3node { c x y } {
 		}
 	} elseif {
 		$oper_mode == "exec" &&
-		[invokeTypeProc $node_type "virtlayer"] == "VIRTUALIZED" &&
+		$node_virtlayer == "VIRTUALIZED" &&
 		[isRunningNode $node_id]
 	} {
 		#
