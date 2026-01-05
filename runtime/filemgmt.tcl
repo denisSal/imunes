@@ -443,7 +443,7 @@ proc saveFile { selected_file } {
 
 		saveCfgJson $current_file
 
-		.bottom.textbox config -text "Saved [file tail $current_file]"
+		.bottom.textbox config -text "Saved [file tail $current_file]" -foreground "black"
 
 		setToRunning "modified" false
 

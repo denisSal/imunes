@@ -271,10 +271,29 @@ proc drawNode { node_id } {
 		if { $type == "wlan" } {
 			set label_str "$label_str [getIfcIPv4addrs $node_id $iface_id]"
 		} elseif { $link_id == "" } {
-			if { [getIfcType $node_id $iface_id] == "stolen" } {
-				set iflabel "\[[getIfcName $node_id $iface_id]\]"
+			set errstr ""
+			if {
+				[isRunningNode $node_id] &&
+				[isErrorNodeIface $node_id $iface_id] &&
+				[getStateErrorMsgNodeIface $node_id $iface_id] != ""
+			} {
+				set errstr "ERROR"
+			}
+
+			if {
+				[getIfcOperState $node_id $iface_id] == "down" ||
+				([getFromRunning "cfg_deployed"] &&
+				! [isRunningNodeIface $node_id $iface_id])
+			} {
+				set iface_running_str "*"
 			} else {
-				set iflabel "[getIfcName $node_id $iface_id]"
+				set iface_running_str ""
+			}
+
+			if { [getIfcType $node_id $iface_id] == "stolen" } {
+				set iflabel "\[$errstr $iface_running_str[getIfcName $node_id $iface_id]\]"
+			} else {
+				set iflabel "$errstr $iface_running_str[getIfcName $node_id $iface_id]"
 			}
 
 			if { $has_empty_ifaces == 0 } {
@@ -296,12 +315,31 @@ proc drawNode { node_id } {
 			continue
 		}
 
+		set errstr ""
+		if {
+			[isRunningNode $node_id] &&
+			[isErrorNodeIface $node_id $iface_id] &&
+			[getStateErrorMsgNodeIface $node_id $iface_id] != ""
+		} {
+			set errstr "ERROR"
+		}
+
+		if {
+			[getIfcOperState $node_id $iface_id] == "down" ||
+			([getFromRunning "cfg_deployed"] &&
+			! [isRunningNodeIface $node_id $iface_id])
+		} {
+			set iface_running_str "*"
+		} else {
+			set iface_running_str ""
+		}
+
 		set vlantag [getIfcVlanTag $node_id $iface_id]
 		set vlandev [getIfcVlanDev $node_id $iface_id]
 		if { [getActiveOption "show_interface_names"] } {
-			set liflabel "[getIfcName $node_id $iface_id] - $vlandev:$vlantag"
+			set liflabel "$errstr $iface_running_str[getIfcName $node_id $iface_id] - $vlandev:$vlantag"
 		} else {
-			set liflabel "$vlandev:$vlantag"
+			set liflabel "$errstr $iface_running_str $vlandev:$vlantag"
 		}
 
 		set ifipv4addr [getIfcIPv4addrs $node_id $iface_id]
@@ -660,8 +698,19 @@ proc updateIfcLabel { link_id node_id iface_id } {
 	}
 
 	set str ""
-	if { [getIfcOperState $node_id $iface_id] == "down" } {
+	if {
+		[getIfcOperState $node_id $iface_id] == "down" ||
+		([getFromRunning "cfg_deployed"] && ! [isRunningNodeIface $node_id $iface_id])
+	} {
 		set str "*"
+	}
+
+	if {
+		[isRunningNode $node_id] &&
+		[isErrorNodeIface $node_id $iface_id] &&
+		[getStateErrorMsgNodeIface $node_id $iface_id] != ""
+	} {
+		set str "ERROR "
 	}
 
 	if { [getIfcNatState $node_id $iface_id] == "on" } {
