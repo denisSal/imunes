@@ -657,7 +657,7 @@ proc statline { line } {
 	} else {
 		dputs $line
 
-		.bottom.textbox config -text "$line"
+		.bottom.textbox config -text "$line" -foreground "black"
 		animateCursor
 	}
 }
