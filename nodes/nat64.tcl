@@ -33,6 +33,12 @@ registerModule $MODULE
 ########################### CONFIGURATION PROCEDURES ###########################
 ################################################################################
 
+#### required for every node
+proc $MODULE.netlayer {} {
+	return [genericL3.netlayer]
+}
+#### /required for every node
+
 proc $MODULE.confNewNode { node_id } {
 	global nodeNamingBase
 
@@ -116,144 +122,22 @@ proc $MODULE.generateUnconfig { node_id } {
 	return $cfg
 }
 
-#****f* nat64.tcl/nat64.ifacePrefix
-# NAME
-#   nat64.ifacePrefix -- interface name
-# SYNOPSIS
-#   nat64.ifacePrefix
-# FUNCTION
-#   Returns nat64 interface name prefix.
-# RESULT
-#   * name -- name prefix string
-#****
-proc $MODULE.ifacePrefix {} {
-	return [invokeTypeProc "router" "ifacePrefix"]
-}
-
 proc $MODULE.IPAddrRange {} {
 	return [invokeTypeProc "router" "IPAddrRange"]
-}
-
-proc $MODULE.netlayer {} {
-	return [invokeTypeProc "router" "netlayer"]
-}
-
-proc $MODULE.virtlayer {} {
-	return [invokeTypeProc "router" "virtlayer"]
-}
-
-proc $MODULE.bootcmd { node_id } {
-	return [invokeTypeProc "router" "bootcmd" $node_id]
 }
 
 proc $MODULE.shellcmds {} {
 	return [invokeTypeProc "router" "shellcmds"]
 }
 
-proc $MODULE.nghook { eid node_id iface_id } {
-	return [invokeTypeProc "router" "nghook" $eid $node_id $iface_id]
-}
-
 ################################################################################
 ############################ INSTANTIATE PROCEDURES ############################
 ################################################################################
-
-#****f* nat64.tcl/nat64.prepareSystem
-# NAME
-#   nat64.prepareSystem -- prepare system
-# SYNOPSIS
-#   nat64.prepareSystem
-# FUNCTION
-#   Does nothing
-#****
-proc $MODULE.prepareSystem {} {
-	invokeTypeProc "router" "prepareSystem"
-}
-
-proc $MODULE.nodeCreate { eid node_id } {
-	invokeTypeProc "router" "nodeCreate" $eid $node_id
-}
-
-proc $MODULE.nodeNamespaceSetup { eid node_id } {
-	invokeTypeProc "router" "nodeNamespaceSetup" $eid $node_id
-}
 
 proc $MODULE.nodeInitConfigure { eid node_id } {
 	invokeTypeProc "router" "nodeInitConfigure" $eid $node_id
 }
 
-proc $MODULE.nodePhysIfacesCreate { eid node_id ifaces } {
-	invokeTypeProc "router" "nodePhysIfacesCreate" $eid $node_id $ifaces
-}
-
-proc $MODULE.nodeLogIfacesCreate { eid node_id ifaces } {
-	invokeTypeProc "router" "nodeLogIfacesCreate" $eid $node_id $ifaces
-}
-
-#****f* nat64.tcl/nat64.nodeIfacesConfigure
-# NAME
-#   nat64.nodeIfacesConfigure -- configure nat64 node interfaces
-# SYNOPSIS
-#   nat64.nodeIfacesConfigure $eid $node_id $ifaces
-# FUNCTION
-#   Configure interfaces on a nat64. Set MAC, MTU, queue parameters, assign the IP
-#   addresses to the interfaces, etc. This procedure can be called if the node
-#   is instantiated.
-# INPUTS
-#   * eid -- experiment id
-#   * node_id -- node id
-#   * ifaces -- list of interface ids
-#****
-proc $MODULE.nodeIfacesConfigure { eid node_id ifaces } {
-	invokeTypeProc "router" "nodeIfacesConfigure" $eid $node_id $ifaces
-}
-
-proc $MODULE.nodeConfigure { eid node_id } {
-	invokeTypeProc "router" "nodeConfigure" $eid $node_id
-}
-
 ################################################################################
 ############################# TERMINATE PROCEDURES #############################
 ################################################################################
-
-#****f* nat64.tcl/nat64.nodeIfacesUnconfigure
-# NAME
-#   nat64.nodeIfacesUnconfigure -- unconfigure nat64 node interfaces
-# SYNOPSIS
-#   nat64.nodeIfacesUnconfigure $eid $node_id $ifaces
-# FUNCTION
-#   Unconfigure interfaces on a nat64 to a default state. Set name to iface_id,
-#   flush IP addresses to the interfaces, etc. This procedure can be called if
-#   the node is instantiated.
-# INPUTS
-#   * eid -- experiment id
-#   * node_id -- node id
-#   * ifaces -- list of interface ids
-#****
-proc $MODULE.nodeIfacesUnconfigure { eid node_id ifaces } {
-	invokeTypeProc "router" "nodeIfacesUnconfigure" $eid $node_id $ifaces
-}
-
-proc $MODULE.nodeLogIfacesDestroy { eid node_id ifaces } {
-	invokeTypeProc "router" "nodeLogIfacesDestroy" $eid $node_id $ifaces
-}
-
-proc $MODULE.nodeIfacesDestroy { eid node_id ifaces } {
-	invokeTypeProc "router" "nodeIfacesDestroy" $eid $node_id $ifaces
-}
-
-proc $MODULE.nodeUnconfigure { eid node_id } {
-	invokeTypeProc "router" "nodeUnconfigure" $eid $node_id
-}
-
-proc $MODULE.nodeShutdown { eid node_id } {
-	invokeTypeProc "router" "nodeShutdown" $eid $node_id
-}
-
-proc $MODULE.nodeDestroy { eid node_id } {
-	invokeTypeProc "router" "nodeDestroy" $eid $node_id
-}
-
-proc $MODULE.nodeDestroyFS { eid node_id } {
-	invokeTypeProc "router" "nodeDestroyFS" $eid $node_id
-}
