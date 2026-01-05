@@ -281,7 +281,7 @@ proc drawNode { node_id } {
 		}
 	}
 
-	if { [getFromRunning "${node_id}_running"] == "true" } {
+	if { [isRunningNode $node_id] } {
 		global running_indicator_palette running_mask_image
 
 		$main_canvas_elem create image \
