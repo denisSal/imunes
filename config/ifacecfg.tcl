@@ -359,7 +359,13 @@ proc nodeCfggenIfcIPv6 { node_id iface_id } {
 #   * iface_id -- the first available name for a interface of the specified type
 #****
 proc newIface { node_id iface_type auto_config { stolen_iface "" } } {
-	set iface_id [newObjectId [allIfcList $node_id] "ifc"]
+	set iface_id ""
+	while { $iface_id == "" } {
+		set iface_id [newObjectId [allIfcList $node_id] "ifc"]
+		if { [getStateNodeIface $node_id $iface_id] != "" } {
+			removeIface $node_id $iface_id
+		}
+	}
 
 	switch -exact $iface_type {
 		"lo" -
@@ -376,10 +382,6 @@ proc newIface { node_id iface_type auto_config { stolen_iface "" } } {
 
 			set iface_name $stolen_iface
 		}
-	}
-
-	if { [getFromRunning "${node_id}|${iface_id}_running"] == "" } {
-		setToRunning "${node_id}|${iface_id}_running" "false"
 	}
 
 	setNodeIface $node_id $iface_id {}
@@ -429,10 +431,8 @@ proc removeIface { node_id iface_id { keep_other_ifaces 1} } {
 	set iface_name [getIfcName $node_id $iface_id]
 
 	cfgUnset "nodes" $node_id "ifaces" $iface_id
-	if { [getFromRunning "${node_id}|${iface_id}_running"] == "true" } {
-		setToRunning "${node_id}|${iface_id}_running" "delete"
-	} else {
-		unsetRunning "${node_id}|${iface_id}_running"
+	if { ! [isRunningNodeIface $node_id $iface_id] } {
+		unsetStateNodeIface $node_id $iface_id
 	}
 
 	foreach {logiface_id iface_cfg} [cfgGet "nodes" $node_id "ifaces"] {

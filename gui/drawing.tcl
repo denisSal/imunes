@@ -269,7 +269,7 @@ proc drawNode { node_id } {
 		}
 	}
 
-	if { [getFromRunning "${node_id}_running"] == "true" } {
+	if { [isRunningNode $node_id] } {
 		global running_indicator_palette running_mask_image
 
 		.panwin.f1.c create image \
