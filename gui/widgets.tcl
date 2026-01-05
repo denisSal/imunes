@@ -200,7 +200,7 @@ proc showRoute { c node2_id } {
 		if { [llength $selected] != 1 } {
 			if { [llength $selected] != 0 } {
 				set line "To show route, only one node can be selected."
-				.bottom.textbox config -text "$line"
+				.bottom.textbox config -text "$line" -foreground "black"
 			}
 		} else {
 			set node1_id $selected
@@ -213,7 +213,7 @@ proc showRoute { c node2_id } {
 			} {
 				#User notification
 				set line "Please wait. Route is being calculated."
-				.bottom.textbox config -text "$line"
+				.bottom.textbox config -text "$line" -foreground "black"
 				after 5 { set t 1 }
 				vwait t
 
@@ -263,7 +263,7 @@ proc showRoute { c node2_id } {
 
 				#User notification
 				set line "Route calculation finished."
-				.bottom.textbox config -text "$line"
+				.bottom.textbox config -text "$line" -foreground "black"
 			}
 		}
 	}
