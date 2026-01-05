@@ -598,7 +598,7 @@ proc deployCfg { { execute 0 } } {
 	}
 	set configure_links_count [llength $configure_links]
 
-	set maxProgressbasCount [expr {2*$all_nodes_count + 1*$native_nodes_count + 4*$virtualized_nodes_count + 2*$links_count + 1*$configure_links_count + 2*$configure_nodes_count + 4*$create_nodes_ifaces_count + 2*$configure_nodes_ifaces_count + $error_check_nodes_ifaces_count + $error_check_nodes_count}]
+	set maxProgressbasCount [expr {2*$all_nodes_count + 1*$native_nodes_count + 4*$virtualized_nodes_count + 2*$links_count + 1*$configure_links_count + 2*$configure_nodes_count + 5*$create_nodes_ifaces_count + 2*$configure_nodes_ifaces_count + $error_check_nodes_ifaces_count + $error_check_nodes_count}]
 
 	set w ""
 	set eid [getFromRunning "eid"]
@@ -691,6 +691,7 @@ proc deployCfg { { execute 0 } } {
 		if { $create_nodes_ifaces_count > 0 } {
 			pipesCreate
 			execute_nodesPhysIfacesCreate $create_nodes_ifaces $create_nodes_ifaces_count $w
+			execute_nodesPhysIfacesDirectCreate $create_nodes_ifaces $create_nodes_ifaces_count $w
 			statline "Waiting for physical interfaces on $create_nodes_ifaces_count node(s) to be created..."
 			pipesClose
 			execute_nodesPhysIfacesCreate_wait $create_nodes_ifaces $create_nodes_ifaces_count $w
@@ -1236,6 +1237,92 @@ proc execute_nodesPhysIfacesCreate { nodes_ifaces nodes_count w } {
 
 		if { $gui && $execMode != "batch" } {
 			statline "$msg physical ifaces on node [getNodeName $node_id]"
+			$w.p configure -value $progressbarCount
+			update
+		}
+	}
+
+	if { $nodes_count > 0 } {
+		displayBatchProgress $batchStep $nodes_count
+		if { ! $gui || $execMode == "batch" } {
+			statline ""
+		}
+	}
+}
+
+proc execute_nodesPhysIfacesDirectCreate { nodes_ifaces nodes_count w } {
+	global progressbarCount execMode gui
+
+	set eid [getFromRunning "eid"]
+
+	set batchStep 0
+	dict for {node_id ifaces} $nodes_ifaces {
+		displayBatchProgress $batchStep $nodes_count
+
+		if { [isErrorNode $node_id] } {
+			set msg "Skipping"
+		} {
+			if { $ifaces == "*" } {
+				set ifaces [ifcList $node_id]
+			} else {
+				set ifaces [removeFromList $ifaces [logIfcList $node_id]]
+			}
+
+			# skip 'non-direct link' and UNASSIGNED stolen interfaces
+			foreach iface_id $ifaces {
+				set this_link_id [getIfcLink $node_id $iface_id]
+				if {
+					$this_link_id == "" || ! [getLinkDirect $this_link_id] ||
+					"creating" in [getStateNodeIface $node_id $iface_id] ||
+					([getIfcType $node_id $iface_id] == "stolen" &&
+					[getIfcName $node_id $iface_id] == "UNASSIGNED")
+				} {
+					set ifaces [removeFromList $ifaces $iface_id]
+				}
+			}
+
+			if { "pifaces_creating" in [getStateNode $node_id] } {
+				set overwrite_state true
+			} else {
+				set overwrite_state false
+			}
+
+			if { $ifaces != {} } {
+				# mark interfaces to skip
+				if { ! [invokeNodeProc $node_id "checkIfacesPrerequisites" $eid $node_id $ifaces] } {
+					foreach iface_id $ifaces {
+						set this_link_id [getIfcLink $node_id $iface_id]
+						if { [isErrorNodeIface $node_id $iface_id] } {
+							set ifaces [removeFromList $ifaces $iface_id]
+						}
+					}
+				}
+
+				if { $overwrite_state } {
+					addStateNode $node_id "pifaces_creating"
+				}
+
+				if { $ifaces != {} } {
+					try {
+						invokeNodeProc $node_id "nodePhysIfacesDirectCreate" $eid $node_id $ifaces
+					} on error err {
+						return -code error "Error in '[getNodeType $node_id].nodePhysIfacesDirectCreate $eid $node_id $ifaces': $err"
+					}
+				}
+			}
+
+			if { $ifaces != {} } {
+				set msg "Creating"
+			} else {
+				set msg "No available"
+			}
+		}
+
+		incr batchStep
+		incr progressbarCount
+
+		if { $gui && $execMode != "batch" } {
+			statline "$msg physical ifaces on node [getNodeName $node_id] (direct links)"
 			$w.p configure -value $progressbarCount
 			update
 		}

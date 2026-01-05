@@ -214,7 +214,7 @@ proc undeployCfg { { eid "" } { terminate 0 } } {
 
 	set unconfigure_links_count [llength $unconfigure_links]
 
-	set maxProgressbasCount [expr {1 + 2*$all_nodes_count + 2*$links_count + 1*$unconfigure_links_count + 4*$native_nodes_count + 5*$virtualized_nodes_count + 4*$unconfigure_nodes_ifaces_count + 4*$destroy_nodes_ifaces_count + 2*$destroy_nodes_extifaces_count + 2*$unconfigure_nodes_count}]
+	set maxProgressbasCount [expr {1 + 2*$all_nodes_count + 2*$links_count + 1*$unconfigure_links_count + 4*$native_nodes_count + 5*$virtualized_nodes_count + 4*$unconfigure_nodes_ifaces_count + 5*$destroy_nodes_ifaces_count + 3*$destroy_nodes_extifaces_count + 2*$unconfigure_nodes_count}]
 	set progressbarCount $maxProgressbasCount
 
 	if { $eid == "" } {
@@ -270,6 +270,7 @@ proc undeployCfg { { eid "" } { terminate 0 } } {
 		if { $destroy_nodes_extifaces_count > 0 } {
 			pipesCreate
 			terminate_nodesPhysIfacesDestroy $eid $destroy_nodes_extifaces $destroy_nodes_extifaces_count $w
+			terminate_nodesPhysIfacesDirectDestroy $eid $destroy_nodes_extifaces $destroy_nodes_extifaces_count $w
 			statline "Waiting for physical interfaces on $destroy_nodes_extifaces_count RJ45 node(s) to be destroyed..."
 			pipesClose
 			terminate_nodesPhysIfacesDestroy_wait $eid $destroy_nodes_extifaces $destroy_nodes_extifaces_count $w
@@ -328,6 +329,7 @@ proc undeployCfg { { eid "" } { terminate 0 } } {
 		if { $destroy_nodes_ifaces_count > 0 } {
 			pipesCreate
 			terminate_nodesPhysIfacesDestroy $eid $destroy_nodes_ifaces $destroy_nodes_ifaces_count $w
+			terminate_nodesPhysIfacesDirectDestroy $eid $destroy_nodes_ifaces $destroy_nodes_ifaces_count $w
 			statline "Waiting for physical interfaces on $destroy_nodes_ifaces_count node(s) to be destroyed..."
 			pipesClose
 			terminate_nodesPhysIfacesDestroy_wait $eid $destroy_nodes_ifaces $destroy_nodes_ifaces_count $w
@@ -1250,6 +1252,67 @@ proc terminate_nodesPhysIfacesDestroy { eid nodes_ifaces nodes_count w } {
 
 		if { $gui && $execMode != "batch" } {
 			statline "$msg physical interfaces on node [getNodeName $node_id]"
+			$w.p configure -value $progressbarCount
+			update
+		}
+	}
+
+	if { $nodes_count > 0 } {
+		displayBatchProgress $batchStep $nodes_count
+		if { ! $gui || $execMode == "batch" } {
+			statline ""
+		}
+	}
+}
+
+proc terminate_nodesPhysIfacesDirectDestroy { eid nodes_ifaces nodes_count w } {
+	global progressbarCount execMode gui
+
+	set batchStep 0
+	dict for {node_id ifaces} $nodes_ifaces {
+		displayBatchProgress $batchStep $nodes_count
+
+		if { ! [isRunningNode $node_id] } {
+			set msg "Skipping"
+		} {
+			if { $ifaces == "*" } {
+				set ifaces [ifcList $node_id]
+			} else {
+				set ifaces [removeFromList $ifaces [logIfcList $node_id]]
+			}
+
+			# skip 'non-direct link' and UNASSIGNED stolen interfaces
+			foreach iface_id $ifaces {
+				set this_link_id [getIfcLink $node_id $iface_id]
+				if {
+					! [isRunningNodeIface $node_id $iface_id] ||
+					"destroying" in [getStateNodeIface $node_id $iface_id] ||
+					($this_link_id == "" || ! [getFromRunning "${this_link_id}_destroy_type"]) ||
+					([getIfcType $node_id $iface_id] == "stolen" &&
+					[getFromRunning "${node_id}|${iface_id}_active_name"] == "")
+				} {
+					set ifaces [removeFromList $ifaces $iface_id]
+				}
+			}
+
+			if { $ifaces != {} } {
+				try {
+					invokeNodeProc $node_id "nodePhysIfacesDirectDestroy" $eid $node_id $ifaces
+				} on error err {
+					return -code error "Error in '[getNodeType $node_id].nodePhysIfacesDirectDestroy $eid $node_id $ifaces': $err"
+				}
+
+				set msg "Destroying"
+			} else {
+				set msg "No available"
+			}
+		}
+
+		incr batchStep
+		incr progressbarCount -1
+
+		if { $gui && $execMode != "batch" } {
+			statline "$msg physical interfaces on node [getNodeName $node_id] (direct links)"
 			$w.p configure -value $progressbarCount
 			update
 		}
