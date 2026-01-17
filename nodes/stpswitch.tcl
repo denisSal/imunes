@@ -46,9 +46,13 @@ registerModule $MODULE "freebsd"
 
 #### required for every node
 proc $MODULE.netlayer {} {
-	return [genericL3.netlayer]
+	return [genericL2.netlayer]
 }
 #### /required for every node
+
+proc $MODULE.virtlayer {} {
+	return [genericL3.virtlayer]
+}
 
 proc $MODULE.confNewNode { node_id } {
 	global nodeNamingBase
@@ -274,12 +278,74 @@ proc $MODULE.generateConfig { node_id } {
 	return $cfg
 }
 
+proc $MODULE.IPAddrRange {} {
+}
+
+proc $MODULE.bootcmd { node_id } {
+	return "/bin/sh"
+}
+
+proc $MODULE.shellcmds {} {
+	return "csh bash sh tcsh"
+}
+
+proc $MODULE.getPrivateNs { eid node_id } {
+	global isOSlinux isOSfreebsd
+
+	if { $isOSlinux } {
+		return $eid.$node_id
+	}
+
+	if { $isOSfreebsd } {
+		return $eid.$node_id
+	}
+}
+
+proc $MODULE.getPublicNs { eid node_id } {
+	global isOSlinux isOSfreebsd
+
+	if { $isOSlinux } {
+		return $eid
+	}
+
+	if { $isOSfreebsd } {
+		# nothing
+		return
+	}
+}
+
+proc $MODULE.getHookData { node_id iface_id } {
+	global isOSlinux isOSfreebsd
+
+	# Linux - interface name of the node (inside node namespace)
+	# FreeBSD - interface name of the node (inside node jail)
+	set private_elem [getIfcName $node_id $iface_id]
+
+	# Linux - public part of veth pair (inside EID namespace)
+	# FreeBSD - name of public netgraph peer (inside EID jail)
+	set public_elem "$node_id-$iface_id"
+
+	# Linux - not used
+	# FreeBSD - hook for connecting to netgraph node
+	set hook_name "ether"
+
+	return [list $private_elem $public_elem $hook_name]
+}
+
 ################################################################################
 ############################ INSTANTIATE PROCEDURES ############################
 ################################################################################
 
 proc $MODULE.prepareSystem {} {
 	catch { kldload if_bridge bridgestp }
+}
+
+proc $MODULE.checkNodePrerequisites { eid node_id } {
+	return
+}
+
+proc $MODULE.checkIfacesPrerequisites { eid node_id ifaces } {
+	return [genericL3.checkIfacesPrerequisites $eid $node_id $ifaces]
 }
 
 #****f* stpswitch.tcl/stpswitch.nodeCreate
@@ -301,7 +367,15 @@ proc $MODULE.nodeCreate { eid node_id } {
 	pipesExec "jexec $eid.$node_id ifconfig bridge create name $bridge_name" "hold"
 }
 
+proc $MODULE.nodeCreate_check { eid node_id } {
+	return [genericL3.nodeCreate_check $eid $node_id]
+}
+
 proc $MODULE.nodeNamespaceSetup { eid node_id } {
+}
+
+proc $MODULE.nodeNamespaceSetup_check { eid node_id } {
+	return true
 }
 
 proc $MODULE.nodeInitConfigure { eid node_id } {
@@ -321,9 +395,92 @@ proc $MODULE.nodeInitConfigure { eid node_id } {
 	genericL3.nodeInitConfigure $eid $node_id
 }
 
+proc $MODULE.nodeInitConfigure_check { eid node_id } {
+	return [genericL3.nodeInitConfigure_check $eid $node_id]
+}
+
+proc $MODULE.nodePhysIfacesCreate { eid node_id ifaces } {
+	return [genericL3.nodePhysIfacesCreate $eid $node_id $ifaces]
+}
+
+proc $MODULE.nodePhysIfacesDirectCreate { eid node_id ifaces } {
+	return [genericL3.nodePhysIfacesDirectCreate $eid $node_id $ifaces]
+}
+
+proc $MODULE.nodeLogIfacesCreate { eid node_id ifaces } {
+}
+
+proc $MODULE.nodePhysIfacesCreate_check { eid node_id ifaces } {
+	return true
+}
+
+proc $MODULE.nodeIfacesConfigure { eid node_id ifaces } {
+	return [genericL3.nodeIfacesConfigure $eid $node_id $ifaces]
+}
+
+proc $MODULE.nodeIfacesConfigure_check { eid node_id ifaces } {
+	return [genericL3.nodeIfacesConfigure_check $eid $node_id $ifaces]
+}
+
+proc $MODULE.attachToLink { node_id iface_id link_id direct } {
+	return [genericL3.attachToLink $node_id $iface_id $link_id $direct]
+}
+
+proc $MODULE.detachFromLink { node_id iface_id link_id { direct "" } } {
+	return [genericL3.detachFromLink $node_id $iface_id $link_id $direct]
+}
+
+proc $MODULE.nodeConfigure { eid node_id } {
+	return [genericL3.nodeConfigure $eid $node_id]
+}
+
+proc $MODULE.nodeConfigure_check { eid node_id } {
+	return [genericL3.nodeConfigure_check $eid $node_id]
+}
+
 ################################################################################
 ############################# TERMINATE PROCEDURES #############################
 ################################################################################
+
+proc $MODULE.nodeUnconfigure { eid node_id } {
+	return [genericL3.nodeUnconfigure $eid $node_id]
+}
+
+proc $MODULE.nodeUnconfigure_check { eid node_id } {
+	return [genericL3.nodeUnconfigure_check $eid $node_id]
+}
+
+proc $MODULE.nodeShutdown { eid node_id } {
+	return [genericL3.nodeShutdown $eid $node_id]
+}
+
+proc $MODULE.nodeShutdown_check { eid node_id } {
+	return [genericL3.nodeShutdown_check $eid $node_id]
+}
+
+proc $MODULE.nodeIfacesUnconfigure { eid node_id ifaces } {
+	return [genericL3.nodeIfacesUnconfigure $eid $node_id $ifaces]
+}
+
+proc $MODULE.nodeIfacesUnconfigure_check { eid node_id ifaces } {
+	return [genericL3.nodeIfacesUnconfigure_check $eid $node_id $ifaces]
+}
+
+proc $MODULE.nodeLogIfacesDestroy { eid node_id ifaces } {
+	return [genericL3.nodeLogIfacesDestroy $eid $node_id $ifaces]
+}
+
+proc $MODULE.nodePhysIfacesDestroy { eid node_id ifaces } {
+	return [genericL3.nodePhysIfacesDestroy $eid $node_id $ifaces]
+}
+
+proc $MODULE.nodePhysIfacesDirectDestroy { eid node_id ifaces } {
+	return [genericL3.nodePhysIfacesDirectDestroy $eid $node_id $ifaces]
+}
+
+proc $MODULE.nodeIfacesDestroy_check { eid node_id ifaces } {
+	return [genericL3.nodeIfacesDestroy_check $eid $node_id $ifaces]
+}
 
 #****f* stpswitch.tcl/stpswitch.nodeDestroy
 # NAME
@@ -343,4 +500,16 @@ proc $MODULE.nodeDestroy { eid node_id } {
 	pipesExec "jexec $eid.$node_id ifconfig $bridge_name destroy" "hold"
 
 	genericL3.nodeDestroy $eid $node_id
+}
+
+proc $MODULE.nodeDestroy_check { eid node_id } {
+	return [genericL3.nodeDestroy_check $eid $node_id]
+}
+
+proc $MODULE.nodeDestroyFS { eid node_id } {
+	return [genericL3.nodeDestroyFS $eid $node_id]
+}
+
+proc $MODULE.nodeDestroyFS_check { eid node_id } {
+	return [genericL3.nodeDestroyFS_check $eid $node_id]
 }
