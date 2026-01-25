@@ -103,7 +103,11 @@ proc checkForExternalApps { app_list } {
 #****
 proc checkForApplications { node_id app_list } {
 	set private_ns [invokeNodeProc $node_id "getPrivateNs" [getFromRunning "eid"] $node_id]
-	set os_cmd "docker exec $private_ns sh -c"
+	if { [getNodeType $node_id] == "netns" } {
+		set os_cmd "ip netns exec $private_ns sh -c"
+	} else {
+		set os_cmd "docker exec $private_ns sh -c"
+	}
 
 	foreach app $app_list {
 		set os_cmd "$os_cmd 'command -v $app'"
@@ -131,8 +135,10 @@ proc startWiresharkOnNodeIfc { node_id iface_name } {
 	global remote rcmd escalation_comm
 
 	set eid [getFromRunning "eid"]
+	set node_type [getNodeType $node_id]
 
 	if {
+		$node_type != "netns" &&
 		$remote == "" &&
 		[checkForExternalApps "startxcmd"] == 0 &&
 		[checkForApplications $node_id "wireshark"] == 0
@@ -152,7 +158,11 @@ proc startWiresharkOnNodeIfc { node_id iface_name } {
 		}
 
 		set private_ns [invokeNodeProc $node_id "getPrivateNs" $eid $node_id]
-		set os_cmd "docker exec $private_ns"
+		if { $node_type == "netns" } {
+			set os_cmd "ip netns exec $private_ns"
+		} else {
+			set os_cmd "docker exec $private_ns"
+		}
 
 		if { $wireshark_comm != "" } {
 			if { $remote != "" } {
@@ -252,7 +262,11 @@ proc existingShells { shells node_id { first_only "" } } {
 	set cmds "\'$cmds\'"
 
 	set private_ns [invokeNodeProc $node_id "getPrivateNs" [getFromRunning "eid"] $node_id]
-	set os_cmd "docker exec $private_ns"
+	if { [getNodeType $node_id] == "netns" } {
+		set os_cmd "ip netns exec $private_ns"
+	} else {
+		set os_cmd "docker exec $private_ns"
+	}
 
 	catch { rexec {*}$os_cmd sh -c {*}$cmds } existing
 
@@ -278,11 +292,17 @@ proc spawnShell { node_id cmd } {
 		return
 	}
 
-	set docker_id [getFromRunning "eid"]\.$node_id
+	set private_ns [invokeNodeProc $node_id "getPrivateNs" [getFromRunning "eid"] $node_id]
 
-	exec {*}[getActiveOption "terminal_command"] \
-		-T "IMUNES: [getNodeName $node_id] (console) [string trim [lindex [split $cmd /] end] ']" \
-		-e {*}$ttyrcmd "docker exec -it $docker_id $cmd" 2> /dev/null &
+	if { [getNodeType $node_id] == "netns" } {
+		exec {*}[getActiveOption "terminal_command"] \
+			-T "IMUNES: [getNodeName $node_id] (console) [string trim [lindex [split $cmd /] end] ']" \
+			-e {*}$ttyrcmd "ip netns exec $private_ns $cmd" 2> /dev/null &
+	} else {
+		exec {*}[getActiveOption "terminal_command"] \
+			-T "IMUNES: [getNodeName $node_id] (console) [string trim [lindex [split $cmd /] end] ']" \
+			-e {*}$ttyrcmd "docker exec -it $private_ns $cmd" 2> /dev/null &
+	}
 }
 
 #****f* linux.tcl/allSnapshotsAvailable
