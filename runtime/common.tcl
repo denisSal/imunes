@@ -1581,3 +1581,13 @@ proc execCmdNode { node_id cmd } {
 
 	return $output
 }
+
+proc getExperimentRuntimeDir { { eid "" } } {
+	global runtimeDir
+
+	if { $eid == "" } {
+		set eid [getFromRunning "eid"]
+	}
+
+	return $runtimeDir/$eid
+}
