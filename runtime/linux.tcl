@@ -51,8 +51,10 @@ proc startWiresharkOnNodeIfc { node_id iface_name } {
 	global remote rcmd escalation_comm
 
 	set eid [getFromRunning "eid"]
+	set node_type [getNodeType $node_id]
 
 	if {
+		$node_type != "netns" &&
 		$remote == "" &&
 		[checkForExternalApps "startxcmd"] == 0 &&
 		[checkForApplications $node_id "wireshark"] == 0 &&
