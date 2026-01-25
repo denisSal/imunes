@@ -771,7 +771,7 @@ namespace eval genericL3 {
 
 		if { $cmds != "" } {
 			if { $isOSlinux } {
-				pipesExec "docker exec -d $private_ns sh -c '$cmds'" "hold"
+				pipesExec "ip netns exec $private_ns sh -c '$cmds' &" "hold"
 			}
 
 			if { $isOSfreebsd } {
