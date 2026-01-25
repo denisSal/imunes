@@ -1879,3 +1879,13 @@ proc nodeLogIfacesCreate { node_id ifaces } {
 	#	pipesExec "docker exec -d $docker_id sh -c '$cmds'" "hold"
 	#}
 }
+
+proc getExperimentRuntimeDir { { eid "" } } {
+	global runtimeDir
+
+	if { $eid == "" } {
+		set eid [getFromRunning "eid"]
+	}
+
+	return $runtimeDir/$eid
+}
