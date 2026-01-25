@@ -147,7 +147,7 @@ set isOSlinux false
 set isOSwin false
 
 # Set default node type list
-set node_types "lanswitch hub rj45 stpswitch filter packgen \
+set default_node_types "lanswitch hub rj45 stpswitch filter packgen \
 	router host pc nat64 ext"
 # Set default supported router models
 set supp_router_models "frr quagga static"
@@ -159,13 +159,20 @@ foreach file [glob -directory $ROOTDIR/$LIBDIR/config *.tcl] {
 
 # The following files need to be sourced in this particular order. If not
 # the placement of the toolbar icons will be altered.
-foreach file $node_types {
+foreach file $default_node_types {
 	safeSourceFile "$ROOTDIR/$LIBDIR/nodes/$file.tcl"
 	safeSourceFile "$ROOTDIR/$LIBDIR/gui/nodes/$file.tcl"
 }
 
-# additional nodes
-safeSourceFile "$ROOTDIR/$LIBDIR/nodes/localnodes.tcl"
+# Custom nodes
+foreach file_path [glob -nocomplain -directory $ROOTDIR/$LIBDIR/custom_nodes *.tcl] {
+	safeSourceFile $file_path
+}
+
+# Custom node-specific configuration libraries
+foreach file_path [glob -nocomplain -directory $ROOTDIR/$LIBDIR/custom_nodes/config *.tcl] {
+	safeSourceFile $file_path
+}
 
 #
 # Global variables are initialized here
