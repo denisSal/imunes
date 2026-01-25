@@ -1560,3 +1560,13 @@ proc redeployCfg {} {
 proc killExtProcess { regex } {
 	pipesExec "pkill -f \"$regex\"" "hold"
 }
+
+proc getExperimentRuntimeDir { { eid "" } } {
+	global runtimeDir
+
+	if { $eid == "" } {
+		set eid [getFromRunning "eid"]
+	}
+
+	return $runtimeDir/$eid
+}
