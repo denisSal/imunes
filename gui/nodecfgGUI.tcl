@@ -49,22 +49,6 @@ set router_ConfigModel "frr"
 proc nodeConfigGUI { c node_id } {
 	global badentry
 
-	if { $node_id == "" } {
-		set node_id [lindex [$c gettags current] 1]
-	}
-
-	if { [isPseudoNode $node_id] } {
-		#
-		# Hyperlink to another canvas
-		#
-		set mirror_node [getNodeMirror $node_id]
-		setToRunning_gui "curcanvas" [getNodeCanvas $mirror_node]
-		switchCanvas none
-		after idle selectNodes [lindex [nodeFromPseudoNode $mirror_node] 0]
-
-		return
-	}
-
 	set badentry 0
 	invokeNodeProc $node_id "gui::configGUI" $c $node_id
 }

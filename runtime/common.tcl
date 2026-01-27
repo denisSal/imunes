@@ -914,9 +914,6 @@ proc setOperMode { new_oper_mode } {
 			.menubar.experiment entryconfigure "Refresh running experiment" -state normal
 			.menubar.edit entryconfigure "Undo" -state disabled
 			.menubar.edit entryconfigure "Redo" -state disabled
-			.panwin.f1.c bind node <Double-1> "spawnShellExec"
-			.panwin.f1.c bind nodelabel <Double-1> "spawnShellExec"
-			.panwin.f1.c bind node_running <Double-1> "spawnShellExec"
 		}
 
 		setToRunning "oper_mode" "exec"
@@ -988,10 +985,6 @@ proc setOperMode { new_oper_mode } {
 			} else {
 				.menubar.edit entryconfigure "Redo" -state disabled
 			}
-
-			.panwin.f1.c bind node <Double-1> "nodeConfigGUI .panwin.f1.c {}"
-			.panwin.f1.c bind nodelabel <Double-1> "nodeConfigGUI .panwin.f1.c {}"
-			.panwin.f1.c bind node_running <Double-1> "nodeConfigGUI .panwin.f1.c {}"
 		}
 
 		setToRunning "oper_mode" "edit"
@@ -1021,26 +1014,13 @@ proc setOperMode { new_oper_mode } {
 #   This procedure spawns a new shell on a selected and current
 #   node.
 #****
-proc spawnShellExec {} {
-	set node_id [lindex [.panwin.f1.c gettags "(node || nodelabel || node_running) && current"] 1]
-	if { $node_id == "" } {
+proc spawnShellExec { node_id } {
+	set cmd [existingShells [invokeNodeProc $node_id "shellcmds"] $node_id "first_only"]
+	if { $cmd == "" } {
 		return
 	}
 
-	if {
-		[isPseudoNode $node_id] ||
-		[invokeNodeProc $node_id "virtlayer"] != "VIRTUALIZED" ||
-		! [isRunningNode $node_id]
-	} {
-		nodeConfigGUI .panwin.f1.c $node_id
-	} else {
-		set cmd [existingShells [invokeNodeProc $node_id "shellcmds"] $node_id "first_only"]
-		if { $cmd == "" } {
-			return
-		}
-
-		spawnShell $node_id $cmd
-	}
+	spawnShell $node_id $cmd
 }
 
 #****f* exec.tcl/fetchNodesConfiguration
