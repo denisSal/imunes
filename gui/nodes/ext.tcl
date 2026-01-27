@@ -158,4 +158,8 @@ namespace eval ${MODULE}::gui {
 		configGUI_nodeRestart $wi $node_id
 		configGUI_buttonsACNode $wi $node_id
 	}
+
+	proc doubleClick { canvas_elem node_id control } {
+		nodeConfigGUI $canvas_elem $node_id
+	}
 }

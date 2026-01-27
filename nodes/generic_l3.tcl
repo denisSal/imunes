@@ -169,6 +169,22 @@ namespace eval genericL3 {
 		return "csh bash sh tcsh"
 	}
 
+	proc getExecCommand { eid node_id { interactive "" } } {
+		global isOSlinux isOSfreebsd
+
+		set private_ns [invokeNodeProc $node_id "getPrivateNs" $eid $node_id]
+		if { $isOSlinux } {
+			if { $interactive != "" } {
+				set interactive "-it"
+			}
+			return "docker exec $interactive $private_ns"
+		}
+
+		if { $isOSfreebsd } {
+			return "jexec $private_ns"
+		}
+	}
+
 	proc getPrivateNs { eid node_id } {
 		global isOSlinux isOSfreebsd
 

@@ -150,4 +150,8 @@ namespace eval genericL3::gui {
 		configGUI_ifcIPv4Address $wi $node_id $iface_id
 		configGUI_ifcIPv6Address $wi $node_id $iface_id
 	}
+
+	proc doubleClick { canvas_elem node_id control } {
+		invokeTypeProc "genericL2" "gui::doubleClick" $canvas_elem $node_id $control
+	}
 }

@@ -86,6 +86,7 @@ namespace eval genericL2 {
 	}
 
 	proc shellcmds {} {
+		return "csh bash sh tcsh"
 	}
 
 	proc getPrivateNs { eid node_id } {
@@ -135,6 +136,19 @@ namespace eval genericL2 {
 		set hook_name "link[expr [string range $iface_id 3 end] + 1]"
 
 		return [list $private_elem $public_elem $hook_name]
+	}
+
+	proc getExecCommand { eid node_id { interactive "" } } {
+		global isOSlinux isOSfreebsd
+
+		set private_ns [invokeNodeProc $node_id "getPrivateNs" $eid $node_id]
+		if { $isOSlinux } {
+			return "ip netns exec $private_ns"
+		}
+
+		if { $isOSfreebsd } {
+			return "jexec $eid"
+		}
 	}
 
 	################################################################################

@@ -194,6 +194,10 @@ namespace eval $MODULE {
 		return [list $private_elem $public_elem $hook_name]
 	}
 
+	proc getExecCommand { eid node_id { interactive "" } } {
+		return ""
+	}
+
 	################################################################################
 	############################ INSTANTIATE PROCEDURES ############################
 	################################################################################

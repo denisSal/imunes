@@ -108,4 +108,12 @@ namespace eval genericL2::gui {
 		configGUI_ifcQueueConfig $wi $node_id $iface_id
 		configGUI_ifcGap $wi $iface_id 30
 	}
+
+	proc doubleClick { canvas_elem node_id control } {
+		if { [isRunningNode $node_id] && ! $control } {
+			spawnShellExec $node_id
+		} else {
+			nodeConfigGUI $canvas_elem $node_id
+		}
+	}
 }
