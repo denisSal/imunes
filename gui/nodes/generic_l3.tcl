@@ -150,4 +150,12 @@ namespace eval genericL3::gui {
 		configGUI_ifcIPv4Address $wi $node_id $iface_id
 		configGUI_ifcIPv6Address $wi $node_id $iface_id
 	}
+
+	proc doubleClick { canvas_elem node_id control } {
+		if { [isRunningNode $node_id] && ! $control } {
+			spawnShellExec $node_id
+		} else {
+			nodeConfigGUI $canvas_elem $node_id
+		}
+	}
 }
