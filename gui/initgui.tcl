@@ -1247,13 +1247,36 @@ $c bind node_running <Any-Leave> "anyLeave $c"
 $c bind link <Any-Leave> "anyLeave $c"
 $c bind linklabel <Any-Leave> "anyLeave $c"
 
-$c bind node <Double-1> "nodeConfigGUI $c {}"
-$c bind nodelabel <Double-1> "nodeConfigGUI $c {}"
-$c bind node_running <Double-1> "nodeConfigGUI $c {}"
+set tmp_command [list apply {
+	{ canvas_elem control } {
+		set node_id [lindex [$canvas_elem gettags current] 1]
 
-$c bind node <Control-Double-1> "nodeConfigGUI $c {}"
-$c bind nodelabel <Control-Double-1> "nodeConfigGUI $c {}"
-$c bind node_running <Control-Double-1> "nodeConfigGUI $c {}"
+		if { [isPseudoNode $node_id] } {
+			#
+			# Hyperlink to another canvas
+			#
+			set mirror_node [getNodeMirror $node_id]
+			setToRunning_gui "curcanvas" [getNodeCanvas $mirror_node]
+			switchCanvas none
+			after idle selectNodes [lindex [nodeFromPseudoNode $mirror_node] 0]
+
+			return
+		}
+
+		invokeNodeProc $node_id "gui::doubleClick" $canvas_elem $node_id $control
+	}
+} \
+	$c \
+	""
+]
+
+$c bind node <Double-1> [lreplace $tmp_command end end 0]
+$c bind nodelabel <Double-1> [lreplace $tmp_command end end 0]
+$c bind node_running <Double-1> [lreplace $tmp_command end end 0]
+
+$c bind node <Control-Double-1> [lreplace $tmp_command end end 1]
+$c bind nodelabel <Control-Double-1> [lreplace $tmp_command end end 1]
+$c bind node_running <Control-Double-1> [lreplace $tmp_command end end 1]
 
 $c bind grid <Double-1> "double1onGrid $c %x %y"
 
