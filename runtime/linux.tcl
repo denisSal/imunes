@@ -141,7 +141,8 @@ proc startWiresharkOnNodeIfc { node_id iface_name } {
 	if {
 		$remote == "" &&
 		[checkForExternalApps "startxcmd"] == 0 &&
-		[checkForApplications $node_id "wireshark"] == 0
+		[checkForApplications $node_id "wireshark"] == 0 &&
+		[invokeNodeProc $node_id "virtlayer"] == "VIRTUALIZED"
 	} {
 		startXappOnNode $node_id "wireshark -ki $iface_name"
 	} else {

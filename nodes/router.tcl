@@ -219,6 +219,18 @@ namespace eval $MODULE {
 		return $cfg
 	}
 
+	proc transformNode { node_id to_type } {
+		if { $to_type ni "pc host" } {
+			return
+		}
+
+		# replace type
+		setNodeType $node_id $to_type
+
+		setNodeModel $node_id {}
+		cfgUnset "nodes" $node_id "router_config"
+	}
+
 	#****f* router.tcl/router.IPAddrRange
 	# NAME
 	#   router.IPAddrRange -- IP address range
