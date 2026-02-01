@@ -1053,42 +1053,15 @@ proc listLANNodes { l2node_id l2peers } {
 proc transformNodes { nodes to_type } {
 	global changed
 
-	set routerDefaultsModel [getActiveOption "routerDefaultsModel"]
-	set ripEnable [getActiveOption "routerRipEnable"]
-	set ripngEnable [getActiveOption "routerRipngEnable"]
-	set ospfEnable [getActiveOption "routerOspfEnable"]
-	set ospf6Enable [getActiveOption "routerOspf6Enable"]
-	set bgpEnable [getActiveOption "routerBgpEnable"]
-	set ldpEnable [getActiveOption "routerLdpEnable"]
-
 	foreach node_id $nodes {
-		if { [invokeNodeProc $node_id "netlayer"] == "NETWORK" } {
-			set from_type [getNodeType $node_id]
-
-			# replace type
-			setNodeType $node_id $to_type
-
-			if { $to_type == "pc" || $to_type == "host" } {
-				if { $from_type == "router" } {
-					setNodeModel $node_id {}
-					cfgUnset "nodes" $node_id "router_config"
-				}
-
-				set changed 1
-			} elseif { $from_type != "router" && $to_type == "router" } {
-				setNodeModel $node_id $routerDefaultsModel
-				if { $routerDefaultsModel != "static" } {
-					setNodeProtocol $node_id "rip" $ripEnable
-					setNodeProtocol $node_id "ripng" $ripngEnable
-					setNodeProtocol $node_id "ospf" $ospfEnable
-					setNodeProtocol $node_id "ospf6" $ospf6Enable
-					setNodeProtocol $node_id "bgp" $bgpEnable
-					setNodeProtocol $node_id "ldp" $ldpEnable
-				}
-
-				set changed 1
-			}
+		set from_type [getNodeType $node_id]
+		if { $from_type == $to_type } {
+			continue
 		}
+
+		set changed 1
+
+		invokeNodeProc $node_id "transformNode" $node_id $to_type
 	}
 }
 

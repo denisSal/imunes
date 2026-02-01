@@ -149,6 +149,9 @@ namespace eval genericL3 {
 		return $cfg
 	}
 
+	proc transformNode { node_id to_type } {
+	}
+
 	proc maxIfaces {} {
 		return ""
 	}
