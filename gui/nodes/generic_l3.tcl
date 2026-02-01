@@ -155,7 +155,44 @@ namespace eval genericL3::gui {
 		if { [isRunningNode $node_id] && ! $control } {
 			spawnShellExec $node_id
 		} else {
-			nodeConfigGUI $canvas_elem $node_id
+			nodeConfigGUI $node_id
 		}
+	}
+
+	proc rightClickMenus {} {
+		set menu_list {
+			menu_selectAdjacent
+			menu_configureNode
+			menu_nodeIcons
+			menu_createLink
+			menu_connectIface
+			menu_moveTo
+			menu_deleteSelection
+			menu_deleteSelectionKeepIfaces
+			menu_addSeparator
+			menu_nodeSettings
+			menu_ifacesSettings
+			menu_transformTo
+			menu_addSeparator
+			menu_autoExecute
+		}
+
+		if { [getFromRunning "oper_mode"] == "exec" } {
+			set exec_list {
+				menu_nodeExecute
+				menu_addSeparator
+				menu_shellSelection
+				menu_services
+				menu_wiresharkIfaces
+				menu_tcpdumpIfaces
+				menu_addSeparator
+				menu_browser
+				menu_mailClient
+			}
+
+			lappend menu_list {*}$exec_list
+		}
+
+		return $menu_list
 	}
 }

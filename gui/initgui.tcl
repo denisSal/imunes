@@ -1142,6 +1142,8 @@ set pseudo_iconheight 0
 ttk::frame $mf.grid
 ttk::frame $mf.hframe
 ttk::frame $mf.vframe
+
+global c
 set c [canvas $mf.c \
 	-bd 0 \
 	-relief sunken \

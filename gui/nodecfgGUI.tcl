@@ -43,11 +43,10 @@ set router_ConfigModel "frr"
 #   $type.configGUI or, in the case of pseudo node, calls the procedure for
 #   switching canvas.
 # INPUTS
-#   * c -- tk canvas
 #   * node_id -- node id
 #****
-proc nodeConfigGUI { c node_id } {
-	global badentry
+proc nodeConfigGUI { node_id } {
+	global badentry c
 
 	set badentry 0
 	invokeNodeProc $node_id "gui::configGUI" $c $node_id
