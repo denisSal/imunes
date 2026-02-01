@@ -103,6 +103,10 @@ namespace eval $MODULE {
 		return $cfg
 	}
 
+	proc transformNode { node_id to_type } {
+		return [invokeTypeProc "pc" "transformNode" $node_id $to_type]
+	}
+
 	#****f* host.tcl/host.IPAddrRange
 	# NAME
 	#   host.IPAddrRange -- IP address range

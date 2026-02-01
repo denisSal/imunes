@@ -116,4 +116,29 @@ namespace eval genericL2::gui {
 			nodeConfigGUI $canvas_elem $node_id
 		}
 	}
+
+	proc rightClickMenus {} {
+		set menu_list {
+			menu_selectAdjacent
+			menu_configureNode
+			menu_nodeIcons
+			menu_createLink
+			menu_connectIface
+			menu_moveTo
+			menu_deleteSelection
+			menu_deleteSelectionKeepIfaces
+			menu_addSeparator
+			menu_autoExecute
+		}
+
+		if { [getFromRunning "oper_mode"] == "exec" } {
+			set exec_list {
+				menu_nodeExecute
+			}
+
+			lappend menu_list {*}$exec_list
+		}
+
+		return $menu_list
+	}
 }
