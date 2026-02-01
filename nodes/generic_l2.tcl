@@ -71,6 +71,9 @@ namespace eval genericL2 {
 	proc generateUnconfig { node_id } {
 	}
 
+	proc transformNode { node_id to_type } {
+	}
+
 	proc maxIfaces {} {
 		return ""
 	}

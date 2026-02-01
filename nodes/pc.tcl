@@ -54,6 +54,35 @@ namespace eval $MODULE {
 		return "pc"
 	}
 
+	proc transformNode { node_id to_type } {
+		if { $to_type ni "pc host router" } {
+			return
+		}
+
+		# replace type
+		setNodeType $node_id $to_type
+
+		if { $to_type == "router" } {
+			set routerDefaultsModel [getActiveOption "routerDefaultsModel"]
+			set ripEnable [getActiveOption "routerRipEnable"]
+			set ripngEnable [getActiveOption "routerRipngEnable"]
+			set ospfEnable [getActiveOption "routerOspfEnable"]
+			set ospf6Enable [getActiveOption "routerOspf6Enable"]
+			set bgpEnable [getActiveOption "routerBgpEnable"]
+			set ldpEnable [getActiveOption "routerLdpEnable"]
+
+			setNodeModel $node_id $routerDefaultsModel
+			if { $routerDefaultsModel != "static" } {
+				setNodeProtocol $node_id "rip" $ripEnable
+				setNodeProtocol $node_id "ripng" $ripngEnable
+				setNodeProtocol $node_id "ospf" $ospfEnable
+				setNodeProtocol $node_id "ospf6" $ospf6Enable
+				setNodeProtocol $node_id "bgp" $bgpEnable
+				setNodeProtocol $node_id "ldp" $ldpEnable
+			}
+		}
+	}
+
 	################################################################################
 	############################ INSTANTIATE PROCEDURES ############################
 	################################################################################
