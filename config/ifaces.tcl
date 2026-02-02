@@ -332,44 +332,19 @@ proc getIfcIPv4addrs { node_id iface_id } {
 #   * addrs4 -- new IPv4 addresses.
 #****
 proc setIfcIPv4addrs { node_id iface_id addrs4 } {
+	set old_routes [appendNodeSubnetRoutes $node_id {}]
+
 	cfgSet "nodes" $node_id "ifaces" $iface_id "ipv4_addrs" $addrs4
 
 	trigger_ifaceReconfig $node_id $iface_id
 
-	set node_type [getNodeType $node_id]
-	set is_extnat [expr {$node_type == "ext" && [getNodeNATIface $node_id] != "UNASSIGNED"}]
-	if { $is_extnat } {
-		trigger_nodeReconfig $node_id
-	}
-
-	if { [isIfcLogical $node_id $iface_id] || ! ($node_type in "router nat64" || $is_extnat) } {
+	set my_priority [invokeNodeProc $node_id "getSubnetPriority" $node_id $iface_id]
+	if { $my_priority < 0 } {
 		return
 	}
 
-	lassign [getSubnetData $node_id $iface_id {} {} 0] subnet_gws subnet_data
-	if { $subnet_gws == "{||}" } {
-		return
-	}
-
-	set has_extnat [string match "*ext*" $subnet_gws]
-	foreach subnet_node [removeFromList [dict keys $subnet_data] $node_id] {
-		if { [getNodeAutoDefaultRoutesStatus $subnet_node] != "enabled" } {
-			continue
-		}
-
-		set subnet_node_type [getNodeType $subnet_node]
-		if { $subnet_node_type == "ext" || [invokeTypeProc $subnet_node_type "netlayer"] != "NETWORK" } {
-			# skip extnat and L2 nodes
-			continue
-		}
-
-		if { ! $has_extnat && $subnet_node_type in "router nat64" } {
-			# skip routers if there is no extnats
-			continue
-		}
-
-		trigger_nodeReconfig $subnet_node
-	}
+	set new_routes [appendNodeSubnetRoutes $node_id {}]
+	triggerChangedDefaultRoutes $old_routes $new_routes
 }
 
 #****f* ifaces.tcl/getIfcType
@@ -482,40 +457,19 @@ proc getIfcIPv6addrs { node_id iface_id } {
 #   * addrs6 -- new IPv6 addresses.
 #****
 proc setIfcIPv6addrs { node_id iface_id addrs6 } {
+	set old_routes [appendNodeSubnetRoutes $node_id {}]
+
 	cfgSet "nodes" $node_id "ifaces" $iface_id "ipv6_addrs" $addrs6
 
 	trigger_ifaceReconfig $node_id $iface_id
 
-	set node_type [getNodeType $node_id]
-	set is_extnat [expr {($node_type == "ext" && [getNodeNATIface $node_id] != "UNASSIGNED")}]
-	if { [isIfcLogical $node_id $iface_id] || ! ($node_type in "router nat64" || $is_extnat) } {
+	set my_priority [invokeNodeProc $node_id "getSubnetPriority" $node_id $iface_id]
+	if { $my_priority == 0 } {
 		return
 	}
 
-	lassign [getSubnetData $node_id $iface_id {} {} 0] subnet_gws subnet_data
-	if { $subnet_gws == "{||}" } {
-		return
-	}
-
-	set has_extnat [string match "*ext*" $subnet_gws]
-	foreach subnet_node [removeFromList [dict keys $subnet_data] $node_id] {
-		if { [getNodeAutoDefaultRoutesStatus $subnet_node] != "enabled" } {
-			continue
-		}
-
-		set subnet_node_type [getNodeType $subnet_node]
-		if { $subnet_node_type == "ext" || [invokeTypeProc $subnet_node_type "netlayer"] != "NETWORK" } {
-			# skip extnat and L2 nodes
-			continue
-		}
-
-		if { ! $has_extnat && [getNodeType $subnet_node] in "router nat64" } {
-			# skip routers if there is no extnats
-			continue
-		}
-
-		trigger_nodeReconfig $subnet_node
-	}
+	set new_routes [appendNodeSubnetRoutes $node_id {}]
+	triggerChangedDefaultRoutes $old_routes $new_routes
 }
 
 #****f* linkcfg.tcl/getIfcLink

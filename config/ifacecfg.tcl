@@ -417,8 +417,14 @@ proc newLogIface { node_id logiface_type } {
 proc removeIface { node_id iface_id { keep_other_ifaces 1} } {
 	trigger_ifaceDestroy $node_id $iface_id
 
+	# save old subnet data for comparison
+	set old_routes [appendNodeSubnetRoutes $node_id {}]
+
 	set link_id [getIfcLink $node_id $iface_id]
 	if { $link_id != "" } {
+		lassign [logicalPeerByIfc $node_id $iface_id] peer_id peer_iface_id
+		set old_routes [appendNodeSubnetRoutes $peer_id $old_routes]
+
 		cfgUnset "nodes" $node_id "ifaces" $iface_id "link"
 
 		removeLink $link_id $keep_other_ifaces
@@ -460,6 +466,20 @@ proc removeIface { node_id iface_id { keep_other_ifaces 1} } {
 		foreach other_iface_id [ifcList $node_id] {
 			if { $iface_id != $other_iface_id && [getIfcVlanType $node_id $other_iface_id] == "trunk" } {
 				trigger_ifaceReconfig $node_id $other_iface_id
+			}
+		}
+	}
+
+	set new_routes [appendNodeSubnetRoutes $node_id {}]
+	if { $link_id != "" } {
+		set new_routes [appendNodeSubnetRoutes $peer_id $new_routes]
+	}
+
+	set diff [dictDiff $old_routes $new_routes]
+	if { [lsort -uniq [dict values $diff]] != "copy" } {
+		dict for {subnet_node_id change} $diff {
+			if { $change != "copy" } {
+				trigger_nodeReconfig $subnet_node_id
 			}
 		}
 	}
