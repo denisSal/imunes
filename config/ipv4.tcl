@@ -257,7 +257,13 @@ proc autoIPv4addr { node_id iface_id { use_autorenumbered "" } } {
 		return
 	}
 
-	global numbits change_subnet4 control autorenumbered_ifcs
+	lassign [getSubnetIPv4 $node_id $iface_id] addr -
+	setIfcIPv4addrs $node_id $iface_id $addr
+	lappendToRunning "ipv4_used_list" $addr
+
+	return
+
+	global change_subnet4 control autorenumbered_ifcs
 	#change_subnet4 - to change the subnet (1) or not (0)
 	#autorenumbered_ifcs - list of all interfaces that changed an address
 
@@ -524,4 +530,28 @@ proc checkIPv4NetsDHCP { str } {
 	}
 
 	return [checkIPv4Nets $str]
+}
+
+proc _tmpfun { node_id iface_id } {
+	set nodes_ifaces [getSubnetIfaces $node_id $iface_id]
+	set selected [selectedNodes]
+
+	foreach node_subnet_data $nodes_ifaces {
+		lassign $node_subnet_data prio subnet_node_id subnet_iface_id
+		if { $prio < 0 || $subnet_node_id ni $selected } {
+			continue
+		}
+		setIfcIPv4addrs $subnet_node_id $subnet_iface_id ""
+	}
+
+	foreach node_subnet_data $nodes_ifaces {
+		lassign $node_subnet_data prio subnet_node_id subnet_iface_id
+		if { $prio < 0 || $subnet_node_id ni $selected } {
+			continue
+		}
+
+		autoIPv4addr $subnet_node_id $subnet_iface_id
+	}
+
+	redrawAll
 }

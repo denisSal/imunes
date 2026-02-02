@@ -135,6 +135,14 @@ namespace eval $MODULE {
 		return "ext"
 	}
 
+	proc getSubnetPriority { node_id iface_id } {
+		if { [getNodeNATIface $node_id] == "UNASSIGNED" } {
+			return -1
+		}
+
+		return 2
+	}
+
 	#****f* ext.tcl/ext.maxIfaces
 	# NAME
 	#   ext.maxIfaces -- maximum number of links

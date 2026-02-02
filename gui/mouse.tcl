@@ -1926,14 +1926,12 @@ proc matchSubnet4 { node_id iface_id } {
 		setToExecuteVars "terminate_cfg" [cfgGet]
 	}
 
+	set old_routes [appendNodeSubnetRoutes $node_id {}]
+
 	set tmp [getActiveOption "IPv4autoAssign"]
 	setGlobalOption "IPv4autoAssign" 1
 	autoIPv4addr $node_id $iface_id
 	setGlobalOption "IPv4autoAssign" $tmp
-
-	if { [getNodeAutoDefaultRoutesStatus $node_id] == "enabled" } {
-		trigger_nodeReconfig $node_id
-	}
 
 	if { [getFromRunning "stop_sched"] } {
 		redeployCfg
@@ -1957,10 +1955,6 @@ proc matchSubnet6 { node_id iface_id } {
 	setGlobalOption "IPv6autoAssign" 1
 	autoIPv6addr $node_id $iface_id
 	setGlobalOption "IPv6autoAssign" $tmp
-
-	if { [getNodeAutoDefaultRoutesStatus $node_id] == "enabled" } {
-		trigger_nodeReconfig $node_id
-	}
 
 	if { [getFromRunning "stop_sched"] } {
 		redeployCfg

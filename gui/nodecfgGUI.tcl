@@ -1829,8 +1829,7 @@ proc configGUI_staticRoutes { wi node_id } {
 	set user_sroutes [concat [_getNodeStatIPv4routes $node_cfg] [_getNodeStatIPv6routes $node_cfg]]
 
 	set auto_default_routes [_getNodeAutoDefaultRoutesStatus $node_cfg]
-	lassign [getDefaultGateways $node_id {} {}] my_gws {} {}
-	lassign [getDefaultRoutesConfig $node_id $my_gws] all_routes4 all_routes6
+	lassign [getDefaultRoutesConfig $node_id] all_routes4 all_routes6
 
 	set ifc_routes_enable $wi.ifc_routes_enable
 	ttk::checkbutton $ifc_routes_enable -text "Enable automatic default routes" \
