@@ -7996,6 +7996,10 @@ proc transformNodesGUI { nodes to_type } {
 	transformNodes $nodes $to_type
 
 	if { $changed == 1 } {
+		if { [getFromRunning "stop_sched"] } {
+			redeployCfg
+		}
+
 		redrawAll
 		updateUndoLog
 	}
