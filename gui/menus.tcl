@@ -372,23 +372,21 @@ proc menu_transformTo { node_id root_menu } {
 	# Transform
 	#
 	set menu_enabled [expr {
-		! [isRunningNode $node_id] &&
 		[getNodeType $node_id] in "router pc host"
 	}]
-	if { $menu_enabled } {
-		set sub_menu "$root_menu.transform"
-		addCascadeMenu $root_menu \
-			"Transform to" \
-			$sub_menu \
-			$menu_enabled \
-			"hide"
 
-		foreach to_type "Router PC Host" {
-			addMenu $sub_menu \
-				"$to_type" \
-				"transformNodesGUI \"[selectedRealNodes]\" [string tolower $to_type]" \
-				"true"
-		}
+	set sub_menu "$root_menu.transform"
+	addCascadeMenu $root_menu \
+		"Transform to" \
+		$sub_menu \
+		$menu_enabled \
+		"hide"
+
+	foreach to_type "Router PC Host" {
+		addMenu $sub_menu \
+			"$to_type" \
+			"transformNodesGUI \"[selectedRealNodes]\" [string tolower $to_type]" \
+			"true"
 	}
 }
 
