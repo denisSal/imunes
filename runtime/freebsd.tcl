@@ -1027,60 +1027,6 @@ proc nodeLogIfacesCreate { node_id ifaces } {
 	}
 }
 
-proc isNodeError { node_id } {
-	global nodeconf_timeout
-
-	if { [invokeNodeProc $node_id "virtlayer"] == "NATIVE" } {
-		return false
-	}
-
-	set jail_id "[getFromRunning "eid"].$node_id"
-
-	try {
-		set cmd "sed \"/^+ /d\" /err.log"
-		if { $nodeconf_timeout >= 0 } {
-			rexec timeout [expr $nodeconf_timeout/5.0] jexec $jail_id $cmd
-		} else {
-			rexec jexec $jail_id $cmd
-		}
-	} on error {} {
-		return ""
-	} on ok errlog {
-		if { $errlog == "" } {
-			return false
-		}
-
-		return true
-	}
-}
-
-proc isNodeErrorIfaces { node_id } {
-	global ifacesconf_timeout
-
-	if { [invokeNodeProc $node_id "virtlayer"] == "NATIVE" } {
-		return false
-	}
-
-	set jail_id "[getFromRunning "eid"].$node_id"
-
-	try {
-		set cmd "sed \"/^+ /d\" /err_ifaces.log"
-		if { $ifacesconf_timeout >= 0 } {
-			rexec timeout [expr $ifacesconf_timeout/5.0] jexec $jail_id $cmd
-		} else {
-			rexec jexec $jail_id $cmd
-		}
-	} on error {} {
-		return ""
-	} on ok errlog {
-		if { $errlog == "" } {
-			return false
-		}
-
-		return true
-	}
-}
-
 #****f* freebsd.tcl/removeNodeIfcIPaddrs
 # NAME
 #   removeNodeIfcIPaddrs -- remove node iterfaces' IP addresses
