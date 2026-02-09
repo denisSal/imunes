@@ -948,6 +948,14 @@ namespace eval $MODULE {
 		}
 	}
 
+	proc isNodeError { eid node_id } {
+		return false
+	}
+
+	proc isNodeErrorIfaces { eid node_id } {
+		return false
+	}
+
 	#****f* ext.tcl/ext.nodeDestroy
 	# NAME
 	#   ext.nodeDestroy -- destroy
