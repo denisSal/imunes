@@ -830,11 +830,12 @@ namespace eval genericL3 {
 		}
 
 		if { $isOSfreebsd } {
-			if { $ifacesconf_timeout >= 0 } {
-				pipesExec "timeout --foreground $ifacesconf_timeout jexec $private_ns sh -c '$cmds'" "hold"
-			} else {
-				pipesExec "jexec $private_ns sh -c '$cmds'" "hold"
-			}
+			pipesExec "jexec $private_ns sh -c '$cmds' &" "hold"
+			#if { $ifacesconf_timeout >= 0 } {
+				#pipesExec "timeout --foreground $ifacesconf_timeout jexec $private_ns sh -c '$cmds'" "hold"
+			#} else {
+				#pipesExec "jexec $private_ns sh -c '$cmds'" "hold"
+			#}
 		}
 	}
 
@@ -925,11 +926,12 @@ namespace eval genericL3 {
 		}
 
 		if { $isOSfreebsd } {
-			if { $nodeconf_timeout >= 0 } {
-				pipesExec "timeout --foreground $nodeconf_timeout jexec $private_ns sh -c '$cmds'" "hold"
-			} else {
-				pipesExec "jexec $private_ns sh -c '$cmds'" "hold"
-			}
+			pipesExec "jexec $private_ns sh -c '$cmds' &" "hold"
+			#if { $nodeconf_timeout >= 0 } {
+				#pipesExec "timeout --foreground $nodeconf_timeout jexec $private_ns sh -c '$cmds'" "hold"
+			#} else {
+				#pipesExec "jexec $private_ns sh -c '$cmds'" "hold"
+			#}
 		}
 	}
 
@@ -960,6 +962,70 @@ namespace eval genericL3 {
 		}
 
 		return $node_configured
+	}
+
+	proc isNodeError { eid node_id } {
+		global isOSlinux isOSfreebsd
+		global nodeconf_timeout
+
+		set private_ns [invokeNodeProc $node_id "getPrivateNs" $eid $node_id]
+
+		set cmds "test ! -f /err.log || sed \"/^+ /d\" /err.log"
+		if { $isOSlinux } {
+			set cmds "docker exec $private_ns sh -c '$cmds'"
+		}
+
+		if { $isOSfreebsd } {
+			set cmds "jexec $private_ns sh -c '$cmds'"
+		}
+
+		if { $nodeconf_timeout >= 0 } {
+			set cmds "timeout [expr $nodeconf_timeout/5.0] $cmds"
+		}
+
+		try {
+			rexec $cmds
+		} on error {} {
+			return "timeout"
+		} on ok errlog {
+			if { $errlog == "" } {
+				return false
+			}
+
+			return true
+		}
+	}
+
+	proc isNodeErrorIfaces { eid node_id } {
+		global isOSlinux isOSfreebsd
+		global ifacesconf_timeout
+
+		set private_ns [invokeNodeProc $node_id "getPrivateNs" $eid $node_id]
+
+		set cmds "test ! -f /err_ifaces.log || sed \"/^+ /d\" /err_ifaces.log"
+		if { $isOSlinux } {
+			set cmds "docker exec $private_ns sh -c '$cmds'"
+		}
+
+		if { $isOSfreebsd } {
+			set cmds "jexec $private_ns sh -c '$cmds'"
+		}
+
+		if { $ifacesconf_timeout >= 0 } {
+			set cmds "timeout [expr $ifacesconf_timeout/5.0] $cmds"
+		}
+
+		try {
+			rexec $cmds
+		} on error {} {
+			return "timeout"
+		} on ok errlog {
+			if { $errlog == "" } {
+				return false
+			}
+
+			return true
+		}
 	}
 
 	################################################################################
