@@ -105,16 +105,15 @@ namespace eval ${MODULE}::gui {
 	# NAME
 	#   rj45.configGUI -- configuration GUI
 	# SYNOPSIS
-	#   rj45.configGUI $c $node_id
+	#   rj45.configGUI $node_id
 	# FUNCTION
 	#   Defines the structure of the rj45 configuration window by calling
 	#   procedures for creating and organising the window, as well as procedures
 	#   for adding certain modules to that window.
 	# INPUTS
-	#   * c -- tk canvas
 	#   * node_id -- node id
 	#****
-	proc configGUI { c node_id } {
+	proc configGUI { node_id } {
 		global wi
 		#
 		#guielements - the list of modules contained in the configuration window
@@ -135,7 +134,7 @@ namespace eval ${MODULE}::gui {
 		set node_existing_ipv4 [getFromRunning "ipv4_used_list"]
 		set node_existing_ipv6 [getFromRunning "ipv6_used_list"]
 
-		configGUI_createConfigPopupWin $c
+		configGUI_createConfigPopupWin
 		wm title $wi "rj45 configuration"
 
 		configGUI_nodeName $wi $node_id "Node name:"
