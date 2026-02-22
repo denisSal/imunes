@@ -125,7 +125,7 @@ proc execCmdNodeBkg { node_id cmd } {
 proc checkForExternalApps { app_list } {
 	foreach app $app_list {
 		set cmds "command -v $app"
-		set status [ catch { exec sh -c {*}$cmds } err ]
+		set status [ catch { exec sh -c $cmds } err ]
 		if { $status } {
 			return 1
 		}
