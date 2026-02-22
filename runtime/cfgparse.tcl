@@ -1456,7 +1456,11 @@ proc saveCfgJson { fname { no_write "" } } {
 
 	#saveOptions
 
-	set json_cfg [createJson "dictionary" $dict_cfg]
+	if { [checkForExternalApps "jq"] } {
+		set json_cfg [createJson "dictionary" $dict_cfg]
+	} else {
+		set json_cfg [exec jq . << [createJson "dictionary" $dict_cfg]]
+	}
 
 	if { $no_write == "" } {
 		set fd [open $fname w+]
