@@ -3767,10 +3767,12 @@ proc createTab { node_id selected_hook cfg_id } {
 	ttk::label $w.bootcmd_l -text "Boot command:" -width 15
 	ttk::entry $w.bootcmd_e -width 25
 
-	ttk::button $w.delete -text "Delete config" \
-		-command "deleteConfig $wi $node_id"
 	ttk::button $w.generate -text "Fill defaults" \
 		-command "customConfigGUIFillDefaults $wi $node_id $selected_hook"
+	ttk::button $w.delete -text "Delete config" \
+		-command "deleteConfig $wi $node_id"
+	ttk::button $w.external_editor -text "Open in editor" \
+		-command "customConfigOpenInExternal $wi $node_id"
 
 	ttk::scrollbar $w.vsb -orient vertical -command [list $w.editor yview]
 	ttk::scrollbar $w.hsb -orient horizontal -command [list $w.editor xview]
@@ -3790,7 +3792,8 @@ proc createTab { node_id selected_hook cfg_id } {
 	$w.editor insert end "$config"
 
 	grid $w.generate -row 0 -column 2 -rowspan 2 -in $w
-	grid $w.delete -row 0 -column 3 -rowspan 2 -in $w
+	grid $w.external_editor -row 0 -column 3 -rowspan 2 -in $w
+	grid $w.delete -row 0 -column 4 -rowspan 2 -in $w
 	grid $w.bootcmd_l -row 1 -column 0 -in $w  -sticky w -pady 2
 	grid $w.bootcmd_e -row 1 -column 1 -in $w -sticky w -pady 2
 	grid $w.editor $w.vsb -in $w -columnspan 5 \
@@ -3799,6 +3802,67 @@ proc createTab { node_id selected_hook cfg_id } {
 	grid rowconfigure $w $w.editor -weight 10
 	grid columnconfigure $w $w.editor -weight 10
 	$wi.nb select $wi.nb.$cfg_id
+}
+
+proc getExternalEditorCommand { title file_path } {
+	set command [getActiveOption "external_editor_command"]
+	set command [string map [list "%TITLE%" $title "%FILE_PATH%" $file_path] $command]
+
+	return $command
+}
+
+proc externalEditDone { wi read_channel tmp_path custom_config_id } {
+    if { [eof $read_channel] } {
+        catch { close $read_channel }
+
+		global custom_node_cfg selected_hook
+
+		set cmd [_getNodeCustomConfigCommand $custom_node_cfg $selected_hook $custom_config_id]
+
+		set file_id [open $tmp_path r]
+		set new_cfg [string trim [read $file_id]]
+		close $file_id
+		catch { file delete -force $tmp_path }
+
+		set custom_node_cfg [_setNodeCustomConfig $custom_node_cfg $selected_hook $custom_config_id $cmd $new_cfg]
+
+		set custom_config_widget $wi.nb.$custom_config_id
+		catch { $custom_config_widget.editor delete 1.0 end }
+		catch { $custom_config_widget.editor insert end "$new_cfg" }
+
+        return
+    }
+
+    # consume data to avoid repeated triggers
+    read $read_channel
+}
+
+proc customConfigOpenInExternal { wi node_id } {
+	global custom_node_cfg selected_hook
+
+	if { [checkTerminalMissing] } {
+		return
+	}
+
+	if { [checkForExternalApps "vim"] } {
+		return
+	}
+
+	set custom_config_id [$wi.nb tab current -text]
+
+	set file_id [file tempfile tmp_path]
+	puts $file_id [_getNodeCustomConfig $custom_node_cfg $selected_hook $custom_config_id]
+	close $file_id
+
+	set external_editor_cmd [getExternalEditorCommand "Editing [_getNodeName $custom_node_cfg] ($node_id) - $selected_hook ($tmp_path)" $tmp_path]
+
+	set read_channel [open "|$external_editor_cmd" r]
+
+	fconfigure $read_channel -blocking 0 -buffering none
+
+	fileevent $read_channel readable [list externalEditDone $wi $read_channel $tmp_path $custom_config_id]
+
+	return
 }
 
 #****f* nodecfgGUI.tcl/customConfigGUIFillDefaults

@@ -252,8 +252,14 @@ set gui_options_defaults {
 	"default_link_width"		2								"int 2|8"			"default link width"
 	"default_fill_color"		"Gray"							"string"			"default oval/rect annotation fill color"
 	"default_text_color"		"#000000"						"string"			"default text annotation color"
-	"terminal_command"			"xterm -name imunes-terminal"	"string"			"default terminal to open"
 }
+
+set terminal_command "xterm -name imunes-terminal"
+set external_editor_command "$terminal_command -T \"%TITLE%\" -e \"vim %FILE_PATH%\""
+
+lappend gui_options_defaults \
+	"terminal_command"			"$terminal_command"				"string"			"default terminal to open" \
+	"external_editor_command"	"$external_editor_command"		"string"			"default editor to open files"
 #	name						value							type				description
 
 global global_override all_options all_gui_options default_options custom_options
