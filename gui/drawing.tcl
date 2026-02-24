@@ -298,6 +298,10 @@ proc drawNode { node_id } {
 	set label_elem [.panwin.f1.c create text $x $y -fill $color \
 		-text "$label_str" -tags "nodelabel $node_id" -justify center]
 
+	if { [string range [cfgGet "nodes" $node_id "nat_iface"] 0 0] == "\$" } {
+		.panwin.f1.c itemconfigure $label_elem -font "imnDefaultFontItalic"
+	}
+
 	if { [getActiveOption "show_node_labels"] == 0 } {
 		.panwin.f1.c itemconfigure $label_elem -state hidden
 	}
@@ -574,6 +578,10 @@ proc updateIfcLabel { link_id node_id iface_id } {
 
 	.panwin.f1.c itemconfigure "interface && $node_id && $link_id" \
 		-text $str
+
+	if { [string range [cfgGet "nodes" $node_id "ifaces" $iface_id "name"] 0 0] == "\$" } {
+		.panwin.f1.c itemconfigure "interface && $node_id && $link_id" -font "imnDefaultFontItalic"
+	}
 }
 
 #****f* editor.tcl/updateLinkLabel

@@ -417,7 +417,13 @@ proc setIfcType { node_id iface_id type } {
 #   * name -- the name of the interface
 #****
 proc getIfcName { node_id iface_id } {
-	return [cfgGet "nodes" $node_id "ifaces" $iface_id "name"]
+	set iface_name [cfgGet "nodes" $node_id "ifaces" $iface_id "name"]
+
+	if { [string range $iface_name 0 0] == "\$" } {
+		catch { set iface_name $::env([string range $iface_name 1 end]) }
+	}
+
+	return $iface_name
 }
 
 #****f* ifaces.tcl/setIfcName

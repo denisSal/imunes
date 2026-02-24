@@ -355,7 +355,13 @@ proc setNodeNATIface { node_id interface } {
 #   * node_id -- node id
 #****
 proc getNodeNATIface { node_id } {
-	return [cfgGet "nodes" $node_id "nat_iface"]
+	set nat_iface [cfgGet "nodes" $node_id "nat_iface"]
+
+	if { [string range $nat_iface 0 0] == "\$" } {
+		catch { set nat_iface $::env([string range $nat_iface 1 end]) }
+	}
+
+	return $nat_iface
 }
 
 #****f* nodes.tcl/getNodeType

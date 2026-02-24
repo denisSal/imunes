@@ -38,6 +38,8 @@ ttk::style theme create imunes -parent clam
 font create imnDefaultFont -family TkDefaultFont -size $defaultFontSize
 option add *font imnDefaultFont
 
+font create imnDefaultFontItalic -family TkDefaultFont -size [expr int(1.2*$defaultFontSize)] -slant italic
+
 font create imnDisabledFont -family TkDefaultFont \
 	-size [expr int(1.3*$defaultFontSize)] -weight bold
 
