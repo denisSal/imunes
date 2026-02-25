@@ -231,6 +231,7 @@ set options_defaults {
 	"routerBgpEnable"		0			"bool"						"enable/disable BGP protocol on newly created router nodes"
 	"routerLdpEnable"		0			"bool"						"enable/disable LDP protocol on newly created router nodes"
 	"editor_only"			0			"bool"						"if true, Experiment -> Execute is disabled"
+	"preferred_shell"		"csh"		"string"					"shell to open on 'Shell window' (if exists)"
 }
 #	name					value		type						description
 

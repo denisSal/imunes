@@ -232,6 +232,9 @@ proc startTcpdumpOnNodeIfc { node_id ifc } {
 #   * node_id -- node id of the node for which the check is performed.
 #****
 proc existingShells { shells node_id { first_only "" } } {
+	set preferred_shell [getActiveOption "preferred_shell"]
+	set shells "$preferred_shell [removeFromList $shells $preferred_shell]"
+
 	set cmds "retval=\"\" ;\n"
 	append cmds "\n"
 	append cmds "for s in $shells; do\n"
