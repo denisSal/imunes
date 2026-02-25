@@ -64,7 +64,7 @@ namespace eval genericL2::gui {
 		return [list $h $w]
 	}
 
-	proc configGUI { c node_id } {
+	proc configGUI { node_id } {
 		global wi
 		#
 		#guielements - the list of modules contained in the configuration window
@@ -85,7 +85,7 @@ namespace eval genericL2::gui {
 		set node_existing_ipv4 [getFromRunning "ipv4_used_list"]
 		set node_existing_ipv6 [getFromRunning "ipv6_used_list"]
 
-		configGUI_createConfigPopupWin $c
+		configGUI_createConfigPopupWin
 		wm title $wi "[_getNodeType $node_cfg] ($node_id) configuration"
 
 		configGUI_nodeName $wi $node_id "Node name:"
@@ -109,11 +109,11 @@ namespace eval genericL2::gui {
 		configGUI_ifcGap $wi $iface_id 30
 	}
 
-	proc doubleClick { canvas_elem node_id control } {
+	proc doubleClick { node_id control } {
 		if { [isRunningNode $node_id] && ! $control } {
 			spawnShellExec $node_id
 		} else {
-			nodeConfigGUI $canvas_elem $node_id
+			nodeConfigGUI $node_id
 		}
 	}
 

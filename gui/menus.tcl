@@ -628,6 +628,8 @@ proc menu_nodeSettings { node_id root_menu } {
 	#
 	set tmp_command [list apply {
 		{ ip_version } {
+			global main_canvas_elem
+
 			if { [getFromRunning "cfg_deployed"] && [getFromRunning "auto_execution"] } {
 				setToExecuteVars "terminate_cfg" [cfgGet]
 			}
@@ -651,7 +653,7 @@ proc menu_nodeSettings { node_id root_menu } {
 				redeployCfg
 			}
 
-			.panwin.f1.c config -cursor left_ptr
+			$main_canvas_elem config -cursor left_ptr
 		}
 	} \
 		""
