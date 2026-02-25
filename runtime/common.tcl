@@ -997,11 +997,13 @@ proc setOperMode { new_oper_mode } {
 	}
 
 	if { $gui } {
+		global main_canvas_elem
+
 		.bottom.oper_mode configure -text "$oper_mode_text"
 		.bottom.oper_mode configure -foreground $oper_mode_color
 
 		catch { redrawAll }
-		.panwin.f1.c config -cursor left_ptr
+		$main_canvas_elem config -cursor left_ptr
 	}
 }
 
