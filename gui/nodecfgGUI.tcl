@@ -37,20 +37,19 @@ set router_ConfigModel "frr"
 # NAME
 #   nodeConfigGUI -- node configure GUI
 # SYNOPSIS
-#   nodeConfigGUI $c $node_id
+#   nodeConfigGUI $node_id
 # FUNCTION
 #   Depending on the type of node calls the corresponding procedure
 #   $type.configGUI or, in the case of pseudo node, calls the procedure for
 #   switching canvas.
 # INPUTS
-#   * c -- tk canvas
 #   * node_id -- node id
 #****
-proc nodeConfigGUI { c node_id } {
+proc nodeConfigGUI { node_id } {
 	global badentry
 
 	set badentry 0
-	invokeNodeProc $node_id "gui::configGUI" $c $node_id
+	invokeNodeProc $node_id "gui::configGUI" $node_id
 }
 
 #****f* nodecfgGUI.tcl/configGUI_createConfigPopupWin
@@ -58,14 +57,12 @@ proc nodeConfigGUI { c node_id } {
 #   configGUI_createConfigPopupWin -- configure GUI - create configuration
 #      popup window
 # SYNOPSIS
-#   configGUI_createConfigPopupWin $c
+#   configGUI_createConfigPopupWin
 # FUNCTION
 #   Creates toplevel tk widget.
-# INPUTS
-#   * c -- tk canvas
 #****
-proc configGUI_createConfigPopupWin { c } {
-	global wi debug
+proc configGUI_createConfigPopupWin {} {
+	global wi debug main_canvas_elem
 
 	set wi .popup
 	catch { destroy $wi }
@@ -73,8 +70,8 @@ proc configGUI_createConfigPopupWin { c } {
 
 	wm transient $wi .
 
-	$c dtag node selected
-	$c delete -withtags selectmark
+	$main_canvas_elem dtag node selected
+	$main_canvas_elem delete -withtags selectmark
 
 	after 100 {
 		if { ! $debug } {
@@ -89,7 +86,7 @@ proc configGUI_createConfigPopupWin { c } {
 # NAME
 #   configGUI_addNotebook -- configure GUI - add notebook
 # SYNOPSIS
-#   configGUI_addNotebook $c $node_id $labels
+#   configGUI_addNotebook $node_id $labels
 # FUNCTION
 #   Creates and manipulates ttk::notebook widget.
 # INPUTS
@@ -1883,7 +1880,7 @@ proc configGUI_staticRoutes { wi node_id } {
 # NAME
 #   configGUI_addNotebookRj45 -- configure GUI - add notebook for rj45 nodes
 # SYNOPSIS
-#   configGUI_addNotebookRj45 $c $node_id $labels
+#   configGUI_addNotebookRj45 $node_id $labels
 # FUNCTION
 #   Creates and manipulates ttk::notebook widget for rj45 nodes.
 # INPUTS
