@@ -74,17 +74,16 @@ namespace eval ${MODULE}::gui {
 	# NAME
 	#   filter.configGUI
 	# SYNOPSIS
-	#   filter.configGUI $c $node_id
+	#   filter.configGUI $node_id
 	# FUNCTION
 	#   Defines the structure of the filter.configuration window
 	#   by calling procedures for creating and organising the
 	#   window, as well as procedures for adding certain modules
 	#   to that window.
 	# INPUTS
-	#   * c - tk canvas
 	#   * node_id - node id
 	#****
-	proc configGUI { c node_id } {
+	proc configGUI { node_id } {
 		global wi
 		global filterguielements filtertreecolumns curnode
 		global node_cfg node_cfg_gui node_existing_mac node_existing_ipv4 node_existing_ipv6
@@ -106,7 +105,7 @@ namespace eval ${MODULE}::gui {
 			return
 		}
 
-		configGUI_createConfigPopupWin $c
+		configGUI_createConfigPopupWin
 		wm title $wi "filter configuration"
 
 		configGUI_nodeName $wi $node_id "Node name:"
