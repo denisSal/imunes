@@ -113,7 +113,7 @@ set debug 0
 set printVersion 0
 set prepareFlag 0
 set forceFlag 0
-set max_jobs 0
+set max_jobs "h"
 set nodecreate_timeout 5
 set ifacesconf_timeout 5
 set nodeconf_timeout 5
@@ -141,7 +141,7 @@ set options {
 	{c.secret			"Run in CLI mode"}
 	{cli.secret			"Run in CLI mode"}
 	{d.secret			"Turn on debug mode"}
-	{j.arg				"0" "Max parallel jobs (0 = number of CPUs)"}
+	{j.arg				"h" "Max parallel jobs (0 = number of CPUs, h = number of CPUs/2)"}
 	{p					"Prepare virtual root file system"}
 	{prepare			"Prepare virtual root file system"}
 	{r.arg.secret		"" "Connect to remote host via SSH"}

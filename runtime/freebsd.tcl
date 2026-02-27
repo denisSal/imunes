@@ -2442,6 +2442,10 @@ proc l2node.nodeDestroy { eid node_id } {
 proc getCpuCount {} {
 	global remote max_jobs
 
+	if { $max_jobs == "h" } {
+		set max_jobs [expr round([lindex [rexec sysctl kern.smp.cpus] 1])]
+	}
+
 	if { $remote == "" } {
 		if { $max_jobs > 0 } {
 			return $max_jobs

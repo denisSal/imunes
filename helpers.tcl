@@ -155,8 +155,8 @@ proc parseCmdArgs { options usage } {
 	if { $params(j) != "" } {
 		if { [string is integer $params(j)] } {
 			set max_jobs $params(j)
-		} else {
-			puts stderr "Ignoring -j, dynamically calculate number of jobs as \[ncpus]"
+		} elseif { $params(j) != "h" } {
+			puts stderr "Ignoring -j, dynamically calculate number of jobs as \[ncpus/2]"
 		}
 	}
 

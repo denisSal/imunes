@@ -1729,6 +1729,10 @@ proc removeNodeIfcIPaddrs { eid node_id } {
 proc getCpuCount {} {
 	global remote max_jobs
 
+	if { $max_jobs == "h" } {
+		set max_jobs [expr round([lindex [rexec grep -c processor /proc/cpuinfo] 0]/2)]
+	}
+
 	if { $remote == "" } {
 		if { $max_jobs > 0 } {
 			return $max_jobs
