@@ -64,11 +64,18 @@ proc l2node.nodeDestroy { eid node_id } {
 #****
 proc writeDataToNodeFile { node_id path data } {
 	set docker_id "[getFromRunning "eid"].$node_id"
-	if { [catch { rexec docker inspect -f "{{.GraphDriver.Data.MergedDir}}" $docker_id } node_dir] } {
-		return
-	}
 
-	if { [string match "*No such object:*" $node_dir] } {
+	if { [catch { rexec docker inspect -f "{{.GraphDriver.Data.MergedDir}}" $docker_id } node_dir] } {
+		if { [catch { rexec docker inspect -f '{{.State.Pid}}' $docker_id } node_pid] } {
+			return
+		}
+
+		if { $node_pid == 0 } {
+			return
+		}
+
+		set node_dir "/proc/$node_pid/root"
+	} elseif { [string match "*No such object:*" $node_dir] } {
 		return
 	}
 
@@ -2335,8 +2342,8 @@ proc fetchNodeRunningConfig { node_id } {
 proc checkSysPrerequisites {} {
 	set msg ""
 	catch { rexec docker info } status
-	if { ! [string match -nocase "*Storage Driver: overlay2*" $status] } {
-		set msg "Cannot start experiment.\nIs docker installed and running with overlay2 FS (check the output of 'docker info')?"
+	if { ! [string match -nocase "*Storage Driver: overlay*" $status] } {
+		set msg "Cannot start experiment.\nIs docker installed and running with overlay FS (check the output of 'docker info')?"
 	}
 
 	return $msg

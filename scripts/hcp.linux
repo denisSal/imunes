@@ -52,7 +52,8 @@ getViStoLoc() {
 			fi
 			echo $basedir/aufs/diff/$mount_dir;;
 		btrfs) echo $basedir/btrfs/subvolumes/$dockerid;;
-		overlay*) docker inspect $dockerid | grep UpperDir | awk '{print $2}' | cut -d'"' -f2;;
+		overlay2) docker inspect $dockerid | grep UpperDir | awk '{print $2}' | cut -d'"' -f2;;
+		overlayfs) node_pid=$(docker inspect -f {{.State.Pid}} $dockerid); echo /proc/$node_pid/root;;
 	esac
 }
 
