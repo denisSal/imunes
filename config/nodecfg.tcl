@@ -1305,6 +1305,10 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 				setNodeCustomImage $node_id $new_value
 			}
 
+			"vm_parameters" {
+				setNodeVMConfig $node_id $new_value
+			}
+
 			"docker_attach" {
 				setNodeDockerAttach $node_id $new_value
 			}
