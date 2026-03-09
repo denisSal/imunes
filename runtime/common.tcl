@@ -1560,3 +1560,24 @@ proc redeployCfg {} {
 proc killExtProcess { regex } {
 	pipesExec "pkill -f \"$regex\"" "hold"
 }
+
+#****f* common.tcl/execCmdNode
+# NAME
+#   execCmdNode -- execute command on virtual node
+# SYNOPSIS
+#   execCmdNode $node_id $cmd
+# FUNCTION
+#   Executes a command on a virtual node and returns the output.
+# INPUTS
+#   * node_id -- virtual node id
+#   * cmd -- command to execute
+# RESULT
+#   * returns the execution output
+#****
+proc execCmdNode { node_id cmd } {
+	set os_cmd [invokeNodeProc $node_id "getExecCommand" [getFromRunning "eid"] $node_id]
+
+	catch { eval [concat "rexec $os_cmd" $cmd] } output
+
+	return $output
+}
