@@ -1,3 +1,53 @@
+# updateNode cases
+
+addCase_updateNode "nat64" {
+	set nat64_diff [dictDiff $old_value $new_value]
+	dict for {nat64_key nat64_change} $nat64_diff {
+		if { $nat64_change == "copy" } {
+			continue
+		}
+
+		dputs "======== $nat64_change: '$nat64_key'"
+
+		set nat64_old_value [_cfgGet $old_value $nat64_key]
+		set nat64_new_value [_cfgGet $new_value $nat64_key]
+		if { $nat64_change in "changed" } {
+			dputs "======== OLD: '$nat64_old_value'"
+		}
+		if { $nat64_change in "new changed" } {
+			dputs "======== NEW: '$nat64_new_value'"
+		}
+
+		switch -exact $nat64_key {
+			"tun_ipv4_addr" {
+				setTunIPv4Addr $node_id $nat64_new_value
+			}
+
+			"tun_ipv6_addr" {
+				setTunIPv6Addr $node_id $nat64_new_value
+			}
+
+			"tayga_ipv4_addr" {
+				setTaygaIPv4Addr $node_id $nat64_new_value
+			}
+
+			"tayga_ipv6_prefix" {
+				setTaygaIPv6Prefix $node_id $nat64_new_value
+			}
+
+			"tayga_ipv4_pool" {
+				setTaygaIPv4DynPool $node_id $nat64_new_value
+			}
+
+			"tayga_mappings" {
+				setTaygaMappings $node_id $nat64_new_value
+			}
+		}
+	}
+}
+
+# node-specific procedures
+
 proc getTunIPv4Addr { node_id } {
 	return [cfgGet "nodes" $node_id "nat64" "tun_ipv4_addr"]
 }

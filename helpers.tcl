@@ -424,9 +424,14 @@ proc reloadSources {} {
 	global all_modules_list node_types execMode
 	global isOSlinux isOSfreebsd
 	global debug gui
+	global switch_cases_updateNode switch_cases_updateNodeGUI switch_cases_updateIface
 
 	set all_modules_list {}
 	set runnable_node_types {}
+
+	set switch_cases_updateNode [dict create]
+	set switch_cases_updateNodeGUI [dict create]
+	set switch_cases_updateIface [dict create]
 
 	source "$ROOTDIR/$LIBDIR/helpers.tcl"
 
