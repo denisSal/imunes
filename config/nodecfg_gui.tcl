@@ -48,8 +48,19 @@ proc nodeFromPseudoNode { pseudo_id } {
 	return [split $pseudo_id "."]
 }
 
+proc addCase_updateNodeGUI { key body { force 0 } } {
+	global switch_cases_updateNodeGUI
+
+	if { $key in [dict keys $switch_cases_updateNodeGUI] && $force == 0 } {
+		# set force to 1 to overwrite existing keys
+		return
+	}
+
+	set switch_cases_updateNodeGUI [dict merge $switch_cases_updateNodeGUI [list $key $body]]
+}
+
 proc updateNodeGUI { node_id old_node_cfg_gui new_node_cfg_gui } {
-	global changed
+	global changed switch_cases_updateNodeGUI
 
 	dputs ""
 	dputs "= /UPDATE NODE GUI $node_id START ="
@@ -92,31 +103,7 @@ proc updateNodeGUI { node_id old_node_cfg_gui new_node_cfg_gui } {
 			dputs "==== NEW: '$new_value'"
 		}
 
-		switch -exact $key {
-			"label" {
-				setNodeLabel $node_id $new_value
-			}
-
-			"canvas" {
-				setNodeCanvas $node_id $new_value
-			}
-
-			"iconcoords" {
-				setNodeCoords $node_id $new_value
-			}
-
-			"labelcoords" {
-				setNodeLabelCoords $node_id $new_value
-			}
-
-			"custom_icon" {
-				setNodeCustomIcon $node_id $new_value
-			}
-
-			default {
-				# do nothing
-			}
-		}
+		switch -exact $key [list {*}$switch_cases_updateNodeGUI default {}]
 	}
 
 	if { $changed } {

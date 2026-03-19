@@ -2062,11 +2062,13 @@ proc getImageProperty { image_id property } {
 # * array - JSON array
 # * inner_dictionary - dictionary inside of an object
 proc getJsonType { key_name } {
-	if { $key_name in "gui canvases nodes links annotations images custom_configs ipsec_configs ifaces IFACES_CONFIG NODE_CONFIG" } {
+	global cfg_types_dictionary cfg_types_array cfg_types_inner_dictionary
+
+	if { $key_name in $cfg_types_dictionary } {
 		return "dictionary"
-	} elseif { $key_name in "croutes4 croutes6 ipv4_addrs ipv6_addrs services events tayga_mappings" } {
+	} elseif { $key_name in $cfg_types_array } {
 		return "array"
-	} elseif { $key_name in "vlan ipsec nat64 packgen packets" } {
+	} elseif { $key_name in $cfg_types_inner_dictionary } {
 		return "inner_dictionary"
 	}
 

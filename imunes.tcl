@@ -189,6 +189,11 @@ foreach file_path [glob -directory $ROOTDIR/$LIBDIR/runtime *.tcl] {
 
 setPlatformVariables
 
+global cfg_types_dictionary cfg_types_array cfg_types_inner_dictionary
+set cfg_types_dictionary "gui canvases nodes links annotations images custom_configs ipsec_configs ifaces IFACES_CONFIG NODE_CONFIG"
+set cfg_types_array "croutes4 croutes6 ipv4_addrs ipv6_addrs services events tayga_mappings"
+set cfg_types_inner_dictionary "vlan ipsec nat64 packgen packets"
+
 if { $prepareFlag } {
 	prepareVroot
 	exit
@@ -320,6 +325,12 @@ if { $remote_error == "" && $execMode == "batch" } {
 		exit
 	}
 }
+
+# create switch case dictionaries for updating nodes/ifaces/etc.
+global switch_cases_updateNode switch_cases_updateNodeGUI switch_cases_updateIface
+set switch_cases_updateNode [dict create]
+set switch_cases_updateNodeGUI [dict create]
+set switch_cases_updateIface [dict create]
 
 # Configuration libraries
 foreach file_path [glob -directory $ROOTDIR/$LIBDIR/config *.tcl] {
