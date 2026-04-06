@@ -1465,8 +1465,8 @@ proc editorPreferences_gui {} {
 	}
 
 	wm title $wi "Editor Preferences"
-	wm minsize $wi 584 445
-	wm resizable $wi 0 1
+	wm minsize $wi 1034 645
+	wm resizable $wi 0 0
 
 	set notebook $wi.notebook
 	ttk::notebook $notebook
@@ -1652,7 +1652,7 @@ proc editorPreferencesGUI_fetchTabOptions { option_tab_elem { fetch_from_active 
 
 	set default_options "$options_defaults $gui_options_defaults"
 
-	set content $option_tab_elem.content
+	set content $option_tab_elem.container.scroll_canvas.content
 	set option_source [lindex [split [winfo name $option_tab_elem] "_"] 0]
 
 	set current_options_gui [dict create]
@@ -1695,11 +1695,51 @@ proc editorPreferencesGUI_refreshGUI { option_tab_elem options custom_override {
 	global all_options all_gui_options custom_options
 	global isOSmac_gui
 
-	set content $option_tab_elem.content
-	catch { destroy $content }
+	set container $option_tab_elem.container
+	catch { destroy $container }
 
+	ttk::frame $container
+	# inherit size from parent, defined in editorPreferences_gui
+	pack $container -fill both -expand 1
+
+	set header $container.header
+	ttk::frame $header
+	grid $header -row 0 -column 0 -columnspan 2 -sticky ew
+
+	# ttk::frame is not scrollable, so we create a canvas + scrollbar
+	set scroll_canvas $container.scroll_canvas
+	canvas $scroll_canvas
+
+	set scrollbar_elem $container.vscroll
+	ttk::scrollbar $scrollbar_elem -orient vertical -command "$scroll_canvas yview"
+	$scroll_canvas configure -yscrollcommand "$scrollbar_elem set"
+
+	set content $scroll_canvas.content
 	ttk::frame $content -relief groove -borderwidth 2 -padding 2
-	grid $content -in $option_tab_elem -sticky nsew -pady 4 -columnspan 6
+
+	set tmp_command [list apply {
+		{ scroll_canvas } {
+			# offset top border/padding by 1
+			lassign [$scroll_canvas bbox all] a b c d
+			$scroll_canvas configure -scrollregion "$a [incr b] $c $d"
+		}
+	} \
+		$scroll_canvas
+	]
+	bind $content <Configure> $tmp_command
+
+	bind $content <4> "$scroll_canvas yview scroll -1 units"
+	bind $content <5> "$scroll_canvas yview scroll 1 units"
+
+	grid $scroll_canvas -row 1 -column 0 -sticky nsew
+	grid $scrollbar_elem -row 1 -column 1 -sticky ns
+
+	grid rowconfigure $container 1 -weight 1
+	grid columnconfigure $container 0 -weight 1
+
+	# put the frame inside the canvas
+	set canvas_window [$scroll_canvas create window 0 0 -anchor nw -window $content]
+	bind $scroll_canvas <Configure> "$scroll_canvas itemconfigure $canvas_window -width %w"
 
 	set padx 10
 	set header_color "#5b5b9b"
@@ -1711,22 +1751,22 @@ proc editorPreferencesGUI_refreshGUI { option_tab_elem options custom_override {
 		set from_set_text "Enabled"
 	}
 
-	ttk::label $content.h_option_name -text "Option name" \
+	ttk::label $header.h_option_name -text "Option name" \
 		-anchor "center" -foreground $header_color -width [expr $options_max_length + 4]
-	ttk::label $content.h_option_default -text "Default value" \
+	ttk::label $header.h_option_default -text "Default value" \
 		-anchor "center" -foreground $header_color
-	ttk::label $content.h_option_value -text "Configured value" \
+	ttk::label $header.h_option_value -text "Configured value" \
 		-anchor "center" -foreground $header_color
-	ttk::label $content.h_option_from_enabled -text "$from_set_text" -width 16 \
+	ttk::label $header.h_option_from_enabled -text "$from_set_text" -width 16 \
 		-anchor "center" -foreground $header_color
-	ttk::label $content.h_option_custom_override -text "Custom override" \
+	ttk::label $header.h_option_custom_override -text "Custom override" \
 		-anchor "center" -foreground $header_color
 
-	grid $content.h_option_name -row 0 -column 0 -in $content -sticky "e" -padx $padx
-	grid $content.h_option_default -row 0 -column 1 -in $content -sticky "" -padx $padx
-	grid $content.h_option_value -row 0 -column 2 -in $content -sticky "" -padx $padx
-	grid $content.h_option_from_enabled -row 0 -column 3 -in $content -sticky "" -padx $padx
-	grid $content.h_option_custom_override -row 0 -column 4 -in $content -sticky "" -padx $padx
+	grid $header.h_option_name -row 0 -column 0 -in $header -sticky "e" -padx $padx
+	grid $header.h_option_default -row 0 -column 1 -in $header -sticky "" -padx $padx
+	grid $header.h_option_value -row 0 -column 2 -in $header -sticky "" -padx $padx
+	grid $header.h_option_from_enabled -row 0 -column 3 -in $header -sticky "" -padx $padx
+	grid $header.h_option_custom_override -row 0 -column 4 -in $header -sticky "" -padx $padx
 
 	set full_default_options "$options_defaults $gui_options_defaults"
 
@@ -1957,10 +1997,33 @@ proc editorPreferencesGUI_refreshGUI { option_tab_elem options custom_override {
 		grid $content.w${option_name} -row $row -column 0 -in $content -sticky "w" -padx $padx
 		grid $content.w${option_name}_default -row $row -column 1 -in $content -sticky "" -padx $padx
 		grid $content.w${option_name}_option_value -row $row -column 2 -in $content -sticky "" -padx $padx
-		grid $content.w${option_name}_from_enabled -row $row -column 3 -in $content -sticky "" -padx $padx
-		grid $content.w${option_name}_custom_override -row $row -column 4 -in $content -sticky "" -padx $padx
+		grid $content.w${option_name}_from_enabled -row $row -column 3 -in $content -sticky "e" -padx $padx
+		grid $content.w${option_name}_custom_override -row $row -column 4 -in $content -sticky "e" -padx $padx
 
 		incr row
+	}
+
+	for {set col 0} {$col < 5} {incr col} {
+		set max_width 0
+
+		# check width in header
+		foreach w [grid slaves $header -column $col] {
+			set req [winfo reqwidth $w]
+			if { $req > $max_width } {
+				set max_width $req
+			}
+		}
+
+		# check width in content
+		foreach w [grid slaves $content -column $col] {
+			set req [winfo reqwidth $w]
+			if { $req > $max_width } {
+				set max_width $req
+			}
+		}
+
+		grid columnconfigure $header  $col -minsize $max_width
+		grid columnconfigure $content $col -minsize $max_width
 	}
 
 	update
