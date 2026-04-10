@@ -847,7 +847,7 @@ proc listLANNodes { l2node_id l2peers } {
 
 		set peer_type [getNodeType $peer_id]
 		if {
-			$peer_type ni "rj45 vm" &&
+			$peer_type != "rj45" &&
 			[invokeTypeProc $peer_type "netlayer"] == "LINK"
 		} {
 			set l2peers [listLANNodes $peer_id $l2peers]
