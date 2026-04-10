@@ -203,23 +203,6 @@ if { ! [info exists eid_base] } {
 	set eid_base [genExperimentId]
 }
 
-# bases for naming new nodes
-array set nodeNamingBase {
-	pc pc
-	vm vm
-	ext ext
-	filter filter
-	router router
-	host host
-	hub hub
-	lanswitch switch
-	nat64 nat64-
-	rj45 rj45-
-	packgen packgen
-	stpswitch stpswitch
-	wlan wlan
-}
-
 global named_colors
 set named_colors "Red Green Blue Yellow Magenta Cyan Gray Black"
 
@@ -339,8 +322,6 @@ set runnable_node_types {}
 # Set default node type list
 set default_node_types "lanswitch hub rj45 stpswitch filter packgen \
 	router host pc nat64 ext"
-set node_types "lanswitch hub rj45 stpswitch filter packgen \
-	router host pc vm nat64 ext"
 # Set default supported router models
 set supp_router_models "frr quagga static"
 
