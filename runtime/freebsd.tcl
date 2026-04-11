@@ -1370,6 +1370,9 @@ proc unconfigureTunIface { tayga4pool tayga6prefix } {
 # /XXX nat64 procedures
 
 proc startRoutingDaemons { node_id } {
+	set VROOT_RUNTIME [getVrootDir]/[getFromRunning "eid"]/$node_id
+	set err_log "$VROOT_RUNTIME/err.log"
+
 	set cmds "zebra -dP0"
 	set cmds "$cmds; staticd -dP0"
 
@@ -1397,7 +1400,7 @@ proc startRoutingDaemons { node_id } {
 		set cmds "$cmds; ${protocol}d -dP0"
 	}
 
-	set cmds "$cmds; sed -i '' '/Disabling MPLS support/d' /err.log"
+	set cmds "$cmds; sed -i '' '/Disabling MPLS support/d' $err_log"
 
 	pipesExec "jexec [getFromRunning "eid"].$node_id sh -c '$cmds'" "hold"
 }
