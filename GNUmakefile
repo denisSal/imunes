@@ -22,6 +22,9 @@ VROOT_EXISTS = $(shell [ -d /var/imunes/vroot ] && echo 1 || echo 0 )
 SERVICEDIR=/usr/local/etc/rc.d
 STARTUPDIR=/var/imunes-service
 LOGDIR=/var/log/imunes
+WITH_SYSTEMD ?= auto
+SYSTEMD_UNIT := scripts/imunes@.service
+SYSTEMD_DIR := /etc/systemd/system
 
 BASEFILES =	COPYRIGHT README.md VERSION
 CONFIGFILES =	$(wildcard config/*.tcl)
@@ -34,7 +37,7 @@ PATCHESFILES =	$(wildcard src/patches/*)
 TOOL_LIBS = scripts/himage.tcl scripts/vlink.tcl scripts/hcp.tcl
 
 VROOT =	$(wildcard scripts/*.sh scripts/*.bash)
-TOOLS =	$(filter-out $(VROOT) $(TOOL_LIBS), $(wildcard scripts/*))
+TOOLS =	$(filter-out $(VROOT) $(TOOL_LIBS) $(SYSTEMD_UNIT), $(wildcard scripts/*))
 
 NODE_ICONS = frswitch.gif hub.gif lanswitch.gif rj45.gif cloud.gif host.gif \
 	ipfirewall.gif pc.gif router.gif \
@@ -48,6 +51,9 @@ TINY_ICONS = $(NODE_ICONS) link.gif select.gif l2.gif l3.gif freeform.gif \
 		oval.gif rectangle.gif text.gif
 
 ICONS = $(wildcard icons/imunes_*)
+
+.PHONY: all install uninstall netgraph vroot vroot_zfs vroot_m vroot_m_zfs \
+	vroot_usr remove_vroot service noservice tarball release
 
 info:
 	@echo 	"To install the IMUNES GUI use: make install"
@@ -140,13 +146,14 @@ endif
 		cp icons/tiny/$${file} $(TINY_ICONSDIR); \
 	done ;
 
-uninstall:
+	@echo   ""
+	$(MAKE) --no-print-directory service
+
+uninstall: noservice
 	rm -rf $(IMUNESDIR)
 	for file in imunes $(notdir $(TOOLS)); do \
 		rm -f $(BINDIR)/$${file}; \
 	done ;
-	rm -rf $(SERVICEDIR)/imunes
-	@echo 	"To remove startup topologies, remove $(STARTUPDIR)"
 
 netgraph:
 ifeq ($(UNAME_S), FreeBSD)
@@ -188,15 +195,65 @@ ifeq ($(UNAME_S), FreeBSD)
 	@echo	""
 	@echo   "Created directory $(STARTUPDIR)"
 	@echo   "To start the experiment on boot, copy a topology to this folder."
+else
+	@if [ "$(WITH_SYSTEMD)" = "yes" ]; then \
+		echo "Installing systemd unit"; \
+		install -D -m 644 $(SYSTEMD_UNIT) \
+			$(SYSTEMD_DIR)/imunes@.service; \
+		systemctl daemon-reload; \
+	elif [ "$(WITH_SYSTEMD)" = "auto" ] && \
+	  command -v systemctl >/dev/null 2>&1 && \
+	  [ -d /run/systemd/system ]; then \
+		echo "systemd detected, installing unit"; \
+		install -D -m 644 $(SYSTEMD_UNIT) \
+			$(SYSTEMD_DIR)/imunes@.service; \
+		systemctl daemon-reload; \
+	else \
+		echo "Skipping systemd integration"; \
+	fi
+	sed -i'' -e "s,BINDIR=\"\",BINDIR=$(BINDIR)," \
+		$(IMUNESDIR)/scripts/imunes_service_linux.sh
+	chmod 755 $(IMUNESDIR)/scripts/imunes_service_linux.sh
+	mkdir -p $(STARTUPDIR)
+	@echo	""
+	@echo   "Created directory $(STARTUPDIR)"
+	@echo   "To start the experiment on boot, copy a topology to this folder and enable IMUNES service."
+	@echo   "For example:"
+	@echo   "	$$ cp topo_xyz.imn $(STARTUPDIR)/"
+	@if [ "$(WITH_SYSTEMD)" = "yes" ] || \
+	  [ "$(WITH_SYSTEMD)" = "auto" ] && \
+	  command -v systemctl >/dev/null 2>&1 && \
+	  [ -d /run/systemd/system ]; then \
+		echo "	$$ systemctl enable imunes@topo_xyz"; \
+		echo "	$$ systemctl start imunes@topo_xyz"; \
+		echo "	$$ systemctl stop imunes@topo_xyz"; \
+	else \
+		echo "	$$ $(IMUNESDIR)/scripts/imunes_service_linux.sh start topo_xyz"; \
+		echo "	$$ $(IMUNESDIR)/scripts/imunes_service_linux.sh stop topo_xyz"; \
+	fi
 endif
+	@echo   ""
+	@echo   "To uninstall IMUNES service, run '$(MAKE) noservice'."
 
 noservice:
 ifeq ($(UNAME_S), FreeBSD)
 	rm -rf $(SERVICEDIR)/imunes
 	@echo	""
 	@echo   "Removed $(SERVICEDIR)/imunes"
-	@echo 	"To remove startup topologies, remove $(STARTUPDIR)"
+else
+	@if command -v systemctl >/dev/null 2>&1 && \
+	  [ -d /run/systemd/system ]; then \
+		for unit in $$(systemctl list-units \
+			--full --all 'imunes@*.service' \
+			--no-legend | awk '{print $$1}'); do \
+			echo "Stopping $$unit"; \
+			systemctl disable --now "$$unit" >/dev/null 2>&1 || true; \
+		done; \
+		rm -f /etc/systemd/system/imunes@.service; \
+		systemctl daemon-reload; \
+	fi
 endif
+	@echo 	"To remove startup topologies, remove $(STARTUPDIR)"
 
 
 tarball:
