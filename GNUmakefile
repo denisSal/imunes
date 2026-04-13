@@ -21,6 +21,9 @@ VROOT_EXISTS = $(shell [ -d /var/imunes/vroot ] && echo 1 || echo 0 )
 SERVICEDIR=/usr/local/etc/rc.d
 STARTUPDIR=/var/imunes-service
 LOGDIR=/var/log/imunes
+WITH_SYSTEMD ?= auto
+SYSTEMD_UNIT := scripts/imunes@.service
+SYSTEMD_DIR := /etc/systemd/system
 
 BASEFILES =	COPYRIGHT README.md VERSION
 CONFIGFILES =	$(wildcard config/*.tcl)
@@ -183,6 +186,42 @@ ifeq ($(UNAME_S), FreeBSD)
 	@echo	""
 	@echo   "Created directory $(STARTUPDIR)"
 	@echo   "To start the experiment on boot, copy a topology to this folder."
+else
+	@if [ "$(WITH_SYSTEMD)" = "yes" ]; then \
+		echo "Installing systemd unit"; \
+		install -D -m 644 $(SYSTEMD_UNIT) \
+			$(SYSTEMD_DIR)/imunes@.service; \
+		systemctl daemon-reload; \
+	elif [ "$(WITH_SYSTEMD)" = "auto" ] && \
+	  command -v systemctl >/dev/null 2>&1 && \
+	  [ -d /run/systemd/system ]; then \
+		echo "systemd detected, installing unit"; \
+		install -D -m 644 $(SYSTEMD_UNIT) \
+			$(SYSTEMD_DIR)/imunes@.service; \
+		systemctl daemon-reload; \
+	else \
+		echo "Skipping systemd integration"; \
+	fi
+	sed -i'' -e "s,BINDIR=\"\",BINDIR=$(BINDIR)," \
+		$(IMUNESDIR)/scripts/imunes_service_linux.sh
+	chmod 755 $(IMUNESDIR)/scripts/imunes_service_linux.sh
+	mkdir -p $(STARTUPDIR)
+	@echo	""
+	@echo   "Created directory $(STARTUPDIR)"
+	@echo   "To start the experiment on boot, copy a topology to this folder and enable IMUNES service."
+	@echo   "For example:"
+	@echo   "	$$ cp topo_xyz.imn $(STARTUPDIR)/"
+	@if [ "$(WITH_SYSTEMD)" = "yes" ] || \
+	  [ "$(WITH_SYSTEMD)" = "auto" ] && \
+	  command -v systemctl >/dev/null 2>&1 && \
+	  [ -d /run/systemd/system ]; then \
+		echo "	$$ systemctl enable imunes@topo_xyz"; \
+		echo "	$$ systemctl start imunes@topo_xyz"; \
+		echo "	$$ systemctl stop imunes@topo_xyz"; \
+	else \
+		echo "	$$ $(IMUNESDIR)/scripts/imunes_service_linux.sh start topo_xyz"; \
+		echo "	$$ $(IMUNESDIR)/scripts/imunes_service_linux.sh stop topo_xyz"; \
+	fi
 endif
 
 noservice:
@@ -190,8 +229,20 @@ ifeq ($(UNAME_S), FreeBSD)
 	rm -rf $(SERVICEDIR)/imunes
 	@echo	""
 	@echo   "Removed $(SERVICEDIR)/imunes"
-	@echo 	"To remove startup topologies, remove $(STARTUPDIR)"
+else
+	@if command -v systemctl >/dev/null 2>&1 && \
+	  [ -d /run/systemd/system ]; then \
+		for unit in $$(systemctl list-units \
+			--full --all 'imunes@*.service' \
+			--no-legend | awk '{print $$1}'); do \
+			echo "Stopping $$unit"; \
+			systemctl disable --now "$$unit" >/dev/null 2>&1 || true; \
+		done; \
+		rm -f /etc/systemd/system/imunes@.service; \
+		systemctl daemon-reload; \
+	fi
 endif
+	@echo 	"To remove startup topologies, remove $(STARTUPDIR)"
 
 
 tarball:
