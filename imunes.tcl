@@ -777,6 +777,7 @@ if { $execMode == "interactive" } {
 			setToExecuteVars "configure_nodes" "*"
 
 			deployCfg 1
+			vwait execMode
 			createExperimentFilesFromBatch
 		}
 	} else {

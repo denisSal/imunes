@@ -574,7 +574,11 @@ proc rexec { args } {
 
 	dputs "CMD: '$cmd'"
 	try {
-		exec -- {*}$cmd
+		if { [lindex $args end] == "&" } {
+			exec -- {*}$cmd &
+		} else {
+			exec -- {*}$cmd
+		}
 	} on ok retv {
 		return $retv
 	} on error err {
