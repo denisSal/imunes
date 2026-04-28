@@ -728,15 +728,59 @@ proc destroyLinkBetween { eid node1_id node2_id iface1_id iface2_id link_id } {
 # INPUTS
 #   * eid -- experiment id
 #****
-proc terminate_removeExperimentContainer { eid } {
+proc terminate_removeExperimentContainer { all_dict eid w } {
+	statline "Removing experiment top-level container/netns..."
+
 	# Remove the main vimage which contained all other nodes, hopefully we
 	# cleaned everything.
-	catch { rexec jexec $eid kill -9 -1 2> /dev/null }
-	catch { rexec jail -r $eid }
+	set cmds "jexec $eid kill -9 -1 2> /dev/null ; jail -r $eid"
+	set cmds "\'$cmds\'"
+	catch { rexec sh -c $cmds & }
+
+	set t_start [clock milliseconds]
+	set timeout 30
+	terminate_removeExperimentContainer_wait $all_dict $eid \
+		$w $t_start $timeout
 }
 
-proc terminate_removeExperimentFiles { eid } {
+proc terminate_removeExperimentContainer_wait { all_dict eid w t_start timeout } {
+	global runtimeDir gui execMode
+
+	if { [isOk jail -d -j $eid] } {
+		set t_last [clock milliseconds]
+		if { [expr { ($t_last - $t_start) / 1000.0 }] <= $timeout } {
+			after 100 [list terminate_removeExperimentContainer_wait $all_dict $eid $w $t_start $timeout]
+
+			return "again"
+		}
+
+		set msg "Timeout encountered while deleting main experiment jail:\n\n"
+		append msg "$eid\n\n"
+		append msg "Delete the jail yourself, as well as other experiment files before running the it again."
+
+		if { $gui && $execMode != "batch" } {
+			after idle {.dialog1.msg configure -wraplength 6i}
+			tk_dialog .dialog1 "IMUNES warning" \
+				"$msg" \
+				info 0 Dismiss
+		} else {
+			sputs stderr "\nIMUNES warning - $msg\n"
+		}
+
+		terminate_finishTermination $all_dict $eid $w
+
+		return "error"
+	}
+
+	terminate_removeExperimentFiles $all_dict $eid $w
+
+	return "done"
+}
+
+proc terminate_removeExperimentFiles { all_dict eid w } {
 	global vroot_unionfs execMode gui
+
+	statline "Removing experiment files..."
 
 	set VROOT_BASE [getVrootDir]
 
@@ -744,9 +788,9 @@ proc terminate_removeExperimentFiles { eid } {
 	# cleaned everything.
 	if { $vroot_unionfs } {
 		# UNIONFS
-		catch { rexec rm -fr $VROOT_BASE/$eid }
+		catch { rexec rm -fr $VROOT_BASE/$eid & }
 	} else {
-		# ZFS
+		# TODO: ZFS
 		if { ! $gui || $execMode == "batch" } {
 			rexec jail -r $eid
 			rexec zfs destroy -fr vroot/$eid
@@ -768,6 +812,11 @@ proc terminate_removeExperimentFiles { eid } {
 			}
 		}
 	}
+
+	set t_start [clock milliseconds]
+	set timeout 30
+	terminate_removeExperimentFiles_wait $all_dict $eid \
+		$w $t_start $timeout
 }
 
 #****f* freebsd.tcl/getCpuCount
