@@ -709,9 +709,10 @@ if { $execMode == "interactive" } {
 			setToExecuteVars "unconfigure_nodes" "*"
 
 			undeployCfg $eid_base 1
+			vwait execMode
 		}
 
-		terminate_deleteExperimentFiles $eid_base
+		terminate_deleteRuntimeFiles {} $eid_base ""
 	}
 
 	mainPipeClose

@@ -495,13 +495,59 @@ proc destroyLinkBetween { eid node1_id node2_id iface1_id iface2_id link_id } {
 # INPUTS
 #   * eid -- experiment id
 #****
-proc terminate_removeExperimentContainer { eid } {
-	catch { rexec ip netns del $eid }
+proc terminate_removeExperimentContainer { all_dict eid w } {
+	global devfs_number
+	statline "Removing experiment top-level container/netns..."
+
+	catch { rexec ip netns del $eid & }
+
+	set t_start [clock milliseconds]
+	set timeout 30
+	terminate_removeExperimentContainer_wait $all_dict $eid \
+		$w $t_start $timeout
 }
 
-proc terminate_removeExperimentFiles { eid } {
-	set VROOT_BASE [getVrootDir]
-	catch { rexec rm -fr $VROOT_BASE/$eid & }
+proc terminate_removeExperimentContainer_wait { all_dict eid w t_start timeout } {
+	global runtimeDir gui execMode
+
+	if { [isOk ip netns exec $eid true] } {
+		set t_last [clock milliseconds]
+		if { [expr { ($t_last - $t_start) / 1000.0 }] <= $timeout } {
+			after 100 [list terminate_removeExperimentContainer_wait $all_dict $eid $w $t_start $timeout]
+			update
+
+			return "again"
+		}
+
+		set msg "Timeout encountered while deleting main experiment netns:\n\n"
+		append msg "$eid\n\n"
+		append msg "Delete the netns yourself before running the experiment again"
+
+		if { $gui && $execMode != "batch" } {
+			after idle {.dialog1.msg configure -wraplength 6i}
+			tk_dialog .dialog1 "IMUNES warning" \
+				"$msg" \
+				info 0 Dismiss
+		} else {
+			sputs stderr "\nIMUNES warning - $msg\n"
+		}
+	}
+
+	terminate_removeExperimentFiles $all_dict $eid $w
+
+	return "done"
+}
+
+proc terminate_removeExperimentFiles { all_dict eid w } {
+	statline "Removing experiment files..."
+
+	set dir_name "[getVrootDir]/$eid"
+	catch { rexec rm -fr $dir_name & }
+
+	set t_start [clock milliseconds]
+	set timeout 30
+	terminate_removeExperimentFiles_wait $all_dict $eid \
+		$w $t_start $timeout
 }
 
 #****f* linux.tcl/getCpuCount

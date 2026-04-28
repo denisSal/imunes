@@ -763,7 +763,7 @@ proc deployCfg { { execute 0 } } {
 	# -> step10 - execute_nodesConfigure
 	# -> step11 - execute_finishExecution
 
-	execute_nodesCreateVirtualized $all_dict $virtualized_nodes $virtualized_nodes_count $w
+	execute_nodesCreateVirtualized $all_dict $w
 }
 
 proc execute_prepareSystem { progressbar_widget msg_widget } {
@@ -836,8 +836,11 @@ proc execute_prepareSystem { progressbar_widget msg_widget } {
 	createRunningVarsFile $eid
 }
 
-proc execute_nodesCreateVirtualized { all_dict virtualized_nodes virtualized_nodes_count w } {
+proc execute_nodesCreateVirtualized { all_dict w } {
 	global progressbarCount execMode runnable_node_types gui
+
+	set virtualized_nodes [dictGet $all_dict "virtualized_nodes"]
+	set virtualized_nodes_count [dictGet $all_dict "virtualized_nodes_count"]
 
 	statline "Instantiating VIRTUALIZED nodes..."
 	if { $virtualized_nodes_count > 0 } {
