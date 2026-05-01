@@ -925,7 +925,6 @@ proc setOperMode { new_oper_mode } {
 		}
 	}
 
-	#.panwin.f1.left.select configure -state active
 	if { "$new_oper_mode" == "exec" } {
 		if { $gui } {
 			.menubar.experiment entryconfigure "Execute" -state disabled
@@ -948,6 +947,30 @@ proc setOperMode { new_oper_mode } {
 
 			mainPipeCreate
 			deployCfg 1
+		}
+	} else {
+		if { [getFromRunning "oper_mode"] != "edit" } {
+			set eid [getFromRunning "eid"]
+			setToExecuteVars "terminate_nodes" [getFromRunning "node_list"]
+			setToExecuteVars "destroy_nodes_ifaces" "*"
+			setToExecuteVars "terminate_links" [getFromRunning "link_list"]
+			setToExecuteVars "unconfigure_links" "*"
+			setToExecuteVars "unconfigure_nodes_ifaces" "*"
+			setToExecuteVars "unconfigure_nodes" "*"
+
+			mainPipeCreate
+			undeployCfg $eid 1
+		}
+	}
+
+	waitVarChange state "null" [list setOperModeFinish $new_oper_mode]
+}
+
+proc setOperModeFinish { new_oper_mode } {
+	global gui
+
+	if { "$new_oper_mode" == "exec" } {
+		if { ! [getFromRunning "cfg_deployed"] } {
 			mainPipeClose
 
 			setToRunning "cfg_deployed" true
@@ -966,16 +989,6 @@ proc setOperMode { new_oper_mode } {
 	} else {
 		if { [getFromRunning "oper_mode"] != "edit" } {
 			set eid [getFromRunning "eid"]
-			setToExecuteVars "terminate_nodes" [getFromRunning "node_list"]
-			setToExecuteVars "destroy_nodes_ifaces" "*"
-			setToExecuteVars "terminate_links" [getFromRunning "link_list"]
-			setToExecuteVars "unconfigure_links" "*"
-			setToExecuteVars "unconfigure_nodes_ifaces" "*"
-			setToExecuteVars "unconfigure_nodes" "*"
-
-			mainPipeCreate
-			undeployCfg $eid 1
-
 			catch { rexec pkill -f "socat.*$eid" }
 			mainPipeClose
 
@@ -1550,6 +1563,26 @@ proc captureOnExtIfc { node_id command } {
 	}
 }
 
+proc waitVarChange { var_name condition { callback_proc {} } } {
+	upvar 0 ::loop::$var_name $var_name
+
+	if { ! [info exists $var_name] } {
+		return "error"
+	}
+
+	if { [set $var_name] == $condition } {
+		if { $callback_proc != {} } {
+			{*}$callback_proc
+		}
+
+		return "done"
+	}
+
+	after 100 [list waitVarChange $var_name $condition $callback_proc]
+
+	return "again"
+}
+
 proc redeployCfg {} {
 	if { ! [getFromRunning "cfg_deployed"] } {
 		return
@@ -1566,7 +1599,7 @@ proc redeployCfg {} {
 
 	mainPipeCreate
 	undeployCfg
-	deployCfg
+	waitVarChange state "null" deployCfg
 	mainPipeClose
 }
 
@@ -1886,4 +1919,19 @@ proc nodeLogIfacesCreate { node_id ifaces } {
 	#	set cmds "$cmds ; rm -f /tmp/routes"
 	#	pipesExec "docker exec -d $docker_id sh -c '$cmds'" "hold"
 	#}
+}
+
+proc updateProgressBar { w step { msg "" } } {
+	global progressbarCount execMode gui
+
+	incr progressbarCount $step
+
+	if { $gui && $execMode != "batch" } {
+		if { [winfo exists $w] } {
+			$w.p configure -value $progressbarCount
+		}
+
+		statline "$msg"
+		update
+	}
 }

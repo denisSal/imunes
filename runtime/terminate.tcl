@@ -43,14 +43,20 @@ proc checkTerminate {} {
 
 proc undeployCfg { { eid "" } { terminate 0 } } {
 	upvar 0 ::cf::[set ::curcfg]::dict_cfg dict_cfg
+	upvar 0 ::loop::state loop_state
+
+	set loop_state "terminating"
 
 	global progressbarCount execMode gui
 	global isOSfreebsd
+	global dict_loop
 
 	set bkp_cfg ""
 	set terminate_cfg [getFromExecuteVars "terminate_cfg"]
 	if { ! $terminate } {
 		if { ! [getFromRunning "cfg_deployed"] } {
+			set loop_state "null"
+
 			return
 		}
 
@@ -61,6 +67,8 @@ proc undeployCfg { { eid "" } { terminate 0 } } {
 
 			createExperimentFiles $eid
 			createRunningVarsFile $eid
+
+			set loop_state "null"
 
 			return
 		}
@@ -90,6 +98,8 @@ proc undeployCfg { { eid "" } { terminate 0 } } {
 		}
 		setToExecuteVars "terminate_cfg" ""
 
+		set loop_state "null"
+
 		return
 	}
 
@@ -111,6 +121,9 @@ proc undeployCfg { { eid "" } { terminate 0 } } {
 			tk_dialog .dialog1 "IMUNES error" \
 				"$err \nCleanup the experiment and report the bug!" info 0 Dismiss
 		}
+
+		set loop_state "null"
+
 		return
 	}
 
@@ -2225,7 +2238,10 @@ proc terminate_finishTermination { all_dict eid w } {
 }
 
 proc finishTerminating { status msg w } {
+	upvar 0 ::loop::state loop_state
+
 	global progressbarCount execMode gui
+	global dict_loop
 
 	set vars "terminate_nodes destroy_nodes_ifaces terminate_links \
 		unconfigure_links unconfigure_nodes_ifaces unconfigure_nodes"
@@ -2247,4 +2263,6 @@ proc finishTerminating { status msg w } {
 
 		redrawAll
 	}
+
+	set loop_state "null"
 }

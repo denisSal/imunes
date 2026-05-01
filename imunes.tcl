@@ -189,6 +189,10 @@ foreach file_path [glob -directory $ROOTDIR/$LIBDIR/runtime *.tcl] {
 
 setPlatformVariables
 
+namespace eval ::loop:: {}
+set ::loop::state "null"
+set ::loop::progress_msg ""
+
 global cfg_types_dictionary cfg_types_array cfg_types_inner_dictionary
 set cfg_types_dictionary "gui canvases nodes links annotations images custom_configs ipsec_configs ifaces IFACES_CONFIG NODE_CONFIG"
 set cfg_types_array "croutes4 croutes6 ipv4_addrs ipv6_addrs services events tayga_mappings"
@@ -580,17 +584,9 @@ if { $execMode == "interactive" } {
 		sputs ""
 		sputs -nonewline "> "
 		flush stdout
-		while { [gets stdin line] >= 0 } {
-			try {
-				eval {*}$line
-			} on ok retv {
-				sputs "OK: '$retv'"
-			} on error retv {
-				sputs "ERROR: '$retv'"
-			}
-			sputs -nonewline "> "
-			flush stdout
-		}
+
+		fileevent stdin readable cliStdinHandler
+		vwait forever
 	}
 } else {
 	if { $remote_error != "" } {

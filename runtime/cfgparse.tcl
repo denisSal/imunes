@@ -2144,3 +2144,26 @@ proc dictDiff { dict1 dict2 } {
 
 	return $diff_dict
 }
+
+proc cliStdinHandler {} {
+	if { [gets stdin line] < 0 } {
+		if { [eof stdin] } {
+			exit
+		}
+
+		return
+	}
+
+	if { $line != "" } {
+		try {
+			eval {*}$line
+		} on ok retv {
+			sputs "OK: '$retv'"
+		} on error retv {
+			sputs "ERROR: '$retv'"
+		}
+	}
+
+	sputs -nonewline "> "
+	flush stdout
+}
