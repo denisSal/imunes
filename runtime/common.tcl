@@ -1042,7 +1042,6 @@ proc setOperMode { new_oper_mode } {
 	}
 
 	try {
-		#.panwin.f1.left.select configure -state active
 		if { "$new_oper_mode" == "exec" } {
 			if { $gui } {
 				.menubar.experiment entryconfigure "Execute" -state disabled
@@ -1065,6 +1064,53 @@ proc setOperMode { new_oper_mode } {
 
 				mainPipeCreate
 				deployCfg 1
+			}
+		} else {
+			if { [getFromRunning "oper_mode"] != "edit" } {
+				set eid [getFromRunning "eid"]
+				setToExecuteVars "terminate_nodes" [getFromRunning "node_list"]
+				setToExecuteVars "destroy_nodes_ifaces" "*"
+				setToExecuteVars "terminate_links" [getFromRunning "link_list"]
+				setToExecuteVars "unconfigure_links" "*"
+				setToExecuteVars "unconfigure_nodes_ifaces" "*"
+				setToExecuteVars "unconfigure_nodes" "*"
+
+				mainPipeCreate
+				undeployCfg $eid 1
+			}
+		}
+	} on error err {
+		if { $gui } {
+			after idle { .dialog1.msg configure -wraplength 4i }
+			tk_dialog .dialog1 "IMUNES error" \
+				$err \
+				info 0 Dismiss
+		} else {
+			sputs stderr $err
+		}
+	} finally {
+		if { $gui } {
+			bind $main_canvas_elem <1> "button1 %x %y none"
+			bind $main_canvas_elem <B1-Motion> "button1-motion %x %y"
+			bind $main_canvas_elem <B1-ButtonRelease> "button1-release %x %y"
+		}
+	}
+
+	waitVarChange state "null" [list setOperModeFinish $new_oper_mode]
+}
+
+proc setOperModeFinish { new_oper_mode } {
+	global gui main_canvas_elem
+
+	if { $gui } {
+		bind $main_canvas_elem <1> ""
+		bind $main_canvas_elem <B1-Motion> ""
+		bind $main_canvas_elem <B1-ButtonRelease> ""
+	}
+
+	try {
+		if { "$new_oper_mode" == "exec" } {
+			if { ! [getFromRunning "cfg_deployed"] } {
 				mainPipeClose
 
 				setToRunning "cfg_deployed" true
@@ -1083,16 +1129,6 @@ proc setOperMode { new_oper_mode } {
 		} else {
 			if { [getFromRunning "oper_mode"] != "edit" } {
 				set eid [getFromRunning "eid"]
-				setToExecuteVars "terminate_nodes" [getFromRunning "node_list"]
-				setToExecuteVars "destroy_nodes_ifaces" "*"
-				setToExecuteVars "terminate_links" [getFromRunning "link_list"]
-				setToExecuteVars "unconfigure_links" "*"
-				setToExecuteVars "unconfigure_nodes_ifaces" "*"
-				setToExecuteVars "unconfigure_nodes" "*"
-
-				mainPipeCreate
-				undeployCfg $eid 1
-
 				catch { rexec pkill -f "socat.*$eid" }
 				mainPipeClose
 
@@ -1708,6 +1744,26 @@ proc captureOnExtIfc { node_id command } {
 	}
 }
 
+proc waitVarChange { var_name condition { callback_proc {} } } {
+	upvar 0 ::loop::$var_name $var_name
+
+	if { ! [info exists $var_name] } {
+		return "error"
+	}
+
+	if { [set $var_name] == $condition } {
+		if { $callback_proc != {} } {
+			{*}$callback_proc
+		}
+
+		return "done"
+	}
+
+	after 100 [list waitVarChange $var_name $condition $callback_proc]
+
+	return "again"
+}
+
 proc redeployCfg {} {
 	global gui main_canvas_elem
 
@@ -1749,7 +1805,7 @@ proc redeployCfg {} {
 		} else {
 			mainPipeCreate
 			undeployCfg
-			deployCfg
+			waitVarChange state "null" deployCfg
 			mainPipeClose
 		}
 	} on error err {
@@ -2152,4 +2208,19 @@ proc getFullNodeFromIdName { hostname should_attach { docker_exec_flags "-it" } 
 	}
 
 	return [list [lindex $eids 0] [lindex $nodes 0] [lindex $os_cmds 0]]
+}
+
+proc updateProgressBar { w step { msg "" } } {
+	global progressbarCount execMode gui
+
+	incr progressbarCount $step
+
+	if { $gui && $execMode != "batch" } {
+		if { [winfo exists $w] } {
+			$w.p configure -value $progressbarCount
+		}
+
+		statline "$msg"
+		update
+	}
 }
