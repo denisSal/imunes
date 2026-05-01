@@ -462,8 +462,6 @@ proc generateHostsFile { node_id } {
 }
 
 proc checkNodePrerequisites { nodes nodes_count w } {
-	global execMode gui
-
 	set timeout [getTimeout "nodecreate_timeout"]
 
 	set eid [getFromRunning "eid"]
@@ -842,9 +840,154 @@ proc execute_prepareSystem { progressbar_widget msg_widget } {
 	createRunningVarsFile $eid
 }
 
-proc execute_nodesCreateVirtualized { all_dict w } {
-	global execMode runnable_node_types gui
+proc executeCheck { eid elem_type elems_left elems_count nodes_ifaces timeout w condition_state check_proc msg_template } {
+	set elems_left_count [llength $elems_left]
+	set batchStep [expr { $elems_count - $elems_left_count }]
 
+	if { $elem_type in "nodes ifaces pifaces lifaces" } {
+		set get_proc "getStateNode"
+		set remove_proc "removeStateNode"
+	} elseif { $elem_type == "links" } {
+		set get_proc "getStateLink"
+		set remove_proc "removeStateLink"
+	}
+
+	foreach elem $elems_left {
+		if { $condition_state in [$get_proc $elem] } {
+			if { $nodes_ifaces != {} } {
+				set ifaces [dict get $nodes_ifaces $elem]
+				if { $ifaces == "*" } {
+					if { $elem_type == "pifaces" } {
+						set ifaces [ifcList $elem]
+					} elseif { $elem_type == "lifaces" } {
+						set ifaces [logIfcList $elem]
+					} else {
+						set ifaces [allIfcList $elem]
+					}
+				} else {
+					if { $elem_type == "pifaces" } {
+						set ifaces [removeFromList $ifaces [logIfcList $elem]]
+					} elseif { $elem_type == "lifaces" } {
+						set ifaces [removeFromList $ifaces [ifcList $elem]]
+					}
+				}
+			}
+
+			if { ! [eval {*}$check_proc] } {
+				if { $timeout < 0 } {
+					after [expr -$timeout]
+				}
+				continue
+			}
+
+			if { $elem_type == "links" } {
+				addStateLink $elem "running"
+				set mirror_link_id [getLinkMirror $elem]
+				if { $mirror_link_id != "" } {
+					addStateLink $mirror_link_id "running"
+				}
+			}
+
+			$remove_proc $elem $condition_state
+			set msg "done"
+		} else {
+			set msg "skipped"
+		}
+
+		displayBatchProgress [incr batchStep] $elems_count
+
+		regsub {%msg} $msg_template {$msg} full_msg
+		updateProgressBar $w 1 "[subst $full_msg]"
+
+		set elems_left [removeFromList $elems_left $elem]
+	}
+
+	return $elems_left
+}
+
+proc executeWait { all_dict elem_type elems elems_count elems_left nodes_ifaces w t_start timeout old_left_count callback_proc condition check_proc msg_template } {
+	global err_skip_nodesifaces
+
+	set elems_left_count [llength $elems_left]
+	set batchStep [expr { $elems_count - $elems_left_count }]
+
+	set try_again 0
+	if { $elems_left_count > 0 } {
+		displayBatchProgress $batchStep $elems_count
+
+		set elems_left [executeCheck \
+			[getFromRunning "eid"] \
+			$elem_type \
+			$elems_left \
+			$elems_count \
+			$nodes_ifaces \
+			$timeout \
+			$w \
+			$condition \
+			$check_proc \
+			$msg_template \
+			]
+
+		set elems_left_count [llength $elems_left]
+		set batchStep [expr { $elems_count - $elems_left_count }]
+
+		if { $old_left_count != $elems_left_count } {
+			# there is some progress, check if there are elems left
+			if { $elems_left_count > 0 } {
+				# some elems are completed, reset the timer and start again
+				set old_left_count $elems_left_count
+				set t_start [clock milliseconds]
+
+				set try_again 1
+			}
+		} elseif { $timeout < 0 } {
+			# no progress, legacy mode -> try until completion
+			set try_again 1
+		} else {
+			# no progress, check timeout
+			if { $elems_left_count > 0 && [expr { ([clock milliseconds] - $t_start) / 1000.0 }] > $timeout } {
+				# timeout, finish this step
+				set elems [removeFromList $elems $elems_left]
+				set elems_left $elems
+			} elseif { $elems != {} } {
+				# no timeout, there are still unfinished elems, try again
+				set try_again 1
+			}
+		}
+	}
+
+	if { $try_again } {
+		# [info level 0] gives the name of the procedure, along with its arguments
+		after 100 [list [lindex [info level 0] 0] \
+			$all_dict \
+			$elem_type \
+			$elems \
+			$elems_count \
+			$elems_left \
+			$nodes_ifaces \
+			$w \
+			$t_start \
+			$timeout \
+			$old_left_count \
+			$callback_proc \
+			$condition \
+			$check_proc \
+			$msg_template \
+			]
+
+		return "again"
+	}
+
+	if { $elems_count > 0 } {
+		displayBatchProgress $batchStep $elems_count "clean_statline"
+	}
+
+	$callback_proc $all_dict $w
+
+	return "done"
+}
+
+proc execute_nodesCreateVirtualized { all_dict w } {
 	set virtualized_nodes [dictGet $all_dict "virtualized_nodes"]
 	set virtualized_nodes_count [dictGet $all_dict "virtualized_nodes_count"]
 
@@ -882,96 +1025,37 @@ proc execute_nodesCreateVirtualized { all_dict w } {
 		statline "Waiting for $virtualized_nodes_count VIRTUALIZED node(s) to start..."
 	}
 
+	set elem_type "nodes"
+	set elems $virtualized_nodes
+	set elems_count $virtualized_nodes_count
+	set elems_left $elems
+	set nodes_ifaces {}
 	set t_start [clock milliseconds]
 	set timeout [getTimeout "nodecreate_timeout"]
-	set batchStep 0
 	# ignore first run when checking for timeout
 	set old_left_count -1
-	execute_nodesCreateVirtualized_wait $all_dict $virtualized_nodes $virtualized_nodes_count $virtualized_nodes \
-		$w $t_start $timeout $batchStep $old_left_count
-}
-
-proc execute_nodesCreateVirtualized_wait { all_dict nodes nodes_count nodes_left w t_start timeout batchStep old_left_count } {
-	global execMode gui
-
-	set eid [getFromRunning "eid"]
-
-	set nodes_left_count [llength $nodes_left]
-
-	set try_again 0
-	if { $nodes_left_count > 0 } {
-		displayBatchProgress $batchStep $nodes_count
-
-		foreach node_id $nodes_left {
-			if { "node_creating" in [getStateNode $node_id] } {
-				set node_started [invokeNodeProc $node_id "nodeCreate_check" $eid $node_id]
-				if { ! $node_started } {
-					if { $timeout < 0 } {
-						after [expr -$timeout]
-					}
-					#update
-					continue
-				}
-
-				removeStateNode $node_id "node_creating"
-				set msg "created"
-			} else {
-				set msg "skipped"
-			}
-
-			incr batchStep
-			displayBatchProgress $batchStep $nodes_count
-
-			updateProgressBar $w 1 "Node [getNodeName $node_id] $msg"
-
-			set nodes_left [removeFromList $nodes_left $node_id]
-		}
-
-		set nodes_left_count [llength $nodes_left]
-		if { $old_left_count != $nodes_left_count } {
-			# there is some progress, check if there are nodes left
-			if { $nodes_left_count > 0 } {
-				# some nodes are completed, reset the timer and start again 
-				set old_left_count $nodes_left_count
-				set t_start [clock milliseconds]
-
-				set try_again 1
-			}
-		} elseif { $timeout < 0 } {
-			# no progress, legacy mode -> try until completion
-			set try_again 1
-		} else {
-			# no progress, check timeout
-			if { $nodes_left_count > 0 && [expr { ([clock milliseconds] - $t_start) / 1000.0 }] > $timeout } {
-				# timeout, finish this step
-				set nodes [removeFromList $nodes $nodes_left]
-				set nodes_left $nodes
-			} elseif { $nodes != {} } {
-				# no timeout, there are still unfinished nodes, try again
-				set try_again 1
-			}
-		}
-	}
-
-	if { $try_again } {
-		after 100 [list execute_nodesCreateVirtualized_wait $all_dict $nodes $nodes_count $nodes_left $w \
-			$t_start $timeout $batchStep $old_left_count]
-
-		return "again"
-	}
-
-	if { $nodes_count > 0 } {
-		displayBatchProgress $batchStep $nodes_count "clean_statline"
-	}
-
-	execute_nodesNamespaceSetup $all_dict $w
-
-	return "done"
+	set callback_proc "execute_nodesNamespaceSetup"
+	set condition "node_creating"
+	set check_proc [list invokeNodeProc \$elem "nodeCreate_check" \$eid \$elem]
+	set msg_template "Node \[getNodeName \$elem] creation %msg"
+	executeWait \
+		$all_dict \
+		$elem_type \
+		$elems \
+		$elems_count \
+		$elems_left \
+		$nodes_ifaces \
+		$w \
+		$t_start \
+		$timeout \
+		$old_left_count \
+		$callback_proc \
+		$condition \
+		$check_proc \
+		$msg_template
 }
 
 proc execute_nodesNamespaceSetup { all_dict w } {
-	global execMode gui
-
 	set all_nodes [dictGet $all_dict "all_nodes"]
 	set all_nodes_count [dictGet $all_dict "all_nodes_count"]
 
@@ -1010,92 +1094,37 @@ proc execute_nodesNamespaceSetup { all_dict w } {
 		statline "Waiting on namespaces for $all_nodes_count node(s)..."
 	}
 
+	set elem_type "nodes"
+	set elems $all_nodes
+	set elems_count $all_nodes_count
+	set elems_left $elems
+	set nodes_ifaces {}
 	set t_start [clock milliseconds]
 	set timeout [getTimeout "nodecreate_timeout"]
-	set batchStep 0
 	# ignore first run when checking for timeout
 	set old_left_count -1
-	execute_nodesNamespaceSetup_wait $all_dict $all_nodes $all_nodes_count $all_nodes $w \
-		$t_start $timeout $batchStep $old_left_count
-}
-
-proc execute_nodesNamespaceSetup_wait { all_dict nodes nodes_count nodes_left w t_start timeout batchStep old_left_count } {
-	global execMode gui
-
-	set eid [getFromRunning "eid"]
-
-	if { [llength $nodes_left] > 0 } {
-		displayBatchProgress $batchStep $nodes_count
-		foreach node_id $nodes_left {
-			if { "ns_creating" in [getStateNode $node_id] } {
-				set node_namespace_created [invokeNodeProc $node_id "nodeNamespaceSetup_check" $eid $node_id]
-				if { ! $node_namespace_created } {
-					if { $timeout < 0 } {
-						after [expr -$timeout]
-					}
-					update
-					continue
-				}
-
-				removeStateNode $node_id "ns_creating"
-				set msg "created"
-			} else {
-				set msg "skipped"
-			}
-
-			incr batchStep
-			displayBatchProgress $batchStep $nodes_count
-
-			updateProgressBar $w 1 "Namespace for [getNodeName $node_id] $msg"
-
-			set nodes_left [removeFromList $nodes_left $node_id]
-		}
-
-		if { $old_left_count != [llength $nodes_left] } {
-			if { $nodes_left != {} } {
-				set old_left_count [llength $nodes_left]
-				set t_start [clock milliseconds]
-
-				after 100 [list execute_nodesNamespaceSetup_wait $all_dict $nodes $nodes_count $nodes_left $w \
-					$t_start $timeout $batchStep $old_left_count]
-				return "again"
-			} else {
-				execute_nodesInitConfigure $all_dict $w
-
-				return "done"
-			}
-		}
-
-		if { $timeout < 0 } {
-			after 100 [list execute_nodesNamespaceSetup_wait $all_dict $nodes $nodes_count $nodes_left $w \
-				$t_start $timeout $batchStep $old_left_count]
-
-			return "again"
-		}
-
-		set t_last [clock milliseconds]
-		if { [llength $nodes_left] > 0 && [expr {($t_last - $t_start)/1000.0}] > $timeout } {
-			set nodes [removeFromList $nodes $nodes_left]
-			set nodes_left $nodes
-		} elseif { $nodes != {} } {
-			after 100 [list execute_nodesNamespaceSetup_wait $all_dict $nodes $nodes_count $nodes_left $w \
-				$t_start $timeout $batchStep $old_left_count]
-
-			return "not done"
-		}
-	}
-
-	if { $nodes_count > 0 } {
-		displayBatchProgress $batchStep $nodes_count "clean_statline"
-	}
-
-	execute_nodesInitConfigure $all_dict $w
-	return "done"
+	set callback_proc "execute_nodesInitConfigure"
+	set condition "ns_creating"
+	set check_proc [list invokeNodeProc \$elem "nodeNamespaceSetup_check" \$eid \$elem]
+	set msg_template "Namespace for \[getNodeName \$elem] creation %msg"
+	executeWait \
+		$all_dict \
+		$elem_type \
+		$elems \
+		$elems_count \
+		$elems_left \
+		$nodes_ifaces \
+		$w \
+		$t_start \
+		$timeout \
+		$old_left_count \
+		$callback_proc \
+		$condition \
+		$check_proc \
+		$msg_template
 }
 
 proc execute_nodesInitConfigure { all_dict w } {
-	global execMode gui
-
 	set virtualized_nodes [dictGet $all_dict "virtualized_nodes"]
 	set virtualized_nodes_count [dictGet $all_dict "virtualized_nodes_count"]
 
@@ -1133,94 +1162,37 @@ proc execute_nodesInitConfigure { all_dict w } {
 		statline "Waiting for initial configuration on $virtualized_nodes_count VIRTUALIZED node(s)..."
 	}
 
+	set elem_type "nodes"
+	set elems $virtualized_nodes
+	set elems_count $virtualized_nodes_count
+	set elems_left $elems
+	set nodes_ifaces {}
 	set t_start [clock milliseconds]
 	set timeout [getTimeout "nodecreate_timeout"]
-	set batchStep 0
 	# ignore first run when checking for timeout
 	set old_left_count -1
-	execute_nodesInitConfigure_wait $all_dict $virtualized_nodes $virtualized_nodes_count $virtualized_nodes $w \
-		$t_start $timeout $batchStep $old_left_count
-}
-
-proc execute_nodesInitConfigure_wait { all_dict nodes nodes_count nodes_left w t_start timeout batchStep old_left_count } {
-	global execMode gui
-
-	set eid [getFromRunning "eid"]
-
-	if { [llength $nodes_left] > 0 } {
-		displayBatchProgress $batchStep $nodes_count
-		foreach node_id $nodes_left {
-			if { "init_configuring" in [getStateNode $node_id] } {
-				set node_init_configured [invokeNodeProc $node_id "nodeInitConfigure_check" $eid $node_id]
-				if { ! $node_init_configured } {
-					if { $timeout < 0 } {
-						after [expr -$timeout]
-					}
-					update
-					continue
-				}
-
-				removeStateNode $node_id "init_configuring"
-				set msg "configured"
-			} else {
-				set msg "skipped"
-			}
-
-			incr batchStep
-			displayBatchProgress $batchStep $nodes_count
-
-			updateProgressBar $w 1 "Initial networking on [getNodeName $node_id] $msg"
-
-			set nodes_left [removeFromList $nodes_left $node_id]
-		}
-
-		if { $old_left_count != [llength $nodes_left] } {
-			if { $nodes_left != {} } {
-				set old_left_count [llength $nodes_left]
-				set t_start [clock milliseconds]
-
-				after 100 [list execute_nodesInitConfigure_wait $all_dict $nodes $nodes_count $nodes_left $w \
-					$t_start $timeout $batchStep $old_left_count]
-
-				return "again"
-			} else {
-				execute_nodesCreateNative $all_dict $w
-
-				return "done"
-			}
-		}
-
-		if { $timeout < 0 } {
-			after 100 [list execute_nodesInitConfigure_wait $all_dict $nodes $nodes_count $nodes_left $w \
-				$t_start $timeout $batchStep $old_left_count]
-
-			return "again"
-		}
-
-		set t_last [clock milliseconds]
-		if { [llength $nodes_left] > 0 && [expr {($t_last - $t_start)/1000.0}] > $timeout } {
-			set nodes [removeFromList $nodes $nodes_left]
-			set nodes_left $nodes
-		} elseif { $nodes != {} } {
-			after 100 [list execute_nodesInitConfigure_wait $all_dict $nodes $nodes_count $nodes_left $w \
-				$t_start $timeout $batchStep $old_left_count]
-
-			return "not done"
-		}
-	}
-
-	if { $nodes_count > 0 } {
-		displayBatchProgress $batchStep $nodes_count "clean_statline"
-	}
-
-	execute_nodesCreateNative $all_dict $w
-
-	return "done"
+	set callback_proc "execute_nodesCreateNative"
+	set condition "init_configuring"
+	set check_proc [list invokeNodeProc \$elem "nodeInitConfigure_check" \$eid \$elem]
+	set msg_template "Initial networking on \[getNodeName \$elem] creation %msg"
+	executeWait \
+		$all_dict \
+		$elem_type \
+		$elems \
+		$elems_count \
+		$elems_left \
+		$nodes_ifaces \
+		$w \
+		$t_start \
+		$timeout \
+		$old_left_count \
+		$callback_proc \
+		$condition \
+		$check_proc \
+		$msg_template
 }
 
 proc execute_nodesCreateNative { all_dict w } {
-	global execMode runnable_node_types gui
-
 	set native_nodes [dictGet $all_dict "native_nodes"]
 	set native_nodes_count [dictGet $all_dict "native_nodes_count"]
 
@@ -1258,97 +1230,40 @@ proc execute_nodesCreateNative { all_dict w } {
 		statline "Waiting for $native_nodes_count NATIVE node(s) to start..."
 	}
 
+	set elem_type "nodes"
+	set elems $native_nodes
+	set elems_count $native_nodes_count
+	set elems_left $elems
+	set nodes_ifaces {}
 	set t_start [clock milliseconds]
 	set timeout [getTimeout "nodecreate_timeout"]
-	set batchStep 0
 	# ignore first run when checking for timeout
 	set old_left_count -1
-	execute_nodesCreateNative_wait $all_dict $native_nodes $native_nodes_count $native_nodes $w \
-		$t_start $timeout $batchStep $old_left_count
-}
-
-proc execute_nodesCreateNative_wait { all_dict nodes nodes_count nodes_left w t_start timeout batchStep old_left_count } {
-	global execMode gui
-
-	set eid [getFromRunning "eid"]
-
-	if { [llength $nodes_left] > 0 } {
-		displayBatchProgress $batchStep $nodes_count
-		foreach node_id $nodes_left {
-			if { "node_creating" in [getStateNode $node_id] } {
-				set node_started [invokeNodeProc $node_id "nodeCreate_check" $eid $node_id]
-				if { ! $node_started } {
-					if { $timeout < 0 } {
-						after [expr -$timeout]
-					}
-					update
-					continue
-				}
-
-				removeStateNode $node_id "node_creating"
-				set msg "created"
-			} else {
-				set msg "skipped"
-			}
-
-			incr batchStep
-			displayBatchProgress $batchStep $nodes_count
-
-			updateProgressBar $w 1 "Node [getNodeName $node_id] $msg"
-
-			set nodes_left [removeFromList $nodes_left $node_id]
-		}
-
-		if { $old_left_count != [llength $nodes_left] } {
-			if { $nodes_left != {} } {
-				set old_left_count [llength $nodes_left]
-				set t_start [clock milliseconds]
-
-				after 100 [list execute_nodesCreateNative_wait $all_dict $nodes $nodes_count $nodes_left $w \
-					$t_start $timeout $batchStep $old_left_count]
-
-				return "again"
-			} else {
-				execute_nodesPhysIfacesCreate $all_dict $w
-
-				return "done"
-			}
-		}
-
-		if { $timeout < 0 } {
-			after 100 [list execute_nodesCreateNative_wait $all_dict $nodes $nodes_count $nodes_left $w \
-				$t_start $timeout $batchStep $old_left_count]
-
-			return "again"
-		}
-
-		set t_last [clock milliseconds]
-		if { [llength $nodes_left] > 0 && [expr {($t_last - $t_start)/1000.0}] > $timeout } {
-			set nodes [removeFromList $nodes $nodes_left]
-			set nodes_left $nodes
-		} elseif { $nodes != {} } {
-			after 100 [list execute_nodesCreateNative_wait $all_dict $nodes $nodes_count $nodes_left $w \
-				$t_start $timeout $batchStep $old_left_count]
-
-			return "not done"
-		}
-	}
-
-	if { $nodes_count > 0 } {
-		displayBatchProgress $batchStep $nodes_count "clean_statline"
-	}
-
-	execute_nodesPhysIfacesCreate $all_dict $w
-
-	return "done"
+	set callback_proc "execute_nodesPhysIfacesCreate"
+	set condition "node_creating"
+	set check_proc [list invokeNodeProc \$elem "nodeCreate_check" \$eid \$elem]
+	set msg_template "Node \[getNodeName \$elem] creation %msg"
+	executeWait \
+		$all_dict \
+		$elem_type \
+		$elems \
+		$elems_count \
+		$elems_left \
+		$nodes_ifaces \
+		$w \
+		$t_start \
+		$timeout \
+		$old_left_count \
+		$callback_proc \
+		$condition \
+		$check_proc \
+		$msg_template
 }
 
 proc execute_nodesCopyFiles { nodes nodes_count w } {
 }
 
 proc execute_nodesPhysIfacesCreate { all_dict w } {
-	global execMode gui
-
 	set configure_nodes [dictGet $all_dict "configure_nodes"]
 	set configure_nodes_count [dictGet $all_dict "configure_nodes_count"]
 
@@ -1449,105 +1364,37 @@ proc execute_nodesPhysIfacesCreate { all_dict w } {
 		statline "Waiting for physical interfaces on $create_nodes_ifaces_count node(s) to be created..."
 	}
 
+	set elem_type "pifaces"
+	set elems [dict keys $create_nodes_ifaces]
+	set elems_count $create_nodes_ifaces_count
+	set elems_left $elems
+	set nodes_ifaces $create_nodes_ifaces
 	set t_start [clock milliseconds]
 	set timeout [getTimeout "ifacesconf_timeout"]
-	set batchStep 0
-	set nodes_left [dict keys $create_nodes_ifaces]
 	# ignore first run when checking for timeout
 	set old_left_count -1
-	execute_nodesPhysIfacesCreate_wait $all_dict $create_nodes_ifaces $create_nodes_ifaces_count $nodes_left $w \
-		$t_start $timeout $batchStep $old_left_count
-}
-
-proc execute_nodesPhysIfacesCreate_wait { all_dict nodes_ifaces nodes_count nodes_left w t_start timeout batchStep old_left_count} {
-	global execMode err_skip_nodesifaces gui
-
-	set eid [getFromRunning "eid"]
-
-	set nodes [dict keys $nodes_ifaces]
-
-	if { [llength $nodes_left] > 0 } {
-		displayBatchProgress $batchStep $nodes_count
-		foreach node_id $nodes_left {
-			if { "pifaces_creating" in [getStateNode $node_id] } {
-				set ifaces [dict get $nodes_ifaces $node_id]
-				if { $ifaces == "*" } {
-					set ifaces [ifcList $node_id]
-				} else {
-					set ifaces [removeFromList $ifaces [logIfcList $node_id]]
-				}
-
-				set ifaces_created [invokeNodeProc $node_id "nodePhysIfacesCreate_check" $eid $node_id $ifaces]
-				if { ! $ifaces_created } {
-					if { $timeout < 0 } {
-						after [expr -$timeout]
-					}
-					update
-					continue
-				}
-
-				removeStateNode $node_id "pifaces_creating"
-				set msg "created"
-			} else {
-				set msg "skipped"
-			}
-
-			incr batchStep
-			displayBatchProgress $batchStep $nodes_count
-
-			updateProgressBar $w 1 "Node [getNodeName $node_id] physical ifaces $msg"
-
-			set nodes_left [removeFromList $nodes_left $node_id]
-		}
-
-		if { $old_left_count != [llength $nodes_left] } {
-			if { $nodes_left != {} } {
-				set old_left_count [llength $nodes_left]
-				set t_start [clock milliseconds]
-
-				after 100 [list execute_nodesPhysIfacesCreate_wait $all_dict $nodes_ifaces $nodes_count $nodes_left $w \
-					$t_start $timeout $batchStep $old_left_count]
-
-				return "again"
-			} else {
-				execute_nodesLogIfacesCreate $all_dict $w
-
-				return "done"
-			}
-		}
-
-		if { $timeout < 0 } {
-			after 100 [list execute_nodesPhysIfacesCreate_wait $all_dict $nodes_ifaces $nodes_count $nodes_left $w \
-				$t_start $timeout $batchStep $old_left_count]
-
-			return "again"
-		}
-
-		set t_last [clock milliseconds]
-		if { [llength $nodes_left] > 0 && [expr {($t_last - $t_start)/1000.0}] > $timeout } {
-			set err_skip_nodesifaces $nodes_left
-			set nodes [removeFromList $nodes $nodes_left]
-			set nodes_left $nodes
-		} elseif { $nodes != {} } {
-			after 100 [list execute_nodesPhysIfacesCreate_wait $all_dict $nodes_ifaces $nodes_count $nodes_left $w \
-				$t_start $timeout $batchStep $old_left_count]
-
-			return "not done"
-		}
-	}
-
-	if { $nodes_count > 0 } {
-		displayBatchProgress $batchStep $nodes_count "clean_statline"
-	}
-
-	execute_nodesLogIfacesCreate $all_dict $w
-
-	return "done"
+	set callback_proc "execute_nodesLogIfacesCreate"
+	set condition "pifaces_creating"
+	set check_proc [list invokeNodeProc \$elem "nodePhysIfacesCreate_check" \$eid \$elem \$ifaces]
+	set msg_template "Node \[getNodeName \$elem] physical ifaces creation %msg"
+	executeWait \
+		$all_dict \
+		$elem_type \
+		$elems \
+		$elems_count \
+		$elems_left \
+		$nodes_ifaces \
+		$w \
+		$t_start \
+		$timeout \
+		$old_left_count \
+		$callback_proc \
+		$condition \
+		$check_proc \
+		$msg_template
 }
 
 proc execute_nodesLogIfacesCreate { all_dict w } {
-	global execMode gui
-
 	set create_nodes_ifaces [dictGet $all_dict "create_nodes_ifaces"]
 	set create_nodes_ifaces_count [dictGet $all_dict "create_nodes_ifaces_count"]
 
@@ -1602,106 +1449,37 @@ proc execute_nodesLogIfacesCreate { all_dict w } {
 		statline "Waiting for logical interfaces on $create_nodes_ifaces_count node(s) to be created..."
 	}
 
+	set elem_type "lifaces"
+	set elems [dict keys $create_nodes_ifaces]
+	set elems_count $create_nodes_ifaces_count
+	set elems_left $elems
+	set nodes_ifaces $create_nodes_ifaces
 	set t_start [clock milliseconds]
 	set timeout [getTimeout "ifacesconf_timeout"]
-	set batchStep 0
-	set nodes_left [dict keys $create_nodes_ifaces]
 	# ignore first run when checking for timeout
 	set old_left_count -1
-	execute_nodesLogIfacesCreate_wait $all_dict $create_nodes_ifaces $create_nodes_ifaces_count $nodes_left $w \
-		$t_start $timeout $batchStep $old_left_count
-}
-
-proc execute_nodesLogIfacesCreate_wait { all_dict nodes_ifaces nodes_count nodes_left w t_start timeout batchStep old_left_count} {
-	global execMode err_skip_nodesifaces gui
-
-	set eid [getFromRunning "eid"]
-
-	set nodes [dict keys $nodes_ifaces]
-
-	if { [llength $nodes_left] > 0 } {
-		displayBatchProgress $batchStep $nodes_count
-		foreach node_id $nodes_left {
-			if { "lifaces_creating" in [getStateNode $node_id] } {
-				set ifaces [dict get $nodes_ifaces $node_id]
-				if { $ifaces == "*" } {
-					set ifaces [logIfcList $node_id]
-				} else {
-					set ifaces [removeFromList $ifaces [ifcList $node_id]]
-				}
-
-				# same check as for physical ifaces
-				set ifaces_created [invokeNodeProc $node_id "nodePhysIfacesCreate_check" $eid $node_id $ifaces]
-				if { ! $ifaces_created } {
-					if { $timeout < 0 } {
-						after [expr -$timeout]
-					}
-					update
-					continue
-				}
-
-				removeStateNode $node_id "lifaces_creating"
-				set msg "created"
-			} else {
-				set msg "skipped"
-			}
-
-			incr batchStep
-			displayBatchProgress $batchStep $nodes_count
-
-			updateProgressBar $w 1 "Node [getNodeName $node_id] logical ifaces $msg"
-
-			set nodes_left [removeFromList $nodes_left $node_id]
-		}
-
-		if { $old_left_count != [llength $nodes_left] } {
-			if { $nodes_left != {} } {
-				set old_left_count [llength $nodes_left]
-				set t_start [clock milliseconds]
-
-				after 100 [list execute_nodesLogIfacesCreate_wait $all_dict $nodes_ifaces $nodes_count $nodes_left $w \
-					$t_start $timeout $batchStep $old_left_count]
-
-				return "again"
-			} else {
-				execute_nodesIfacesConfigure $all_dict $w
-
-				return "done"
-			}
-		}
-
-		if { $timeout < 0 } {
-			after 100 [list execute_nodesLogIfacesCreate_wait $all_dict $nodes_ifaces $nodes_count $nodes_left $w \
-				$t_start $timeout $batchStep $old_left_count]
-
-			return "again"
-		}
-
-		set t_last [clock milliseconds]
-		if { [llength $nodes_left] > 0 && [expr {($t_last - $t_start)/1000.0}] > $timeout } {
-			set err_skip_nodesifaces $nodes_left
-			set nodes [removeFromList $nodes $nodes_left]
-			set nodes_left $nodes
-		} elseif { $nodes != {} } {
-			after 100 [list execute_nodesLogIfacesCreate_wait $all_dict $nodes_ifaces $nodes_count $nodes_left $w \
-				$t_start $timeout $batchStep $old_left_count]
-
-			return "not done"
-		}
-	}
-
-	if { $nodes_count > 0 } {
-		displayBatchProgress $batchStep $nodes_count "clean_statline"
-	}
-
-	execute_nodesIfacesConfigure $all_dict $w
-
-	return "done"
+	set callback_proc "execute_nodesIfacesConfigure"
+	set condition "lifaces_creating"
+	set check_proc [list invokeNodeProc \$elem "nodePhysIfacesCreate_check" \$eid \$elem \$ifaces]
+	set msg_template "Node \[getNodeName \$elem] logical ifaces creation %msg"
+	executeWait \
+		$all_dict \
+		$elem_type \
+		$elems \
+		$elems_count \
+		$elems_left \
+		$nodes_ifaces \
+		$w \
+		$t_start \
+		$timeout \
+		$old_left_count \
+		$callback_proc \
+		$condition \
+		$check_proc \
+		$msg_template
 }
 
 proc execute_nodesIfacesConfigure { all_dict w } {
-	global execMode gui
-
 	set configure_nodes_ifaces [dictGet $all_dict "configure_nodes_ifaces"]
 	set configure_nodes_ifaces_count [dictGet $all_dict "configure_nodes_ifaces_count"]
 
@@ -1761,154 +1539,34 @@ proc execute_nodesIfacesConfigure { all_dict w } {
 		statline "Waiting for interface configuration on $configure_nodes_ifaces_count node(s)..."
 	}
 
+	set elem_type "ifaces"
+	set elems [dict keys $configure_nodes_ifaces]
+	set elems_count $configure_nodes_ifaces_count
+	set elems_left $elems
+	set nodes_ifaces $configure_nodes_ifaces
 	set t_start [clock milliseconds]
 	set timeout [getTimeout "ifacesconf_timeout"]
-	set batchStep 0
-	set nodes_left [dict keys $configure_nodes_ifaces]
 	# ignore first run when checking for timeout
 	set old_left_count -1
-	execute_nodesIfacesConfigure_wait $all_dict $configure_nodes_ifaces $configure_nodes_ifaces_count $nodes_left $w \
-		$t_start $timeout $batchStep $old_left_count
-}
-
-proc execute_nodesIfacesConfigure_wait { all_dict nodes_ifaces nodes_count nodes_left w t_start timeout batchStep old_left_count} {
-	global execMode err_skip_nodesifaces gui
-
-	set eid [getFromRunning "eid"]
-
-	set nodes [dict keys $nodes_ifaces]
-
-	if { [llength $nodes_left] > 0 } {
-		displayBatchProgress $batchStep $nodes_count
-		foreach node_id $nodes_left {
-			if { "ifaces_configuring" in [getStateNode $node_id] } {
-				set ifaces [removeFromList [dict get $nodes_ifaces $node_id] [logIfcList $node_id]]
-				if { $ifaces == "*" } {
-					set ifaces [ifcList $node_id]
-				}
-
-				set node_ifaces_configured [invokeNodeProc $node_id "nodeIfacesConfigure_check" $eid $node_id $ifaces]
-				if { ! $node_ifaces_configured } {
-					if { $timeout < 0 } {
-						after [expr -$timeout]
-					}
-					update
-					continue
-				}
-
-				removeStateNode $node_id "ifaces_configuring"
-				set msg "configured"
-			} else {
-				set msg "skipped"
-			}
-
-			incr batchStep
-			displayBatchProgress $batchStep $nodes_count
-
-			updateProgressBar $w 1 "Node [getNodeName $node_id] ifaces $msg"
-
-			set nodes_left [removeFromList $nodes_left $node_id]
-		}
-
-		if { $old_left_count != [llength $nodes_left] } {
-			if { $nodes_left != {} } {
-				set old_left_count [llength $nodes_left]
-				set t_start [clock milliseconds]
-
-				after 100 [list execute_nodesIfacesConfigure_wait $all_dict $nodes_ifaces $nodes_count $nodes_left $w \
-					$t_start $timeout $batchStep $old_left_count]
-
-				return "again"
-			} else {
-				execute_linksCreate $all_dict $w
-
-				return "done"
-			}
-		}
-
-		if { $timeout < 0 } {
-			after 100 [list execute_nodesIfacesConfigure_wait $all_dict $nodes_ifaces $nodes_count $nodes_left $w \
-				$t_start $timeout $batchStep $old_left_count]
-
-			return "again"
-		}
-
-		set t_last [clock milliseconds]
-		if { [llength $nodes_left] > 0 && [expr {($t_last - $t_start)/1000.0}] > $timeout } {
-			set err_skip_nodesifaces $nodes_left
-			set nodes [removeFromList $nodes $nodes_left]
-			set nodes_left $nodes
-		} elseif { $nodes != {} } {
-			after 100 [list execute_nodesIfacesConfigure_wait $all_dict $nodes_ifaces $nodes_count $nodes_left $w \
-				$t_start $timeout $batchStep $old_left_count]
-
-			return "not done"
-		}
-	}
-
-	if { $nodes_count > 0 } {
-		displayBatchProgress $batchStep $nodes_count "clean_statline"
-	}
-
-	execute_linksCreate $all_dict $w
-
-	return "done"
-}
-
-proc execute_linksCreate { all_dict w } {
-	global execMode gui
-
-	set instantiate_links [dictGet $all_dict "instantiate_links"]
-	set links_count [dictGet $all_dict "links_count"]
-
-	statline "Creating links..."
-	if { $links_count > 0 } {
-		set batchStep 0
-
-		pipesCreate
-		for { set pending_links $instantiate_links } { $pending_links != "" } {} {
-			set link_id [lindex $pending_links 0]
-			set pending_links [removeFromList $pending_links $link_id]
-
-			lassign [getLinkPeers $link_id] node1_id node2_id
-			lassign [getLinkPeersIfaces $link_id] iface1_id iface2_id
-
-			displayBatchProgress $batchStep $links_count
-
-			if {
-				[isRunningNodeIface $node1_id $iface1_id] &&
-				[isRunningNodeIface $node2_id $iface2_id]
-			} {
-				try {
-					createLinkBetween $node1_id $node2_id $iface1_id $iface2_id $link_id
-				} on error err {
-					return -code error "Error in 'createLinkBetween $node1_id $node2_id $iface1_id $iface2_id $link_id': $err"
-				}
-
-				set msg "Creating"
-			} else {
-				set msg "Skipping"
-			}
-
-			incr batchStep
-
-			updateProgressBar $w 1 "$msg link $link_id"
-		}
-		pipesExec ""
-		pipesClose
-
-		displayBatchProgress $batchStep $links_count "clean_statline"
-
-		statline "Waiting for $links_count link(s) to be created..."
-	}
-
-	set t_start [clock milliseconds]
-	set timeout [getTimeout "nodecreate_timeout"]
-	set batchStep 0
-	# ignore first run when checking for timeout
-	set old_links_left -1
-	execute_linksCreate_wait $all_dict $instantiate_links $links_count $instantiate_links $w \
-		$t_start $timeout $batchStep $old_links_left
+	set callback_proc "execute_linksCreate"
+	set condition "ifaces_configuring"
+	set check_proc [list invokeNodeProc \$elem "nodeIfacesConfigure_check" \$eid \$elem \$ifaces]
+	set msg_template "Node \[getNodeName \$elem] ifaces configuration %msg"
+	executeWait \
+		$all_dict \
+		$elem_type \
+		$elems \
+		$elems_count \
+		$elems_left \
+		$nodes_ifaces \
+		$w \
+		$t_start \
+		$timeout \
+		$old_left_count \
+		$callback_proc \
+		$condition \
+		$check_proc \
+		$msg_template
 }
 
 proc isLinkCreated { eid link_id } {
@@ -1953,90 +1611,84 @@ proc isLinkCreated { eid link_id } {
 	return $created
 }
 
-proc execute_linksCreate_wait { all_dict links links_count links_left w t_start timeout batchStep old_links_left } {
-	global execMode gui
+proc execute_linksCreate { all_dict w } {
+	set instantiate_links [dictGet $all_dict "instantiate_links"]
+	set links_count [dictGet $all_dict "links_count"]
 
-	set eid [getFromRunning "eid"]
+	statline "Creating links..."
+	if { $links_count > 0 } {
+		set batchStep 0
 
-	if { [llength $links_left] > 0 } {
-		displayBatchProgress $batchStep $links_count
-		foreach link_id $links_left {
-			if { "creating" in [getStateLink $link_id] } {
-				if { ! [isLinkCreated $eid $link_id] } {
-					if { $timeout < 0 } {
-						after [expr -$timeout]
-					}
-					update
-					continue
+		pipesCreate
+		foreach link_id $instantiate_links {
+			lassign [getLinkPeers $link_id] node1_id node2_id
+			lassign [getLinkPeersIfaces $link_id] iface1_id iface2_id
+
+			displayBatchProgress $batchStep $links_count
+
+			if {
+				[isRunningNodeIface $node1_id $iface1_id] &&
+				[isRunningNodeIface $node2_id $iface2_id]
+			} {
+				try {
+					createLinkBetween $node1_id $node2_id $iface1_id $iface2_id $link_id
+				} on error err {
+					return -code error "Error in 'createLinkBetween $node1_id $node2_id $iface1_id $iface2_id $link_id': $err"
 				}
 
-				addStateLink $link_id "running"
-				set mirror_link_id [getLinkMirror $link_id]
-				if { $mirror_link_id != "" } {
-					addStateLink $mirror_link_id "running"
-				}
-
-				removeStateLink $link_id "creating"
-				set msg "started"
+				set msg "Creating"
 			} else {
-				set msg "skipped"
+				set msg "Skipping"
 			}
 
 			incr batchStep
-			displayBatchProgress $batchStep $links_count
 
-			updateProgressBar $w 1 "Link $link_id $msg"
-
-			set links_left [removeFromList $links_left $link_id]
+			updateProgressBar $w 1 "$msg link $link_id"
 		}
+		pipesExec ""
+		pipesClose
 
-		if { $old_links_left != [llength $links_left] } {
-			if { $links_left != {} } {
-				set old_links_left [llength $links_left]
-				set t_start [clock milliseconds]
-
-				after 100 [list execute_linksCreate_wait $all_dict $links $links_count $links_left $w \
-					$t_start $timeout $batchStep $old_links_left]
-
-				return "again"
-			} else {
-				execute_linksConfigure $all_dict $w
-
-				return "done"
-			}
-		}
-
-		if { $timeout < 0 } {
-			after 100 [list execute_linksCreate_wait $all_dict $links $links_count $links_left $w \
-				$t_start $timeout $batchStep $old_links_left]
-
-			return "again"
-		}
-
-		set t_last [clock milliseconds]
-		if { [llength $links_left] > 0 && [expr {($t_last - $t_start)/1000.0}] > $timeout } {
-			set links [removeFromList $links $links_left]
-			set links_left $links
-		} elseif { $links != {} } {
-			after 100 [list execute_linksCreate_wait $all_dict $links $links_count $links_left $w \
-				$t_start $timeout $batchStep $old_links_left]
-
-			return "not done"
-		}
-	}
-
-	if { $links_count > 0 } {
 		displayBatchProgress $batchStep $links_count "clean_statline"
+
+		statline "Waiting for $links_count link(s) to be created..."
 	}
 
-	execute_linksConfigure $all_dict $w
+	set elem_type "links"
+	set elems $instantiate_links
+	set elems_count $links_count
+	set elems_left $elems
+	set nodes_ifaces {}
+	set t_start [clock milliseconds]
+	set timeout [getTimeout "nodecreate_timeout"]
+	# ignore first run when checking for timeout
+	set old_left_count -1
+	set callback_proc "execute_linksConfigure"
+	set condition "creating"
+	set check_proc [list isLinkCreated \$eid \$elem]
+	set msg_template "Link \$elem creation %msg"
+	executeWait \
+		$all_dict \
+		$elem_type \
+		$elems \
+		$elems_count \
+		$elems_left \
+		$nodes_ifaces \
+		$w \
+		$t_start \
+		$timeout \
+		$old_left_count \
+		$callback_proc \
+		$condition \
+		$check_proc \
+		$msg_template
+}
 
-	return "done"
+proc isLinkConfigured { eid link_id } {
+	# TODO: check link configuration
+	return true
 }
 
 proc execute_linksConfigure { all_dict w } {
-	global execMode gui
-
 	set configure_links [dictGet $all_dict "configure_links"]
 	set configure_links_count [dictGet $all_dict "configure_links_count"]
 
@@ -2045,10 +1697,7 @@ proc execute_linksConfigure { all_dict w } {
 		set batchStep 0
 
 		pipesCreate
-		for { set pending_links $configure_links } { $pending_links != "" } {} {
-			set link_id [lindex $pending_links 0]
-			set pending_links [removeFromList $pending_links $link_id]
-
+		foreach link_id $configure_links {
 			lassign [getLinkPeers $link_id] node1_id node2_id
 			lassign [getLinkPeersIfaces $link_id] iface1_id iface2_id
 
@@ -2083,16 +1732,37 @@ proc execute_linksConfigure { all_dict w } {
 		statline "Waiting for $configure_links_count link(s) to be configured..."
 	}
 
-	execute_linksConfigure_wait $all_dict $w
-}
-
-proc execute_linksConfigure_wait { all_dict w } {
-	execute_nodesConfigure $all_dict $w
+	set elem_type "links"
+	set elems $configure_links
+	set elems_count $configure_links_count
+	set elems_left $elems
+	set nodes_ifaces {}
+	set t_start [clock milliseconds]
+	set timeout [getTimeout "nodecreate_timeout"]
+	# ignore first run when checking for timeout
+	set old_left_count -1
+	set callback_proc "execute_nodesConfigure"
+	set condition "creating"
+	set check_proc [list isLinkConfigured \$eid \$elem]
+	set msg_template "Link \$elem configuration %msg"
+	executeWait \
+		$all_dict \
+		$elem_type \
+		$elems \
+		$elems_count \
+		$elems_left \
+		$nodes_ifaces \
+		$w \
+		$t_start \
+		$timeout \
+		$old_left_count \
+		$callback_proc \
+		$condition \
+		$check_proc \
+		$msg_template
 }
 
 proc execute_nodesConfigure { all_dict w } {
-	global execMode gui
-
 	set configure_nodes [dictGet $all_dict "configure_nodes"]
 	set configure_nodes_count [dictGet $all_dict "configure_nodes_count"]
 
@@ -2135,89 +1805,34 @@ proc execute_nodesConfigure { all_dict w } {
 		statline "Waiting for configuration on $configure_nodes_count node(s)..."
 	}
 
+	set elem_type "nodes"
+	set elems $configure_nodes
+	set elems_count $configure_nodes_count
+	set elems_left $elems
+	set nodes_ifaces {}
 	set t_start [clock milliseconds]
 	set timeout [getTimeout "nodeconf_timeout"]
-	set batchStep 0
 	# ignore first run when checking for timeout
 	set old_left_count -1
-	execute_nodesConfigure_wait $all_dict $configure_nodes $configure_nodes_count $configure_nodes $w \
-		$t_start $timeout $batchStep $old_left_count
-}
-
-proc execute_nodesConfigure_wait { all_dict nodes nodes_count nodes_left w t_start timeout batchStep old_left_count } {
-	global execMode gui
-
-	set eid [getFromRunning "eid"]
-
-	if { [llength $nodes_left] > 0 } {
-		displayBatchProgress $batchStep $nodes_count
-		foreach node_id $nodes_left {
-			if { "node_configuring" in [getStateNode $node_id] } {
-				set node_configured [invokeNodeProc $node_id "nodeConfigure_check" $eid $node_id]
-				if { ! $node_configured } {
-					if { $timeout < 0 } {
-						after [expr -$timeout]
-					}
-					update
-					continue
-				}
-
-				removeStateNode $node_id "node_configuring"
-				set msg "configured"
-			} else {
-				set msg "skipped"
-			}
-
-			incr batchStep
-			displayBatchProgress $batchStep $nodes_count
-
-			updateProgressBar $w 1 "Node [getNodeName $node_id] $msg"
-
-			set nodes_left [removeFromList $nodes_left $node_id]
-		}
-
-		if { $old_left_count != [llength $nodes_left] } {
-			if { $nodes_left != {} } {
-				set old_left_count [llength $nodes_left]
-				set t_start [clock milliseconds]
-
-				after 100 [list execute_nodesConfigure_wait $all_dict $nodes $nodes_count $nodes_left $w \
-					$t_start $timeout $batchStep $old_left_count]
-
-				return "again"
-			} else {
-				execute_finishExecution $all_dict $w
-
-				return "done"
-			}
-		}
-
-		if { $timeout < 0 } {
-			after 100 [list execute_nodesConfigure_wait $all_dict $nodes $nodes_count $nodes_left $w \
-				$t_start $timeout $batchStep $old_left_count]
-
-			return "again"
-		}
-
-		set t_last [clock milliseconds]
-		if { [llength $nodes_left] > 0 && [expr {($t_last - $t_start)/1000.0}] > $timeout } {
-			set nodes [removeFromList $nodes $nodes_left]
-			set nodes_left $nodes
-		} elseif { $nodes != {} } {
-			after 100 [list execute_nodesConfigure_wait $all_dict $nodes $nodes_count $nodes_left $w \
-				$t_start $timeout $batchStep $old_left_count]
-
-			return "not done"
-		}
-	}
-
-	if { $nodes_count > 0 } {
-		displayBatchProgress $batchStep $nodes_count "clean_statline"
-	}
-
-	execute_finishExecution $all_dict $w
-
-	return "done"
+	set callback_proc "execute_finishExecution"
+	set condition "node_configuring"
+	set check_proc [list invokeNodeProc \$elem "nodeConfigure_check" \$eid \$elem]
+	set msg_template "Node \[getNodeName \$elem] configuration %msg"
+	executeWait \
+		$all_dict \
+		$elem_type \
+		$elems \
+		$elems_count \
+		$elems_left \
+		$nodes_ifaces \
+		$w \
+		$t_start \
+		$timeout \
+		$old_left_count \
+		$callback_proc \
+		$condition \
+		$check_proc \
+		$msg_template
 }
 
 proc execute_finishExecution { all_dict w } {
