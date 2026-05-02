@@ -409,6 +409,8 @@ proc createLinkBetween { node1_id node2_id iface1_id iface2_id link_id } {
 #   * link_id -- link id
 #****
 proc configureLinkBetween { node1_id node2_id iface1_id iface2_id link_id } {
+	addStateLink $link_id "configuring"
+
 	set eid [getFromRunning "eid"]
 
 	set bandwidth [expr [getLinkBandwidth $link_id] + 0]
