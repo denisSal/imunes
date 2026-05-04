@@ -60,7 +60,7 @@ registerModule $MODULE
 #   * node_id -- node id
 #****
 proc $MODULE.confNewNode { node_id } {
-	global ripEnable ripngEnable ospfEnable ospf6Enable bgpEnable ldpEnable
+	global ripEnable ripngEnable ospfEnable ospf6Enable bgpEnable ldpEnable isisEnable
 	global router_ConfigModel
 	global nodeNamingBase
 
@@ -71,6 +71,7 @@ proc $MODULE.confNewNode { node_id } {
 	set ospf6Enable [getActiveOption "routerOspf6Enable"]
 	set bgpEnable [getActiveOption "routerBgpEnable"]
 	set ldpEnable [getActiveOption "routerLdpEnable"]
+	set isisEnable [getActiveOption "routerIsisEnable"]
 
 	setNodeName $node_id [getNewNodeNameType router $nodeNamingBase(router)]
 	setNodeModel $node_id [getActiveOption "routerDefaultsModel"]
@@ -81,6 +82,7 @@ proc $MODULE.confNewNode { node_id } {
 	setNodeProtocol $node_id "ospf6" $ospf6Enable
 	setNodeProtocol $node_id "bgp" $bgpEnable
 	setNodeProtocol $node_id "ldp" $ldpEnable
+	setNodeProtocol $node_id "isis" $isisEnable
 
 	setNodeAutoDefaultRoutesStatus $node_id "enabled"
 

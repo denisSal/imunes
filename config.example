@@ -17,6 +17,7 @@
 # routerOspf6Enable       - enable/disable OSPF6 protocol on newly created router nodes (default: "0", type: "bool")
 # routerBgpEnable         - enable/disable BGP protocol on newly created router nodes (default: "0", type: "bool")
 # routerLdpEnable         - enable/disable LDP protocol on newly created router nodes (default: "0", type: "bool")
+# routerIsisEnable        - enable/disable IS-IS protocol on newly created router nodes (default: "0", type: "bool")
 # editor_only             - if true, Experiment -> Execute is disabled (default: "0", type: "bool")
 # preferred_shell         - shell to open on 'Shell window' (if exists) (default: "csh", type: "string")
 # timeout_factor          - extend wait time for node/iface create/destroy/configure (default: "5", type: "int 1|60")
@@ -53,6 +54,7 @@
     "routerOspf6Enable"       : "0",
     "routerBgpEnable"         : "0",
     "routerLdpEnable"         : "0",
+    "routerIsisEnable"        : "0",
     "editor_only"             : "0",
     "preferred_shell"         : "csh",
     "timeout_factor"          : "5",

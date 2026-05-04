@@ -130,6 +130,7 @@ set option_defaults {
 	routerOspf6Enable	0
 	routerBgpEnable		0
 	routerLdpEnable		0
+	routerIsisEnable	0
 	routerDefaultsModel	"frr"
 }
 

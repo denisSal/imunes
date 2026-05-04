@@ -2244,7 +2244,7 @@ proc configGUI_routingModel { wi node_id } {
 	global guielements
 	lappend guielements configGUI_routingModel
 
-	global ripEnable ripngEnable ospfEnable ospf6Enable bgpEnable ldpEnable supp_router_models
+	global ripEnable ripngEnable ospfEnable ospf6Enable bgpEnable ldpEnable isisEnable supp_router_models
 	global router_ConfigModel node_cfg
 
 	ttk::frame $wi.routing -relief groove -borderwidth 2 -padding 2
@@ -2261,6 +2261,7 @@ proc configGUI_routingModel { wi node_id } {
 		"ospf6 ospfv3 ospf6Enable"
 		"bgp bgp bgpEnable"
 		"ldp ldp ldpEnable"
+		"isis isis isisEnable"
 	}
 
 	set protocol_list {}
@@ -3299,20 +3300,20 @@ proc configGUI_snapshotsApply { wi node_id } {
 #****
 proc configGUI_routingModelApply { wi node_id } {
 	global router_ConfigModel
-	global ripEnable ripngEnable ospfEnable ospf6Enable bgpEnable ldpEnable
+	global ripEnable ripngEnable ospfEnable ospf6Enable bgpEnable ldpEnable isisEnable
 
 	if { [getNodeType $node_id] != "nat64" && $router_ConfigModel != [getNodeModel $node_id]} {
 		setNodeModel $node_id $router_ConfigModel
 	}
 
 	if { $router_ConfigModel != "static" } {
-		foreach var "rip ripng ospf ospf6 bgp ldp" {
+		foreach var "rip ripng ospf ospf6 bgp ldp isis" {
 			if { [getNodeProtocol $node_id "$var"] != [set ${var}Enable] } {
 				setNodeProtocol $node_id "$var" [set ${var}Enable]
 			}
 		}
 	} else {
-		foreach var "rip ripng ospf ospf6 bgp ldp" {
+		foreach var "rip ripng ospf ospf6 bgp ldp isis" {
 			$wi.routing.protocols.$var configure -state disabled
 		}
 	}

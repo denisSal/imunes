@@ -232,6 +232,7 @@ set options_defaults {
 	"routerOspf6Enable"		0			"bool"						"enable/disable OSPF6 protocol on newly created router nodes"	0
 	"routerBgpEnable"		0			"bool"						"enable/disable BGP protocol on newly created router nodes"		0
 	"routerLdpEnable"		0			"bool"						"enable/disable LDP protocol on newly created router nodes"		0
+	"routerIsisEnable"		0			"bool"						"enable/disable IS-IS protocol on newly created router nodes"	0
 	"editor_only"			0			"bool"						"if true, Experiment -> Execute is disabled"					0
 	"preferred_shell"		"csh"		"string"					"shell to open on 'Shell window' (if exists)"					0
 	"timeout_factor"		5			"int 1|60"					"extend wait time for node/iface create/destroy/configure"		0

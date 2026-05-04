@@ -545,6 +545,7 @@ set routing_defaults_command {
 		"ospf6	ospfv3	routerOspf6Enable"
 		"bgp	bgp		routerBgpEnable"
 		"ldp	ldp		routerLdpEnable"
+		"isis	isis	routerIsisEnable"
 	}
 
 	set protocol_list {}
@@ -594,7 +595,7 @@ set routing_defaults_command {
 	set cancel_command [list apply {
 		{ top_widget } {
 			global routerDefaultsModel
-			global routerRipEnable routerRipngEnable routerOspfEnable routerOspf6Enable routerBgpEnable routerLdpEnable
+			global routerRipEnable routerRipngEnable routerOspfEnable routerOspf6Enable routerBgpEnable routerLdpEnable routerIsisEnable
 
 			set routerDefaultsModel [getActiveOption "routerDefaultsModel"]
 			set routerRipEnable [getActiveOption "routerRipEnable"]
@@ -603,6 +604,7 @@ set routing_defaults_command {
 			set routerOspf6Enable [getActiveOption "routerOspf6Enable"]
 			set routerBgpEnable [getActiveOption "routerBgpEnable"]
 			set routerLdpEnable [getActiveOption "routerLdpEnable"]
+			set routerIsisEnable [getActiveOption "routerIsisEnable"]
 
 			destroy $top_widget
 		}

@@ -453,7 +453,7 @@ proc selectZoomApply { w } {
 #****
 proc routerDefaultsApply { wi } {
 	global changed routerDefaultsModel router_ConfigModel
-	global routerRipEnable routerRipngEnable routerOspfEnable routerOspf6Enable routerBgpEnable routerLdpEnable
+	global routerRipEnable routerRipngEnable routerOspfEnable routerOspf6Enable routerBgpEnable routerLdpEnable routerIsisEnable
 
 	setGlobalOption "routerDefaultsModel" $routerDefaultsModel
 	setGlobalOption "routerRipEnable" $routerRipEnable
@@ -462,6 +462,7 @@ proc routerDefaultsApply { wi } {
 	setGlobalOption "routerOspf6Enable" $routerOspf6Enable
 	setGlobalOption "routerBgpEnable" $routerBgpEnable
 	setGlobalOption "routerLdpEnable" $routerLdpEnable
+	setGlobalOption "routerIsisEnable" $routerIsisEnable
 
 	set selected_node_list [selectedNodes]
 	if { $selected_node_list == {} } {
@@ -482,6 +483,7 @@ proc routerDefaultsApply { wi } {
 				setNodeProtocol $node_id "ospf6" $routerOspf6Enable
 				setNodeProtocol $node_id "bgp" $routerBgpEnable
 				setNodeProtocol $node_id "ldp" $routerLdpEnable
+				setNodeProtocol $node_id "isis" $routerIsisEnable
 			}
 			set changed 1
 		}

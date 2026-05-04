@@ -882,6 +882,7 @@ proc transformNodes { nodes to_type } {
 	set ospf6Enable [getActiveOption "routerOspf6Enable"]
 	set bgpEnable [getActiveOption "routerBgpEnable"]
 	set ldpEnable [getActiveOption "routerLdpEnable"]
+	set isisEnable [getActiveOption "routerIsisEnable"]
 
 	foreach node_id $nodes {
 		if { [invokeNodeProc $node_id "netlayer"] == "NETWORK" } {
@@ -906,6 +907,7 @@ proc transformNodes { nodes to_type } {
 					setNodeProtocol $node_id "ospf6" $ospf6Enable
 					setNodeProtocol $node_id "bgp" $bgpEnable
 					setNodeProtocol $node_id "ldp" $ldpEnable
+					setNodeProtocol $node_id "isis" $isisEnable
 				}
 
 				set changed 1
