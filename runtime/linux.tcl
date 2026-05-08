@@ -457,6 +457,8 @@ proc configureLinkBetween { node1_id node2_id iface1_id iface2_id link_id } {
 }
 
 proc unconfigureLinkBetween { eid node1_id node2_id iface1_id iface2_id link_id } {
+	addStateLink $link_id "unconfiguring"
+
 	foreach node_id "$node1_id $node2_id" iface_id "$iface1_id $iface2_id" {
 		set private_ns [invokeNodeProc $node_id "getPrivateNs" $eid $node_id]
 		lassign [invokeNodeProc $node_id "getHookData" $node_id $iface_id] iface_name - -
