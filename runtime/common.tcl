@@ -676,16 +676,24 @@ proc statline { line } {
 #   * progress -- current step
 #   * total -- total number of steps
 #****
-proc displayBatchProgress { prgs tot } {
+proc displayBatchProgress { prgs tot { clean "" } } {
 	global execMode debug gui
 
 	if { ! $gui || $execMode == "batch" } {
 		sputs -nonewline "\r                                                "
 		sputs -nonewline "\r> $prgs/$tot "
 		flush stdout
+
+		if { $clean != "" } {
+			statline ""
+		}
 	} elseif { $debug } {
 		dputs -nonewline "\r                                                "
 		dputs -nonewline "\r> $prgs/$tot "
+
+		if { $clean != "" } {
+			statline ""
+		}
 	}
 }
 
