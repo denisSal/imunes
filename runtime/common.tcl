@@ -741,6 +741,14 @@ proc mainPipeClose {} {
 proc pipesCreate {} {
 	global inst_pipes last_inst_pipe
 	global rcmd remote
+	global debug
+
+	if { $debug } {
+		set logdir "/var/log/imunes"
+		if { [isNotOk "test -d \"$logdir\""] } {
+			rexec mkdir -p $logdir
+		}
+	}
 
 	set ncpus [getCpuCount]
 	for { set i 0 } { $i < $ncpus } { incr i } {
@@ -756,10 +764,6 @@ proc pipesExec { line args } {
 
 	if { $debug && $line != "" } {
 		set logdir "/var/log/imunes"
-		if { [isNotOk "test -d \"$logdir\""] } {
-			rexec mkdir -p $logdir
-		}
-
 		set logfile "$logdir/[getFromRunning "eid"].log"
 
 		catch { info level [expr [info level] - 1] } e1
