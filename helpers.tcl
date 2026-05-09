@@ -523,6 +523,51 @@ proc reloadSources {} {
 	dputs "Reloaded all sources."
 }
 
+proc readCommand { fd output_var on_done } {
+	upvar 0 ::loop::cmd_outputs loop_cmd_outputs
+	if { $output_var != {} } {
+		upvar 0 ::loop::$output_var loop_$output_var
+	}
+
+	if { [eof $fd] } {
+		close $fd
+
+		set output $loop_cmd_outputs($fd)
+		unset loop_cmd_outputs($fd)
+
+		if { $on_done != {} } {
+			after 0 [list {*}$on_done $output]
+		}
+
+		return $output
+	}
+
+	append loop_cmd_outputs($fd) [read $fd]
+}
+
+proc rexecRet { on_done output_var args } {
+	upvar 0 ::loop::cmd_outputs loop_cmd_outputs
+	if { $output_var != {} } {
+		upvar 0 ::loop::$output_var loop_$output_var
+	}
+
+	global rcmd
+
+	set cmd [list echo {*}$args | {*}$rcmd]
+	dputs "CMDR: '$cmd'"
+
+	foreach existing_fd [array names loop_cmd_outputs] {
+		catch { close $existing_fd }
+	}
+
+	set fd [open "|$cmd" r]
+	fconfigure $fd -blocking 0 -buffering none
+
+	set loop_cmd_outputs($fd) ""
+
+	fileevent $fd readable [list readCommand $fd $output_var $on_done]
+}
+
 proc rexec { args } {
 	global rcmd remote max_jobs
 

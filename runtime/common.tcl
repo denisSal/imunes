@@ -963,7 +963,7 @@ proc setOperMode { new_oper_mode } {
 		}
 	}
 
-	waitVarChange state "null" [list setOperModeFinish $new_oper_mode]
+	waitVarChange state { "$state" == "null" } [list setOperModeFinish $new_oper_mode]
 }
 
 proc setOperModeFinish { new_oper_mode } {
@@ -1040,37 +1040,7 @@ proc setOperModeFinish { new_oper_mode } {
 	}
 }
 
-#****f* exec.tcl/spawnShellExec
-# NAME
-#   spawnShellExec -- spawn shell in exec mode on double click
-# SYNOPSIS
-#   spawnShellExec
-# FUNCTION
-#   This procedure spawns a new shell on a selected and current
-#   node.
-#****
-proc spawnShellExec { node_id } {
-	set cmd [existingShells [invokeNodeProc $node_id "shellcmds"] $node_id "first_only"]
-	if { $cmd == "" } {
-		return
-	}
-
-	spawnShell $node_id $cmd
-}
-
-#****f* linux.tcl/existingShells
-# NAME
-#   existingShells -- check which shells exist in a node
-# SYNOPSIS
-#   existingShells $shells $node_id
-# FUNCTION
-#   This procedure checks which of the provided shells are available
-#   in a running node.
-# INPUTS
-#   * shells -- list of shells.
-#   * node_id -- node id of the node for which the check is performed.
-#****
-proc existingShells { shells node_id { first_only "" } } {
+proc getExistingShellsCmd { shells node_id { first_only "" } } {
 	set preferred_shell [getActiveOption "preferred_shell"]
 	set shells "$preferred_shell [removeFromList $shells $preferred_shell]"
 
@@ -1091,9 +1061,71 @@ proc existingShells { shells node_id { first_only "" } } {
 
 	set os_cmd [invokeNodeProc $node_id "getExecCommand" [getFromRunning "eid"] $node_id]
 
-	catch { rexec {*}$os_cmd sh -c {*}$cmds } existing
+	return [list {*}$os_cmd sh -c {*}$cmds]
+}
 
-	return $existing
+#****f* exec.tcl/spawnShellExec
+# NAME
+#   spawnShellExec -- spawn shell in exec mode on double click
+# SYNOPSIS
+#   spawnShellExec
+# FUNCTION
+#   This procedure spawns a new shell on a selected and current
+#   node.
+#****
+proc spawnShellExec { node_id } {
+	set shells [invokeNodeProc $node_id "shellcmds"]
+	set cmd [string trim [getExistingShellsCmd $shells $node_id "first_only"]]
+
+	rexecRet [list spawnShell $node_id] {} {*}$cmd
+}
+
+#****f* linux.tcl/existingShellsGUI
+# NAME
+#   existingShellsGUI -- check which shells exist in a node
+# SYNOPSIS
+#   existingShellsGUI $shells $node_id
+# FUNCTION
+#   This procedure checks which of the provided shells are available
+#   in a running node.
+# INPUTS
+#   * shells -- list of shells.
+#   * node_id -- node id of the node for which the check is performed.
+#****
+proc existingShellsGUI { shells node_id sub_menu } {
+	set cmd [getExistingShellsCmd $shells $node_id]
+
+	if { $sub_menu != {} } {
+		# disable menu and run in background
+		catch { [winfo parent $sub_menu] entryconfigure "Shell window" -state disabled }
+
+		rexecRet [list existingShellsFinish $node_id $sub_menu $shells] {} {*}$cmd
+	}
+}
+
+proc existingShellsFinish { node_id sub_menu all_shells loop_shells } {
+	set existing_shells_cmds $loop_shells
+	set existing_shells [lmap cmd $existing_shells_cmds { lindex [split $cmd "/"] end }]
+	set root_menu [winfo parent $sub_menu]
+
+	# if button3menu does not exist anymore, return
+	if { ! [winfo ismapped $root_menu] } {
+		return
+	}
+
+	# fill out the submenu and enable it
+	foreach shell $all_shells {
+		set cmd [lindex $existing_shells_cmds [lsearch -exact $existing_shells $shell]]
+		addMenu $sub_menu \
+			"$shell" \
+			"spawnShell $node_id $cmd" \
+			[expr {$shell in $existing_shells}] \
+			"hide"
+	}
+
+	if { $sub_menu != {} && $all_shells != {} } {
+		catch { $root_menu entryconfigure "Shell window" -state normal }
+	}
 }
 
 #****f* common.tcl/spawnShell
@@ -1120,6 +1152,7 @@ proc spawnShell { node_id cmd } {
 	set private_ns [invokeNodeProc $node_id "getPrivateNs" $eid $node_id]
 	set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-it"]
 
+	set cmd [string trim $cmd]
 	exec {*}[getActiveOption "terminal_command"] \
 		-T "IMUNES: [getNodeName $node_id] (console) [lindex [split $cmd /] end]" \
 		-e {*}$ttyrcmd "$os_cmd $cmd" &
@@ -1570,7 +1603,7 @@ proc waitVarChange { var_name condition { callback_proc {} } } {
 		return "error"
 	}
 
-	if { [set $var_name] == $condition } {
+	if { [expr [subst $condition]] } {
 		if { $callback_proc != {} } {
 			{*}$callback_proc
 		}
@@ -1599,7 +1632,7 @@ proc redeployCfg {} {
 
 	mainPipeCreate
 	undeployCfg
-	waitVarChange state "null" deployCfg
+	waitVarChange state { "$state" == "null" } deployCfg
 	mainPipeClose
 }
 

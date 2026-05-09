@@ -981,7 +981,7 @@ menu .menubar.experiment -tearoff 0
 .menubar.experiment add command -label "Terminate" -underline 0 \
 	-command "setOperMode edit" -state disabled
 .menubar.experiment add command -label "Restart" -underline 0 \
-	-command "setOperMode edit; waitVarChange state null {setOperMode exec}" -state disabled
+	-command "setOperMode edit; waitVarChange state { \"\$state\" == \"null\" } {setOperMode exec}" -state disabled
 .menubar.experiment add separator
 
 .menubar.experiment add command -label "Pause execution" -underline 2 \

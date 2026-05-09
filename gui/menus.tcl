@@ -774,17 +774,7 @@ proc menu_shellSelection { node_id root_menu } {
 		$menu_enabled
 
 	if { $menu_enabled } {
-		set existing_shells_cmds [existingShells $all_shells $node_id]
-		set existing_shells [lmap cmd $existing_shells_cmds { lindex [split $cmd "/"] end }]
-
-		foreach shell $all_shells {
-			set cmd [lindex $existing_shells_cmds [lsearch -exact $existing_shells $shell]]
-			addMenu $sub_menu \
-				"$shell" \
-				"spawnShell $node_id $cmd" \
-				[expr {$shell in $existing_shells}] \
-				"hide"
-		}
+		existingShellsGUI $all_shells $node_id $sub_menu
 	}
 }
 
