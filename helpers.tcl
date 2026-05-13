@@ -584,3 +584,9 @@ proc sputs { args } {
 
 	catch { puts {*}$flags $fd {*}$args }
 }
+
+proc show { var_name } {
+	upvar $var_name var
+
+	dputs "$var_name '$var'"
+}
