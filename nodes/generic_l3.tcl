@@ -160,12 +160,57 @@ namespace eval genericL3 {
 		return 20
 	}
 
-	proc getSubnetIfaces { node_id iface_id } {
-		if { $iface_id ni [ifcList $node_id] } {
+	proc getPhysicalIface { node_id iface_id } {
+		switch -exact [getIfcType $node_id $iface_id] {
+			vlan {
+				set tag [getIfcVlanTag $node_id $iface_id]
+				set dev_name [getIfcVlanDev $node_id $iface_id]
+				set dev_id [ifaceIdFromName $node_id $dev_name]
+				if { $tag == "" || $dev_name == "" } {
+					return ""
+				}
+				return "[getPhysicalIface $node_id $dev_id] $tag"
+			}
+			default {
+				return $iface_id
+			}
+		} 
+		return $iface_id
+	}
+
+	proc getVlanSubifaceSingle { node_id iface_id vlan } {
+		foreach log_iface_id [logIfcList $node_id] {
+			set dev_name [getIfcVlanDev $node_id $log_iface_id]
+			set dev_id [ifaceIdFromName $node_id $dev_name]
+			if { $dev_id != $iface_id } {
+				continue
+			}
+			if { [getIfcType $node_id $log_iface_id] != "vlan" } {
+				continue
+			}
+			if { [getIfcVlanTag $node_id $log_iface_id] != $vlan } {
+				continue
+			}
+			return $log_iface_id
+		}
+		return ""
+	}
+	
+	proc getVlanSubiface { node_id iface_id vlans } {
+		if { $iface_id ni [allIfcList $node_id] } {
 			return ""
 		}
-
+		foreach vlan $vlans {
+			set iface_id [getVlanSubifaceSingle $node_id $iface_id $vlan]
+			if { $iface_id == "" } {
+				return ""
+			}
+		}
 		return $iface_id
+	}
+	
+	proc getSubnetIfaces { node_id iface_id vlans } {
+		return [getVlanSubiface $node_id $iface_id $vlans]
 	}
 
 	proc getSubnetPriority { node_id iface_id } {

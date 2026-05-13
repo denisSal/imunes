@@ -2004,7 +2004,7 @@ proc removeIPv4Nodes { nodes all_ifaces } {
 		}
 
 		if { $all_ifaces == "*" } {
-			dict set nodes_ifaces $node_id [ifcList $node_id]
+			dict set nodes_ifaces $node_id [allIfcList $node_id]
 		} else {
 			dict set nodes_ifaces $node_id [dictGet $all_ifaces $node_id]
 		}
@@ -2026,7 +2026,7 @@ proc removeIPv4Nodes { nodes all_ifaces } {
 
 		set ifaces [dictGet $nodes_ifaces $node_id]
 		if { $ifaces == "*" } {
-			set ifaces [ifcList $node_id]
+			set ifaces [allIfcList $node_id]
 		}
 
 		foreach iface_id $ifaces {
@@ -2073,7 +2073,7 @@ proc removeIPv6Nodes { nodes all_ifaces } {
 		}
 
 		if { $all_ifaces == "*" } {
-			dict set nodes_ifaces $node_id [ifcList $node_id]
+			dict set nodes_ifaces $node_id [allIfcList $node_id]
 		} else {
 			dict set nodes_ifaces $node_id [dictGet $all_ifaces $node_id]
 		}
@@ -2095,7 +2095,7 @@ proc removeIPv6Nodes { nodes all_ifaces } {
 
 		set ifaces [dictGet $nodes_ifaces $node_id]
 		if { $ifaces == "*" } {
-			set ifaces [ifcList $node_id]
+			set ifaces [allIfcList $node_id]
 		}
 
 		foreach iface_id $ifaces {

@@ -1160,10 +1160,14 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 
 proc getSubnetIfaces { node_id iface_id } {
 	set nodes_ifaces {}
+	set visited {}
 
-	foreach iface_id [invokeNodeProc $node_id "getSubnetIfaces" $node_id $iface_id] {
+	foreach iface_id [invokeNodeProc $node_id "getSubnetIfaces" $node_id $iface_id ""] {
 		set gw_priority [invokeNodeProc $node_id "getSubnetPriority" $node_id $iface_id]
-		lappend nodes_ifaces "$gw_priority $node_id $iface_id"
+		set vlans [lassign [invokeNodeProc $node_id "getPhysicalIface" $node_id $iface_id] iface_id]
+		lappend nodes_ifaces "$gw_priority $node_id $iface_id $vlans"
+		lassign $vlans vlan
+		lappend visited "$node_id $iface_id $vlan"
 	}
 
 	if { [llength $nodes_ifaces] == 0 } {
@@ -1172,7 +1176,7 @@ proc getSubnetIfaces { node_id iface_id } {
 
 	set idx 0
 	while { $idx < [llength $nodes_ifaces] } {
-		lassign [lindex $nodes_ifaces $idx] gw_priority node_id iface_id
+		set vlans [lassign [lindex $nodes_ifaces $idx] gw_priority node_id iface_id]
 		incr idx
 
 		lassign [logicalPeerByIfc $node_id $iface_id] node_id iface_id
@@ -1180,22 +1184,37 @@ proc getSubnetIfaces { node_id iface_id } {
 			continue
 		}
 
-		set gw_priority [invokeNodeProc $node_id "getSubnetPriority" $node_id $iface_id]
-		if { "$gw_priority $node_id $iface_id" in $nodes_ifaces } {
-			continue
-		}
+		lassign $vlans vlan
 
-		foreach iface_id [invokeNodeProc $node_id "getSubnetIfaces" $node_id $iface_id] {
-			set gw_priority [invokeNodeProc $node_id "getSubnetPriority" $node_id $iface_id]
-			if { "$gw_priority $node_id $iface_id" in $nodes_ifaces } {
+		set others [invokeNodeProc $node_id "getSubnetIfaces" $node_id $iface_id $vlans]
+		foreach iface $others {
+			set vlans [lassign $iface iface_id]
+
+			lassign $vlans vlan
+			if { "$node_id $iface_id $vlan" in $visited } {
 				continue
 			}
+			lappend visited "$node_id $iface_id $vlan"
 
-			lappend nodes_ifaces "$gw_priority $node_id $iface_id"
+			set gw_priority -1
+
+			set subiface_id [invokeNodeProc $node_id "getVlanSubiface" $node_id $iface_id $vlans]
+			if { $subiface_id != "" } {
+				set gw_priority [invokeNodeProc $node_id "getSubnetPriority" $node_id $subiface_id]
+			}
+			lappend nodes_ifaces "$gw_priority $node_id $iface_id $vlans"
 		}
 	}
 
-	return $nodes_ifaces
+	set result {}
+	foreach line $nodes_ifaces {
+		set vlans [lassign $line gw_priority node_id iface_id]
+		set iface_id [invokeNodeProc $node_id "getVlanSubiface" $node_id $iface_id $vlans]
+		if { $iface_id != "" } {
+			lappend result "$gw_priority $node_id $iface_id"
+		}
+	}
+	return $result
 }
 
 proc getSubnetAddrsByPrio { ip_version node_id iface_id { ignore_self "true" } } {

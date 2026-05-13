@@ -85,12 +85,20 @@ namespace eval genericL2 {
 	proc IPAddrRange {} {
 	}
 
-	proc getSubnetIfaces { node_id iface_id } {
-		if { $iface_id ni [ifcList $node_id] } {
+	proc getPhysicalIface { node_id iface_id } {
+		return $iface_id
+	}
+	
+	proc getVlanSubiface { node_id iface_id vlan } {
+		return ""
+	}
+	
+	proc getSubnetIfaces { node_id iface_id vlans } {
+		if { $iface_id ni [allIfcList $node_id] } {
 			return ""
 		}
 
-		return [ifcList $node_id]
+		return [allIfcList $node_id]
 	}
 
 	proc getSubnetPriority { node_id iface_id } {
