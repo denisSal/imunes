@@ -612,6 +612,10 @@ proc updateIfcLabel { link_id node_id iface_id } {
 			}
 		} else {
 			lappend label_str "[getIfcName $node_id $iface_id]"
+			if { [getNodeVlanFiltering $node_id] && [getIfcVlanType $node_id $iface_id] == "access" } {
+				set vlantag [getIfcVlanTag $node_id $iface_id]
+				set label_str "$label_str:$vlantag"
+			}
 		}
 	}
 
