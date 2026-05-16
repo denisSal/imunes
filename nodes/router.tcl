@@ -387,7 +387,9 @@ proc $MODULE.nodeNamespaceSetup { eid node_id } {
 #****
 proc $MODULE.nodeInitConfigure { eid node_id } {
 	enableIPforwarding $node_id
-	startRoutingDaemons $node_id
+	if { [getNodeModel $node_id] != "static" } {
+		startRoutingDaemons $node_id
+	}
 	configureICMPoptions $node_id
 }
 
