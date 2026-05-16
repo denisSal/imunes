@@ -262,6 +262,10 @@ proc drawNode { node_id } {
 
 	set has_empty_ifaces 0
 	foreach iface_id [ifcList $node_id] {
+		if { ! [getActiveOption "show_interface_names"] } {
+			continue
+		}
+
 		set link_id [getIfcLink $node_id $iface_id]
 		if { $type == "wlan" } {
 			set label_str "$label_str [getIfcIPv4addrs $node_id $iface_id]"
@@ -279,6 +283,45 @@ proc drawNode { node_id } {
 				set label_str "$label_str $iflabel"
 			}
 		}
+	}
+
+	foreach iface_id [logIfcList $node_id] {
+		if { ! [getActiveOption "show_vlan_interfaces"] } {
+			continue
+		}
+
+		set type [getIfcType $node_id $iface_id]
+		if { $type != "vlan" } {
+			continue
+		}
+
+		set vlantag [getIfcVlanTag $node_id $iface_id]
+		set vlandev [getIfcVlanDev $node_id $iface_id]
+		if { [getActiveOption "show_interface_names"] } {
+			set liflabel "[getIfcName $node_id $iface_id] - $vlandev:$vlantag"
+		} else {
+			set liflabel "$vlandev:$vlantag"
+		}
+
+		set ifipv4addr [getIfcIPv4addrs $node_id $iface_id]
+		set ifipv6addr [getIfcIPv6addrs $node_id $iface_id]
+		if { [getActiveOption "show_interface_ipv4"] && $ifipv4addr != "" } {
+			if { [llength $ifipv4addr] > 1 } {
+				append liflabel " [lindex $ifipv4addr 0] ..."
+			} else {
+				append liflabel " $ifipv4addr"
+			}
+		}
+
+		if { [getActiveOption "show_interface_ipv6"] && $ifipv6addr != "" } {
+			if { [llength $ifipv6addr] > 1 } {
+				append liflabel " [lindex $ifipv6addr 0] ..."
+			} else {
+				append liflabel " $ifipv6addr"
+			}
+		}
+
+		set label_str "\n$label_str\n$liflabel"
 	}
 
 	if { [getFromRunning "${node_id}_running"] == "true" } {

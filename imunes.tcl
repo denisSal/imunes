@@ -249,6 +249,7 @@ set gui_options_defaults {
 	"show_interface_ipv4"		1								"bool"				"show IPv4 addresses of nodes on canvas"		0
 	"show_interface_ipv6"		1								"bool"				"show IPv6 addresses of nodes on canvas"		0
 	"show_interface_names"		1								"bool"				"show interface names of nodes on canvas"		0
+	"show_vlan_interfaces"		1								"bool"				"show VLAN interface information on canvas"		0
 	"show_link_labels"			1								"bool"				"show labels for links on canvas"				0
 	"show_node_labels"			1								"bool"				"show labels for nodes on canvas"				0
 	"show_unsupported_nodes"	1								"bool"				"show unsupported nodes in the toolbar"			0

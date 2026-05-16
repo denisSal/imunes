@@ -80,6 +80,7 @@
 #    * show_interface_names -- control variable for showing interface names
 #    * show_interface_ipv4 -- control variable for showing interface IPv4 addresses
 #    * show_interface_ipv6 -- control variable for showing interface IPv6 addresses
+#    * show_vlan_interfaces -- control variable for showing VLAN interfaces
 #    * show_node_labels -- control variable for showing node labels
 #    * show_link_labels -- control variable for showing link labels
 #
@@ -648,13 +649,16 @@ $m add radiobutton -label "Normal" -variable icon_size \
 
 .menubar.view add checkbutton -label "Show Interface Names" \
 	-underline 5 -variable show_interface_names \
-	-command { setGlobalOption "show_interface_names" - "toggle" ; redrawAllLinks }
+	-command { setGlobalOption "show_interface_names" - "toggle" ; redrawAll }
 .menubar.view add checkbutton -label "Show IPv4 Addresses " \
 	-underline 8 -variable show_interface_ipv4 \
-	-command { setGlobalOption "show_interface_ipv4" - "toggle" ; redrawAllLinks }
+	-command { setGlobalOption "show_interface_ipv4" - "toggle" ; redrawAll }
 .menubar.view add checkbutton -label "Show IPv6 Addresses " \
 	-underline 8 -variable show_interface_ipv6 \
-	-command { setGlobalOption "show_interface_ipv6" - "toggle" ; redrawAllLinks }
+	-command { setGlobalOption "show_interface_ipv6" - "toggle" ; redrawAll }
+.menubar.view add checkbutton -label "Show VLAN Interfaces" \
+	-underline 5 -variable show_vlan_interfaces \
+	-command { setGlobalOption "show_vlan_interfaces" - "toggle" ; redrawAll }
 
 set tmp_command {
 	global main_canvas_elem
@@ -690,7 +694,7 @@ set tmp_command {
 	global main_canvas_elem
 
 	set var_list "show_interface_names show_interface_ipv4 show_interface_ipv6 \
-		show_node_labels show_link_labels"
+		show_vlan_interfaces show_node_labels show_link_labels"
 	foreach var $var_list {
 		setGlobalOption $var 1
 	}
@@ -710,7 +714,7 @@ set tmp_command {
 	global main_canvas_elem
 
 	set var_list "show_interface_names show_interface_ipv4 show_interface_ipv6 \
-		show_node_labels show_link_labels"
+		show_vlan_interfaces show_node_labels show_link_labels"
 	foreach var $var_list {
 		setGlobalOption $var 0
 	}
