@@ -60,29 +60,26 @@ registerModule $MODULE
 #   * node_id -- node id
 #****
 proc $MODULE.confNewNode { node_id } {
-	global ripEnable ripngEnable ospfEnable ospf6Enable bgpEnable ldpEnable isisEnable
-	global router_ConfigModel
 	global nodeNamingBase
-
-	set router_ConfigModel [getActiveOption "routerDefaultsModel"]
-	set ripEnable [getActiveOption "routerRipEnable"]
-	set ripngEnable [getActiveOption "routerRipngEnable"]
-	set ospfEnable [getActiveOption "routerOspfEnable"]
-	set ospf6Enable [getActiveOption "routerOspf6Enable"]
-	set bgpEnable [getActiveOption "routerBgpEnable"]
-	set ldpEnable [getActiveOption "routerLdpEnable"]
-	set isisEnable [getActiveOption "routerIsisEnable"]
 
 	setNodeName $node_id [getNewNodeNameType router $nodeNamingBase(router)]
 	setNodeModel $node_id [getActiveOption "routerDefaultsModel"]
 
-	setNodeProtocol $node_id "rip" $ripEnable
-	setNodeProtocol $node_id "ripng" $ripngEnable
-	setNodeProtocol $node_id "ospf" $ospfEnable
-	setNodeProtocol $node_id "ospf6" $ospf6Enable
-	setNodeProtocol $node_id "bgp" $bgpEnable
-	setNodeProtocol $node_id "ldp" $ldpEnable
-	setNodeProtocol $node_id "isis" $isisEnable
+	set protocols {
+		"rip	routerRipEnable"
+		"ripng	routerRipngEnable"
+		"ospf	routerOspfEnable"
+		"ospf6	routerOspf6Enable"
+		"bgp	routerBgpEnable"
+		"ldp	routerLdpEnable"
+		"isis	routerIsisEnable"
+	}
+
+	foreach item $protocols {
+		lassign $item protocol var_name
+
+		setNodeProtocol $node_id $protocol [getActiveOption $var_name]
+	}
 
 	setNodeAutoDefaultRoutesStatus $node_id "enabled"
 

@@ -520,7 +520,7 @@ set tmp_command {
 .menubar.tools add command -label "IPv6 address pool" -underline 3 \
 	-command $tmp_command
 set routing_defaults_command {
-	global routerDefaultsModel supp_router_models
+	global supp_router_models
 
 	set wi .popup
 	catch { destroy $wi }
@@ -550,12 +550,15 @@ set routing_defaults_command {
 	}
 
 	set protocol_list {}
+
+	set checkbutton_dict "0 !selected 1 selected"
 	foreach item $protocols {
-		lassign $item protocol protocol_label protocol_variable
+		lassign $item protocol protocol_label var_name
 		lappend protocol_list $protocol
 		ttk::checkbutton $w.protocols.$protocol \
-			-text $protocol_label \
-			-variable $protocol_variable
+			-text $protocol_label
+
+		$w.protocols.$protocol state [dict get $checkbutton_dict [getActiveOption "$var_name"]]
 	}
 
 	# set last argument as empty string
@@ -571,16 +574,22 @@ set routing_defaults_command {
 		""
 	]
 
-	set routerDefaultsModel [getActiveOption "routerDefaultsModel"]
 	# replace last argument for each binding
-	ttk::radiobutton $w.model.frr -text frr -variable routerDefaultsModel \
+	ttk::radiobutton $w.model.frr -text frr \
 		-value frr -command [lreplace $tmp_command end end "normal"]
-	ttk::radiobutton $w.model.quagga -text quagga -variable routerDefaultsModel \
+	ttk::radiobutton $w.model.quagga -text quagga \
 		-value quagga -command [lreplace $tmp_command end end "normal"]
-	ttk::radiobutton $w.model.static -text static -variable routerDefaultsModel \
+	ttk::radiobutton $w.model.static -text static \
 		-value static -command [lreplace $tmp_command end end "disabled"]
 
-	if { $routerDefaultsModel == "static" } {
+	foreach model "frr quagga static" {
+		$w.model.$model state "!selected"
+	}
+
+	set default_model [getActiveOption "routerDefaultsModel"]
+	$w.model.$default_model state selected
+
+	if { $default_model == "static" } {
 		foreach protocol $protocol_list {
 			$w.protocols.$protocol configure -state "disabled"
 		}
@@ -592,27 +601,7 @@ set routing_defaults_command {
 
 	ttk::frame $w.buttons
 	ttk::button $w.buttons.b1 -text "Apply" -command "routerDefaultsApply $wi"
-
-	set cancel_command [list apply {
-		{ top_widget } {
-			global routerDefaultsModel
-			global routerRipEnable routerRipngEnable routerOspfEnable routerOspf6Enable routerBgpEnable routerLdpEnable routerIsisEnable
-
-			set routerDefaultsModel [getActiveOption "routerDefaultsModel"]
-			set routerRipEnable [getActiveOption "routerRipEnable"]
-			set routerRipngEnable [getActiveOption "routerRipngEnable"]
-			set routerOspfEnable [getActiveOption "routerOspfEnable"]
-			set routerOspf6Enable [getActiveOption "routerOspf6Enable"]
-			set routerBgpEnable [getActiveOption "routerBgpEnable"]
-			set routerLdpEnable [getActiveOption "routerLdpEnable"]
-			set routerIsisEnable [getActiveOption "routerIsisEnable"]
-
-			destroy $top_widget
-		}
-	} \
-		$wi
-	]
-	ttk::button $w.buttons.b2 -text "Cancel" -command $cancel_command
+	ttk::button $w.buttons.b2 -text "Cancel" -command "destroy $wi"
 
 	pack $w.model -side top -fill x -pady 5
 	pack $w.model.frr $w.model.quagga $w.model.static \

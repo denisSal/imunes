@@ -24,14 +24,13 @@
 #
 
 global old_conn_name bridgeProtocol brguielements selectedFilterRule \
-	selectedPackgenPacket router_ConfigModel
+	selectedPackgenPacket
 
 set old_conn_name ""
 set bridgeProtocol rstp
 set brguielements {}
 set selectedFilterRule ""
 set selectedPackgenPacket ""
-set router_ConfigModel "frr"
 
 #****f* nodecfgGUI.tcl/nodeConfigGUI
 # NAME
@@ -2244,8 +2243,7 @@ proc configGUI_routingModel { wi node_id } {
 	global guielements
 	lappend guielements configGUI_routingModel
 
-	global ripEnable ripngEnable ospfEnable ospf6Enable bgpEnable ldpEnable isisEnable supp_router_models
-	global router_ConfigModel node_cfg
+	global supp_router_models node_cfg
 
 	ttk::frame $wi.routing -relief groove -borderwidth 2 -padding 2
 	set w $wi.routing
@@ -2255,27 +2253,31 @@ proc configGUI_routingModel { wi node_id } {
 	ttk::label $w.protocols.label -text "Protocols:"
 
 	set protocols {
-		"rip rip ripEnable"
-		"ripng ripng ripngEnable"
-		"ospf ospf ospfEnable"
-		"ospf6 ospfv3 ospf6Enable"
-		"bgp bgp bgpEnable"
-		"ldp ldp ldpEnable"
-		"isis isis isisEnable"
+		"rip rip"
+		"ripng ripng"
+		"ospf ospf"
+		"ospf6 ospfv3"
+		"bgp bgp"
+		"ldp ldp"
+		"isis isis"
 	}
 
 	set protocol_list {}
 	foreach item $protocols {
-		lassign $item protocol protocol_label protocol_variable 
+		lassign $item protocol protocol_label
 		lappend protocol_list $protocol
 		ttk::checkbutton $w.protocols.$protocol \
-			-text $protocol_label \
-			-variable $protocol_variable
+			-text $protocol_label
 	}
 
 	set tmp_command [list apply {
 		{ popup_window protocol_list state } {
+			global node_cfg
+
+			set checkbutton_dict "0 !selected 1 selected"
 			foreach protocol $protocol_list {
+				set value [dict get $checkbutton_dict [_getNodeProtocol $node_cfg $protocol]]
+				$popup_window.protocols.$protocol state $value
 				$popup_window.protocols.$protocol configure -state $state
 			}
 		}
@@ -2287,30 +2289,33 @@ proc configGUI_routingModel { wi node_id } {
 
 	ttk::radiobutton $w.model.frr \
 		-text frr \
-		-variable router_ConfigModel \
 		-value frr \
 		-command [lreplace $tmp_command end end "normal"]
 
 	ttk::radiobutton $w.model.quagga \
 		-text quagga \
-		-variable router_ConfigModel \
 		-value quagga \
 		-command [lreplace $tmp_command end end "normal"]
 
 	ttk::radiobutton $w.model.static \
 		-text static \
-		-variable router_ConfigModel \
 		-value static \
 		-command [lreplace $tmp_command end end "disabled"]
 
-	set router_ConfigModel [_getNodeModel $node_cfg]
-	if { $router_ConfigModel != "static" } {
-		foreach item $protocols {
-			lassign $item protocol protocol_label protocol_variable 
-			set $protocol_variable [_getNodeProtocol $node_cfg $protocol]
-		}
-	} else {
-		foreach protocol $protocol_list {
+	foreach model "frr quagga static" {
+		$w.model.$model state "!selected"
+	}
+
+	set default_model [_getNodeModel $node_cfg]
+	$w.model.$default_model state "selected"
+
+	set checkbutton_dict "0 !selected 1 selected"
+	foreach item $protocols {
+		lassign $item protocol protocol_label
+		set value [dict get $checkbutton_dict [_getNodeProtocol $node_cfg $protocol]]
+		$w.protocols.$protocol state "$value"
+
+		if { $default_model == "static" } {
 			$w.protocols.$protocol configure -state "disabled"
 		}
 	}
@@ -3299,26 +3304,29 @@ proc configGUI_snapshotsApply { wi node_id } {
 #   * node_id -- node id
 #****
 proc configGUI_routingModelApply { wi node_id } {
-	global router_ConfigModel
-	global ripEnable ripngEnable ospfEnable ospf6Enable bgpEnable ldpEnable isisEnable
+	global changed node_cfg
 
-	if { [getNodeType $node_id] != "nat64" && $router_ConfigModel != [getNodeModel $node_id]} {
-		setNodeModel $node_id $router_ConfigModel
-	}
-
-	if { $router_ConfigModel != "static" } {
-		foreach var "rip ripng ospf ospf6 bgp ldp isis" {
-			if { [getNodeProtocol $node_id "$var"] != [set ${var}Enable] } {
-				setNodeProtocol $node_id "$var" [set ${var}Enable]
-			}
-		}
-	} else {
-		foreach var "rip ripng ospf ospf6 bgp ldp isis" {
-			$wi.routing.protocols.$var configure -state disabled
+	set oldmodel [_getNodeModel $node_cfg]
+	foreach newmodel "frr quagga static" {
+		if { "selected" in [$wi.routing.model.$newmodel state] } {
+			break
 		}
 	}
 
-	set changed 1
+	if { [_getNodeType $node_cfg] != "nat64" && $newmodel != $oldmodel } {
+		set node_cfg [_setNodeModel $node_cfg $newmodel]
+		set changed 1
+	}
+
+	foreach protocol "rip ripng ospf ospf6 bgp ldp isis" {
+		set oldvalue [_getNodeProtocol $node_cfg $protocol]
+		set value [expr { "selected" in [$wi.routing.protocols.$protocol state] }]
+
+		if { $oldvalue != $value } {
+			set node_cfg [_setNodeProtocol $node_cfg "$protocol" $value]
+			set changed 1
+		}
+	}
 }
 
 #****f* nodecfgGUI.tcl/configGUI_servicesConfigApply

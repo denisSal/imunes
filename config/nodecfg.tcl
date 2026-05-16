@@ -875,14 +875,21 @@ proc listLANNodes { l2node_id l2peers } {
 proc transformNodes { nodes to_type } {
 	global changed
 
-	set routerDefaultsModel [getActiveOption "routerDefaultsModel"]
-	set ripEnable [getActiveOption "routerRipEnable"]
-	set ripngEnable [getActiveOption "routerRipngEnable"]
-	set ospfEnable [getActiveOption "routerOspfEnable"]
-	set ospf6Enable [getActiveOption "routerOspf6Enable"]
-	set bgpEnable [getActiveOption "routerBgpEnable"]
-	set ldpEnable [getActiveOption "routerLdpEnable"]
-	set isisEnable [getActiveOption "routerIsisEnable"]
+	set default_model [getActiveOption "routerDefaultsModel"]
+	set protocols {
+		"rip	routerRipEnable"
+		"ripng	routerRipngEnable"
+		"ospf	routerOspfEnable"
+		"ospf6	routerOspf6Enable"
+		"bgp	routerBgpEnable"
+		"ldp	routerLdpEnable"
+		"isis	routerIsisEnable"
+	}
+
+	foreach item $protocols {
+		lassign $item protocol var_name
+		set $var_name [getActiveOption $var_name]
+	}
 
 	foreach node_id $nodes {
 		if { [invokeNodeProc $node_id "netlayer"] == "NETWORK" } {
@@ -899,15 +906,10 @@ proc transformNodes { nodes to_type } {
 
 				set changed 1
 			} elseif { $from_type != "router" && $to_type == "router" } {
-				setNodeModel $node_id $routerDefaultsModel
-				if { $routerDefaultsModel != "static" } {
-					setNodeProtocol $node_id "rip" $ripEnable
-					setNodeProtocol $node_id "ripng" $ripngEnable
-					setNodeProtocol $node_id "ospf" $ospfEnable
-					setNodeProtocol $node_id "ospf6" $ospf6Enable
-					setNodeProtocol $node_id "bgp" $bgpEnable
-					setNodeProtocol $node_id "ldp" $ldpEnable
-					setNodeProtocol $node_id "isis" $isisEnable
+				setNodeModel $node_id $default_model
+				foreach item $protocols {
+					lassign $item protocol var_name
+					setNodeProtocol $node_id $protocol [set $var_name]
 				}
 
 				set changed 1
@@ -1150,6 +1152,20 @@ proc updateNode { node_id old_node_cfg new_node_cfg } {
 		switch -exact $key {
 			"name" {
 				setNodeName $node_id $new_value
+			}
+
+			"model" {
+				setNodeModel $node_id $new_value
+			}
+
+			"router_config" {
+				dict for {protocol_key protocol_change} [dictDiff $old_value $new_value] {
+					if { $protocol_change == "copy" } {
+						continue
+					}
+
+					setNodeProtocol $node_id $protocol_key [_cfgGet $new_value $protocol_key]
+				}
 			}
 
 			"custom_image" {

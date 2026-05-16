@@ -452,17 +452,40 @@ proc selectZoomApply { w } {
 #   * wi -- widget
 #****
 proc routerDefaultsApply { wi } {
-	global changed routerDefaultsModel router_ConfigModel
-	global routerRipEnable routerRipngEnable routerOspfEnable routerOspf6Enable routerBgpEnable routerLdpEnable routerIsisEnable
+	global changed
 
-	setGlobalOption "routerDefaultsModel" $routerDefaultsModel
-	setGlobalOption "routerRipEnable" $routerRipEnable
-	setGlobalOption "routerRipngEnable" $routerRipngEnable
-	setGlobalOption "routerOspfEnable" $routerOspfEnable
-	setGlobalOption "routerOspf6Enable" $routerOspf6Enable
-	setGlobalOption "routerBgpEnable" $routerBgpEnable
-	setGlobalOption "routerLdpEnable" $routerLdpEnable
-	setGlobalOption "routerIsisEnable" $routerIsisEnable
+	set router_frame $wi.routerframe
+
+	set oldmodel [getActiveOption "routerDefaultsModel"]
+	foreach newmodel "frr quagga static" {
+		if { "selected" in [$router_frame.model.$newmodel state] } {
+			break
+		}
+	}
+
+	if { $oldmodel != $newmodel } {
+		setGlobalOption "routerDefaultsModel" $newmodel
+	}
+
+	set protocols {
+		"rip	routerRipEnable"
+		"ripng	routerRipngEnable"
+		"ospf	routerOspfEnable"
+		"ospf6	routerOspf6Enable"
+		"bgp	routerBgpEnable"
+		"ldp	routerLdpEnable"
+		"isis	routerIsisEnable"
+	}
+
+	foreach item $protocols {
+		lassign $item protocol var_name
+
+		set oldvalue [getActiveOption $var_name]
+		set newvalue [expr { "selected" in [$router_frame.protocols.$protocol state] }]
+		if { $oldvalue != $newvalue } {
+			setGlobalOption $var_name $newvalue
+		}
+	}
 
 	set selected_node_list [selectedNodes]
 	if { $selected_node_list == {} } {
@@ -473,17 +496,11 @@ proc routerDefaultsApply { wi } {
 
 	foreach node_id $selected_node_list {
 		if { [getNodeType $node_id] == "router" } {
-			setNodeModel $node_id $routerDefaultsModel
+			setNodeModel $node_id [getActiveOption "routerDefaultsModel"]
 
-			set router_ConfigModel $routerDefaultsModel
-			if { $router_ConfigModel != "static" } {
-				setNodeProtocol $node_id "rip" $routerRipEnable
-				setNodeProtocol $node_id "ripng" $routerRipngEnable
-				setNodeProtocol $node_id "ospf" $routerOspfEnable
-				setNodeProtocol $node_id "ospf6" $routerOspf6Enable
-				setNodeProtocol $node_id "bgp" $routerBgpEnable
-				setNodeProtocol $node_id "ldp" $routerLdpEnable
-				setNodeProtocol $node_id "isis" $routerIsisEnable
+			foreach item $protocols {
+				lassign $item protocol var_name
+				setNodeProtocol $node_id $protocol [getActiveOption $var_name]
 			}
 			set changed 1
 		}

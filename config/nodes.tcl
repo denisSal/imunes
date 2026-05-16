@@ -429,7 +429,7 @@ proc getNodeModel { node_id } {
 proc setNodeModel { node_id model } {
 	cfgSet "nodes" $node_id "model" $model
 
-	trigger_nodeFullReconfig $node_id
+	trigger_nodeRecreate $node_id
 }
 
 #****f* nodes.tcl/getNodeSnapshot
@@ -542,7 +542,9 @@ proc setNodeProtocol { node_id protocol state } {
 
 	# TODO: move [startRoutingDaemons] proc from [router.nodeInitConfigure]
 	# and replace this with [trigger_nodeFullReconfig]
-	trigger_nodeRecreate $node_id
+	if { [getNodeModel $node_id] != "static" } {
+		trigger_nodeRecreate $node_id
+	}
 }
 
 #****f* nodes.tcl/getNodeServices
