@@ -57,6 +57,44 @@ namespace eval $MODULE {
 		return "switch"
 	}
 
+	proc getSubnetIfaces { node_id iface_id vlans } {
+		if { [getNodeVlanFiltering $node_id] } {
+			set vlantag ""
+			if { [getIfcVlanType $node_id $iface_id] == "trunk" } {
+				set vlans [lassign $vlans vlantag]
+			} else {
+				set vlantag [getIfcVlanTag $node_id $iface_id]
+			}
+
+			set ifaces {}
+			if { $vlantag == "" } {
+				foreach out_iface_id [ifcList $node_id] {
+					if { [getIfcVlanType $node_id $out_iface_id] == "trunk" } {
+						lappend ifaces "$out_iface_id $vlans"
+					}
+				}
+			} else {
+				foreach out_iface_id [ifcList $node_id] {
+					if { [getIfcVlanType $node_id $out_iface_id] == "trunk" } {
+						lappend ifaces "$out_iface_id $vlantag $vlans"
+					} else {
+						if { [getIfcVlanTag $node_id $out_iface_id] == $vlantag } {
+							lappend ifaces "$out_iface_id $vlans"
+						}
+					}
+				}
+			}
+
+			return $ifaces
+		} else {
+			if { $iface_id ni [allIfcList $node_id] } {
+				return ""
+			}
+
+			return [ifcList $node_id]
+		}
+	}
+
 	proc getHookData { node_id iface_id } {
 		global isOSlinux isOSfreebsd
 
