@@ -2743,5 +2743,5 @@ proc startRoutingDaemons { node_id } {
 	set cmds "$cmds; touch $conf_dir/vtysh.conf"
 	set cmds "$cmds; /usr/lib/frr/frrinit.sh restart"
 
-	pipesExec "docker exec -d [getFromRunning "eid"].$node_id sh -c '$cmds'" "hold"
+	pipesExec "docker exec [getFromRunning "eid"].$node_id sh -c '$cmds'" "hold"
 }
