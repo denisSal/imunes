@@ -2072,6 +2072,8 @@ proc loadKernelModules {} {
 	#catch { rexec kldload ng_iface }
 	#catch { rexec kldload ng_cisco }
 
+	catch { rexec sysctl net.inet.ipf.jail_allowed=1 }
+
 	foreach node_type $all_modules_list {
 		invokeTypeProc $node_type "prepareSystem"
 	}
@@ -2661,6 +2663,10 @@ proc getMtuIfcCmd { iface_name mtu } {
 
 proc getNatIfcCmd { iface_name } {
 	return "sh -c 'echo \"map $iface_name 0/0 -> 0/32\" | ipnat -f -'"
+}
+
+proc getRemoveNatIfcCmd { iface_name } {
+	return "sh -c 'echo \"map $iface_name 0/0 -> 0/32\" | ipnat -f - -pr'"
 }
 
 proc getIPv4IfcCmd { ifc addr primary } {

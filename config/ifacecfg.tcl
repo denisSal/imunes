@@ -490,6 +490,7 @@ proc nodeCfggenIfc { node_id iface_id } {
 	lappend cfg [getMtuIfcCmd $iface_name $mtu]
 
 	if { [getIfcNatState $node_id $iface_id] == "on" } {
+		setToRunning "${node_id}|${iface_id}_old_nat" "on"
 		lappend cfg [getNatIfcCmd $iface_name]
 	}
 
@@ -531,6 +532,11 @@ proc nodeUncfggenIfc { node_id iface_id } {
 	set cfg {}
 
 	set iface_name [getIfcName $node_id $iface_id]
+
+	if { [getFromRunning "${node_id}|${iface_id}_old_nat"] == "on" } {
+		unsetRunning "${node_id}|${iface_id}_old_nat"
+		lappend cfg [getRemoveNatIfcCmd $iface_name]
+	}
 
 	set addrs4 [getFromRunning "${node_id}|${iface_id}_old_ipv4_addrs"]
 	foreach addr $addrs4 {
@@ -575,6 +581,7 @@ proc routerCfggenIfc { node_id iface_id } {
 			lappend cfg [getMtuIfcCmd $iface_name $mtu]
 
 			if { [getIfcNatState $node_id $iface_id] == "on" } {
+				setToRunning "${node_id}|${iface_id}_old_nat" "on"
 				lappend cfg [getNatIfcCmd $iface_name]
 			}
 
@@ -648,6 +655,11 @@ proc routerUncfggenIfc { node_id iface_id } {
 	switch -exact -- $model {
 		"quagga" -
 		"frr" {
+			if { [getFromRunning "${node_id}|${iface_id}_old_nat"] == "on" } {
+				unsetRunning "${node_id}|${iface_id}_old_nat"
+				lappend cfg [getRemoveNatIfcCmd $iface_name]
+			}
+
 			lappend cfg "vtysh << __EOF__"
 			lappend cfg "conf term"
 			lappend cfg "interface $iface_name"

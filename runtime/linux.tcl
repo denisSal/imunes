@@ -2012,6 +2012,10 @@ proc getNatIfcCmd { iface_name } {
 	return "iptables -t nat -A POSTROUTING -o $iface_name -j MASQUERADE"
 }
 
+proc getRemoveNatIfcCmd { iface_name } {
+	return "iptables -t nat -D POSTROUTING -o $iface_name -j MASQUERADE"
+}
+
 proc getIPv4RouteCmd { statrte } {
 	set route [lindex $statrte 0]
 	set addr [lindex $statrte 1]
