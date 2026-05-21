@@ -1449,6 +1449,26 @@ foreach {key tool_group} $key_bindings {
 	bind . $key "cycleToolGroup $tool_group"
 }
 
+bind Menu <F1> {
+    showHelp
+    break
+}
+
+bind all <F1> {
+    showHelp
+    break
+}
+
+bind Menu <F2> {
+	createHelp
+	break
+}
+
+bind all <F2> {
+	createHelp
+	break
+}
+
 wm protocol . WM_DELETE_WINDOW {
 	checkAndPromptSave
 }
