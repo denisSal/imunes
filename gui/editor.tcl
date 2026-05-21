@@ -1594,7 +1594,6 @@ proc editorPreferences_gui {} {
 	ttk::label $info_label \
 		-text "Preview of currently active options combining Custom, Topology and Default options - prioritized in that order" \
 		-foreground "red"
-	getHelpLabel $info_label "Editor Preferences"
 
 	# Buttons
 	set bottom $wi.bottom
