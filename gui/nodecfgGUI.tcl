@@ -2513,9 +2513,9 @@ proc genericOptionsGUI { node_id } {
 		incr index
 	}
 
-	set importedfile_add_btn $imported_dirs.add_button
-	ttk::button $importedfile_add_btn -text "Add" -width 120
-	grid $importedfile_add_btn -row 0 -column 0 -columnspan 6 -in $imported_dirs -sticky "" -pady 4
+	set importeddir_add_btn $imported_dirs.add_button
+	ttk::button $importeddir_add_btn -text "Add" -width 120
+	grid $importeddir_add_btn -row 0 -column 0 -columnspan 6 -in $imported_dirs -sticky "" -pady 4
 
 	set tmp_command [list apply {
 		{ imported_dirs } {
@@ -2527,7 +2527,7 @@ proc genericOptionsGUI { node_id } {
 		""
 	]
 
-	$importedfile_add_btn configure -command [lreplace $tmp_command end end $imported_dirs]
+	$importeddir_add_btn configure -command [lreplace $tmp_command end end $imported_dirs]
 
 	# redraw header and existing elements
 	genericOptionImporteddirsGUI_refresh $imported_dirs
