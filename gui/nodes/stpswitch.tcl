@@ -44,7 +44,7 @@ namespace eval ${MODULE}::gui {
 	namespace export *
 
 	proc toolbarIconDescr {} {
-		return "RSTP switch"
+		return "RSTP Switch"
 	}
 
 	proc _confNewIfc { node_cfg iface_id } {
