@@ -239,11 +239,13 @@ proc configGUI_linkFromTo { wi link_id } {
 
 	lassign [_getLinkPeers $link_cfg] node1 node2
 
-	ttk::frame $wi.name -borderwidth 6
-	ttk::label $wi.name.txt -text "Link from [getNodeName $node1] to [getNodeName $node2]"
+	set link_frame_elem "$wi.link_frame"
 
-	pack $wi.name.txt
-	pack $wi.name -fill both -expand 1
+	ttk::frame $link_frame_elem -borderwidth 6
+	ttk::label $link_frame_elem.txt -text "Link from [getNodeName $node1] to [getNodeName $node2]"
+
+	pack $link_frame_elem.txt
+	pack $link_frame_elem -fill both -expand 1
 }
 
 #****f* linkcfgGUI.tcl/configGUI_linkConfig
