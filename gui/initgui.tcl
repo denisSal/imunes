@@ -210,10 +210,12 @@ menu .menubar.file -tearoff 0
 .menubar.file add command -label New -underline 0 \
 	-accelerator "Ctrl+N" -command { newProject }
 bind . <Control-n> "newProject"
+attachHelp ".#menubar.#menubar#file,New" "New topology"
 
 .menubar.file add command -label Open -underline 0 \
 	-accelerator "Ctrl+O" -command { fileOpenDialogBox }
 bind . <Control-o> "fileOpenDialogBox"
+attachHelp ".#menubar.#menubar#file,Open" "Open topology"
 
 set m .menubar.file.recent_files
 menu .menubar.file.recent_files \
@@ -222,19 +224,23 @@ menu .menubar.file.recent_files \
 	-label "Recent files" \
 	-menu .menubar.file.recent_files \
 	-underline 0
+attachHelp ".#menubar.#menubar#file,Recent files" "Recent files"
 updateRecentsMenu
 
 .menubar.file add command -label Save -underline 0 \
 	-accelerator "Ctrl+S" -command { fileSaveDialogBox }
 bind . <Control-s> "fileSaveDialogBox"
+attachHelp ".#menubar.#menubar#file,Save" "Save topology"
 
 .menubar.file add command -label "Save As" -underline 5 \
 	-accelerator "Ctrl+Shift+S" -command { fileSaveAsDialogBox }
 bind . <Control-Shift-S> "fileSaveAsDialogBox"
+attachHelp ".#menubar.#menubar#file,Save As" "Save topology as"
 
 .menubar.file add command -label "Close" -underline 0 \
 	-accelerator "Ctrl+Q" -command { closeFile }
 bind . <Control-q> "closeFile"
+attachHelp ".#menubar.#menubar#file,Close" "Close topology"
 
 .menubar.file add separator
 
@@ -266,6 +272,7 @@ set tmp_command {
 }
 .menubar.file add command -label "Print" -underline 0 \
 	-command $tmp_command
+attachHelp ".#menubar.#menubar#file,Print" "Print topology"
 
 global printFileType
 set printFileType ps
@@ -330,9 +337,11 @@ set tmp_command {
 }
 .menubar.file add command -label "Print To File" -underline 9 \
 	-command $tmp_command
+attachHelp ".#menubar.#menubar#file,Print To File" "Print topology to file"
 
 .menubar.file add separator
 .menubar.file add command -label Quit -underline 0 -command { checkAndPromptSave }
+attachHelp ".#menubar.#menubar#file,Quit" "Quit IMUNES"
 .menubar.file add separator
 
 #
@@ -341,29 +350,37 @@ set tmp_command {
 menu .menubar.edit -tearoff 0
 .menubar.edit add command -label "Undo" -underline 0 \
 	-accelerator "Ctrl+Z" -command undo -state disabled
+attachHelp ".#menubar.#menubar#edit,Undo" "Undo last change"
 bind . <Control-z> undo
 .menubar.edit add command -label "Redo" -underline 0 \
 	-accelerator "Ctrl+Y" -command redo -state disabled
+attachHelp ".#menubar.#menubar#edit,Redo" "Redo last change"
 bind . <Control-y> redo
 .menubar.edit add separator
 .menubar.edit add command -label "Cut" -underline 0 \
 	-accelerator "Ctrl+X" -command cutSelection -state normal
+attachHelp ".#menubar.#menubar#edit,Cut" "Cut nodes + links"
 bind . <Control-x> cutSelection
 .menubar.edit add command -label "Copy" -underline 1 \
 	-accelerator "Ctrl+C" -command copySelection -state normal
+attachHelp ".#menubar.#menubar#edit,Copy" "Copy nodes + links"
 bind . <Control-c> copySelection
 .menubar.edit add command -label "Paste" -underline 0 \
 	-accelerator "Ctrl+V" -command paste -state normal
+attachHelp ".#menubar.#menubar#edit,Paste" "Paste nodes + links"
 bind . <Control-v> paste
 .menubar.edit add separator
 .menubar.edit add command -label "Select all" \
 	-accelerator "Ctrl+A" -underline 0 -command "selectAllObjects"
+attachHelp ".#menubar.#menubar#edit,Select all" "Select all objects"
 bind . <Control-a> selectAllObjects
 .menubar.edit add command -label "Select adjacent" \
 	-accelerator "Ctrl+D" -underline 7 -command selectAdjacent
+attachHelp ".#menubar.#menubar#edit,Select adjacent" "Select adjacent nodes"
 bind . <Control-d> selectAdjacent
 .menubar.edit add command -label "Editor preferences" \
 	-accelerator "Ctrl+P" -underline 0 -command editorPreferences_gui
+attachHelp ".#menubar.#menubar#edit,Editor preferences" "Editor preferences"
 bind . <Control-p> editorPreferences_gui
 
 #
@@ -380,8 +397,10 @@ set tmp_command {
 .menubar.canvas add command -label "New" -underline 0 \
 	-accelerator "Ctrl+T" -command $tmp_command
 bind . <Control-t> $tmp_command
+attachHelp ".#menubar.#menubar#canvas,New" "New canvas"
 .menubar.canvas add command -label "Rename" -underline 0 \
 	-command { renameCanvasPopup }
+attachHelp ".#menubar.#menubar#canvas,Rename" "Rename canvas"
 
 set tmp_command {
 	set canvas_list [getFromRunning_gui "canvas_list"]
@@ -417,25 +436,33 @@ set tmp_command {
 .menubar.canvas add command -label "Delete" -underline 0 \
 	-accelerator "Ctrl+W" -command $tmp_command
 bind . <Control-w> $tmp_command
+attachHelp ".#menubar.#menubar#canvas,Delete" "Delete canvas"
+
 .menubar.canvas add separator
 .menubar.canvas add command -label "Resize" -underline 2 -command resizeCanvasPopup
+attachHelp ".#menubar.#menubar#canvas,Resize" "Resize canvas"
 .menubar.canvas add command -label "Background image" -underline 0 \
 	-command changeBkgPopup
+attachHelp ".#menubar.#menubar#canvas,Background image" "Canvas background image"
 
 .menubar.canvas add separator
 .menubar.canvas add command -label "Previous" -accelerator "PgUp" \
 	-command { switchCanvas prev }
+attachHelp ".#menubar.#menubar#canvas,Previous" "Previous canvas"
 bind . <Prior> { switchCanvas prev }
 bind . <Control-ISO_Left_Tab> { switchCanvas prev ; break }
 .menubar.canvas add command -label "Next" -accelerator "PgDown" \
 	-command { switchCanvas next }
+attachHelp ".#menubar.#menubar#canvas,Next" "Next canvas"
 bind . <Next> { switchCanvas next }
 bind . <Control-Tab> { switchCanvas next ; break}
 .menubar.canvas add command -label "First" -accelerator "Home" \
 	-command { switchCanvas first }
+attachHelp ".#menubar.#menubar#canvas,First" "First canvas"
 bind . <Home> { switchCanvas first }
 .menubar.canvas add command -label "Last" -accelerator "End" \
 	-command { switchCanvas last }
+attachHelp ".#menubar.#menubar#canvas,Last" "Last canvas"
 bind . <End> { switchCanvas last }
 
 #
@@ -446,6 +473,7 @@ menu .menubar.view -tearoff 0
 set m .menubar.view.iconsize
 menu $m -tearoff 0
 .menubar.view add cascade -label "Icon size" -menu $m -underline 5
+attachHelp ".#menubar.#menubar#view,Icon size" "Node icon size"
 $m add radiobutton -label "Small" -variable icon_size \
 	-value small -command { updateIconSize "small"; redrawAll }
 $m add radiobutton -label "Normal" -variable icon_size \
@@ -456,15 +484,19 @@ $m add radiobutton -label "Normal" -variable icon_size \
 .menubar.view add checkbutton -label "Show Interface Names" \
 	-underline 5 -variable show_interface_names \
 	-command { setGlobalOption "show_interface_names" - "toggle" ; redrawAll }
+attachHelp ".#menubar.#menubar#view,Show Interface Names" "Show Interface Names"
 .menubar.view add checkbutton -label "Show IPv4 Addresses" \
 	-underline 8 -variable show_interface_ipv4 \
 	-command { setGlobalOption "show_interface_ipv4" - "toggle" ; redrawAll }
+attachHelp ".#menubar.#menubar#view,Show IPv4 Addresses" "Show IPv4 Addresses"
 .menubar.view add checkbutton -label "Show IPv6 Addresses" \
 	-underline 8 -variable show_interface_ipv6 \
 	-command { setGlobalOption "show_interface_ipv6" - "toggle" ; redrawAll }
+attachHelp ".#menubar.#menubar#view,Show IPv6 Addresses" "Show IPv6 Addresses"
 .menubar.view add checkbutton -label "Show VLAN Interfaces" \
 	-underline 5 -variable show_vlan_interfaces \
 	-command { setGlobalOption "show_vlan_interfaces" - "toggle" ; redrawAll }
+attachHelp ".#menubar.#menubar#view,Show VLAN Interfaces" "Show VLAN Interfaces"
 
 set tmp_command {
 	global main_canvas_elem
@@ -480,6 +512,7 @@ set tmp_command {
 }
 .menubar.view add checkbutton -label "Show Node Labels" \
 	-underline 5 -variable show_node_labels -command $tmp_command
+attachHelp ".#menubar.#menubar#view,Show Node Labels" "Show Node Labels"
 
 set tmp_command {
 	global main_canvas_elem
@@ -495,6 +528,7 @@ set tmp_command {
 }
 .menubar.view add checkbutton -label "Show Link Labels" \
 	-underline 5 -variable show_link_labels -command $tmp_command
+attachHelp ".#menubar.#menubar#view,Show Link Labels" "Show Link Labels"
 
 set tmp_command {
 	global main_canvas_elem
@@ -515,6 +549,7 @@ set tmp_command {
 }
 .menubar.view add command -label "Show All" \
 	-underline 5 -command $tmp_command
+attachHelp ".#menubar.#menubar#view,Show All" "Show All"
 
 set tmp_command {
 	global main_canvas_elem
@@ -535,6 +570,7 @@ set tmp_command {
 }
 .menubar.view add command -label "Show None" \
 	-underline 6 -command $tmp_command
+attachHelp ".#menubar.#menubar#view,Show None" "Show None"
 
 .menubar.view add separator
 
@@ -545,6 +581,7 @@ set tmp_command {
 .menubar.view add checkbutton -label "Show Topology Tree" \
 	-variable showTree -underline 5 \
 	-command { topologyElementsTree }
+attachHelp ".#menubar.#menubar#view,Show Topology Tree" "Show Topology Tree"
 
 .menubar.view add separator
 
@@ -633,34 +670,41 @@ set tmp_command {
 	pack $buttons_frame.apply -side left -expand 1 -anchor e -padx 2
 	pack $buttons_frame.cancel -side right -expand 1 -anchor w -padx 2
 }
+attachHelp ".#menubar.#menubar#view,Customize Node Types" "Customize Node Types"
 
 .menubar.view add checkbutton -label "Show Unsupported Nodes" \
 	-variable show_unsupported_nodes -underline 5 \
 	-command { setGlobalOption "show_unsupported_nodes" - "toggle" ; refreshToolBarNodes }
+attachHelp ".#menubar.#menubar#view,Show Unsupported Nodes" "Show Unsupported Nodes"
 
 .menubar.view add checkbutton -label "Show Custom Nodes" \
 	-variable show_custom_nodes -underline 10 \
 	-command { setGlobalOption "show_custom_nodes" - "toggle" ; refreshToolBarNodes }
+attachHelp ".#menubar.#menubar#view,Show Custom Nodes" "Show Custom Nodes"
 
 .menubar.view add separator
 
 .menubar.view add checkbutton -label "Show Background Image" \
 	-underline 5 -variable show_background_image \
 	-command { setGlobalOption "show_background_image" - "toggle" ; redrawAll }
+attachHelp ".#menubar.#menubar#view,Show Background Image" "Show Background Image"
 .menubar.view add checkbutton -label "Show Annotations" \
 	-underline 8 -variable show_annotations \
 	-command { setGlobalOption "show_annotations" - "toggle" ; redrawAll }
+attachHelp ".#menubar.#menubar#view,Show Annotations" "Show Annotations"
 .menubar.view add checkbutton -label "Show Grid" \
 	-underline 5 -variable show_grid \
 	-command { setGlobalOption "show_grid" - "toggle" ; redrawAll }
-
+attachHelp ".#menubar.#menubar#view,Show Grid" "Show Grid"
 
 .menubar.view add separator
 .menubar.view add command -label "Zoom In" -accelerator "+" \
 	-command "zoom up"
+attachHelp ".#menubar.#menubar#view,Zoom In" "Zoom In"
 bind . "+" "zoom up"
 .menubar.view add command -label "Zoom Out" -accelerator "-" \
 	-command "zoom down"
+attachHelp ".#menubar.#menubar#view,Zoom Out" "Zoom Out"
 bind . "-" "zoom down"
 
 #dodan element "Themes"
@@ -671,6 +715,7 @@ menu $m -tearoff 0
 global currentTheme
 set currentTheme imunes
 .menubar.view add cascade -label "Themes" -menu $m
+attachHelp ".#menubar.#menubar#view,Themes" "Themes"
 $m add radiobutton -label "alt" -variable currentTheme \
 	-value alt -command "ttk::style theme use alt"
 $m add radiobutton -label "classic" -variable currentTheme\
@@ -688,21 +733,28 @@ $m add radiobutton -label "imunes" -variable currentTheme\
 menu .menubar.tools -tearoff 0
 .menubar.tools add command -label "Auto rearrange all" -underline 0 \
 	-command { rearrange all }
+attachHelp ".#menubar.#menubar#tools,Auto rearrange all" "Auto rearrange all"
 .menubar.tools add command -label "Auto rearrange selected" -underline 15 \
 	-command { rearrange selected }
+attachHelp ".#menubar.#menubar#tools,Auto rearrange selected" "Auto rearrange selected"
 .menubar.tools add separator
 .menubar.tools add command -label "Align to grid" -underline 9 \
 	-command { align2grid }
+attachHelp ".#menubar.#menubar#tools,Align to grid" "Align to grid"
 .menubar.tools add separator
 .menubar.tools add checkbutton -label "IPv4 auto-assign addresses/routes" \
 	-variable IPv4autoAssign -command { setGlobalOption "IPv4autoAssign" - "toggle" }
+attachHelp ".#menubar.#menubar#tools,IPv4 auto-assign addresses/routes" "IPv4 auto-assign"
 .menubar.tools add checkbutton -label "IPv6 auto-assign addresses/routes" \
 	-variable IPv6autoAssign -command { setGlobalOption "IPv6autoAssign" - "toggle" }
+attachHelp ".#menubar.#menubar#tools,IPv6 auto-assign addresses/routes" "IPv6 auto-assign"
 .menubar.tools add checkbutton -label "Auto-generate /etc/hosts file" \
 	-variable auto_etc_hosts -command { setGlobalOption "auto_etc_hosts" - "toggle" }
+attachHelp ".#menubar.#menubar#tools,Auto-generate /etc/hosts file" "Auto-generate /etc/hosts"
 .menubar.tools add separator
 .menubar.tools add command -label "Randomize MAC bytes" -underline 10 \
 	-command randomizeMACbytes
+attachHelp ".#menubar.#menubar#tools,Randomize MAC bytes" "Randomize MAC bytes"
 
 set tmp_command {
 	set w .entry1
@@ -740,6 +792,7 @@ set tmp_command {
 }
 .menubar.tools add command -label "IPv4 address pool" -underline 3 \
 	-command $tmp_command
+attachHelp ".#menubar.#menubar#tools,IPv4 address pool" "IPv4 address pool"
 set tmp_command {
 	global numbits6
 
@@ -790,6 +843,7 @@ set tmp_command {
 }
 .menubar.tools add command -label "IPv6 address pool" -underline 3 \
 	-command $tmp_command
+attachHelp ".#menubar.#menubar#tools,IPv6 address pool" "IPv6 address pool"
 set routing_defaults_command {
 	global supp_router_models router_protocols
 
@@ -885,16 +939,20 @@ set routing_defaults_command {
 }
 .menubar.tools add command -label "Routing protocol defaults" -underline 0 \
 	-command $routing_defaults_command
+attachHelp ".#menubar.#menubar#tools,Routing protocol defaults" "Routing protocol defaults"
 
 #
 # Widgets
 #
 menu .menubar.widgets
+attachHelp ".#menubar,Widgets" "IMUNES Widgets"
+
 global showConfig lastObservedNode
 set showConfig "None"
 set lastObservedNode ""
 .menubar.widgets add radiobutton -label "None" \
 	-variable showConfig -underline 0 -value "None"
+attachHelp ".#menubar.#menubar#widgets,None" "IMUNES Widgets"
 .menubar.widgets add separator
 
 set widgetlist { \
@@ -916,6 +974,7 @@ set widgetlist { \
 foreach widget $widgetlist {
 	.menubar.widgets add radiobutton -label [lindex $widget 0] \
 		-variable showConfig -underline 0 -value [lindex $widget 1]
+	attachHelp ".#menubar.#menubar#widgets,[lindex $widget 0]" "IMUNES Widgets"
 }
 
 set tmp_command {
@@ -980,33 +1039,45 @@ set tmp_command {
 # Events
 #
 menu .menubar.events -tearoff 0
+attachHelp ".#menubar,Events" "IMUNES Events"
 .menubar.events add command -label "Start scheduling" -underline 0 \
 	-state normal -command "startEventScheduling ; .menubar.experiment entryconfigure \"Pause execution\" -state disabled"
+attachHelp ".#menubar.#menubar#events,Start scheduling" "Events - start scheduling"
 .menubar.events add command -label "Stop scheduling" -underline 1 \
 	-state disabled -command "stopEventScheduling ; .menubar.experiment entryconfigure \"Pause execution\" -state normal"
+attachHelp ".#menubar.#menubar#events,Stop scheduling" "Events - stop scheduling"
 .menubar.events add separator
 .menubar.events add command -label "Event editor" -underline 0 \
 	-command "elementsEventsEditor"
+attachHelp ".#menubar.#menubar#events,Event editor" "Event editor"
 
 #
 # Experiment
 #
 menu .menubar.experiment -tearoff 0
+attachHelp ".#menubar,Experiment" "IMUNES experiment modes"
 .menubar.experiment add command -label "Execute" -underline 0 \
 	-command "setOperMode exec"
+attachHelp ".#menubar.#menubar#experiment,Execute" "Execute experiment"
 .menubar.experiment add command -label "Terminate" -underline 0 \
 	-command "setOperMode edit" -state disabled
+attachHelp ".#menubar.#menubar#experiment,Terminate" "Terminate experiment"
 .menubar.experiment add command -label "Restart" -underline 0 \
 	-command "setOperMode edit; setOperMode exec" -state disabled
+attachHelp ".#menubar.#menubar#experiment,Restart" "Restart experiment"
 .menubar.experiment add separator
 
 .menubar.experiment add command -label "Pause execution" -underline 2 \
 	-command "toggleAutoExecutionGUI"
+attachHelp ".#menubar.#menubar#experiment,Pause execution" "Pausing/Resuming experiment"
+attachHelp ".#menubar.#menubar#experiment,Resume execution" "Pausing/Resuming experiment"
 .menubar.experiment add separator
 .menubar.experiment add command -label "Attach to experiment" -underline 0 \
 	-command "attachToExperimentPopup"
+attachHelp ".#menubar.#menubar#experiment,Attach to experiment" "Attaching to experiment"
 .menubar.experiment add command -label "Refresh running experiment" -underline 17 \
 	-command "refreshRunningExperimentGUI"
+attachHelp ".#menubar.#menubar#experiment,Refresh running experiment" "Refreshing experiment"
 
 #
 # Help
@@ -1070,6 +1141,7 @@ set tmp_command {
 		$mainFrame config -cursor arrow"
 }
 .menubar.help add command -label "About" -command $tmp_command -underline 0
+attachHelp ".#menubar.#menubar#help,About" "About IMUNES"
 
 #
 # Left-side toolbar
@@ -1086,6 +1158,8 @@ foreach b "select link" {
 		-image $image \
 		-style Toolbutton \
 		-command "setActiveToolGroup $b"
+	attachHelp "$mf.left.$b" "[string totitle $b] tool"
+
 	pack $mf.left.$b -side top
 
 	# hover status line
@@ -1128,6 +1202,8 @@ foreach {icon button_elem menu_elem msg side} $toolbar_elems {
 	bind $mf.left.$button_elem <Any-Leave> ".bottom.textbox config -text {}"
 	pack $mf.left.$button_elem {*}$side
 }
+attachHelp "$mf.left.link_layer" "Link layer node tool"
+attachHelp "$mf.left.net_layer" "Network layer node tool"
 
 menu $mf.left.annotations -title "Anntotation tools"
 foreach b $all_annotation_types {
@@ -1138,7 +1214,10 @@ foreach b $all_annotation_types {
 	$mf.left.annotations add command -image $image -hidemargin 1 \
 		-compound left -label [string totitle $b] \
 		-command "setActiveTool annotation_layer $b"
+	attachHelp "$mf.left.annotations,[string totitle $b]" "[string totitle $b] annotation tool"
 }
+
+attachHelp "$mf.left.annotation_layer" "Annotation tool"
 
 set mask_width 8
 set mask_height 8
@@ -1187,6 +1266,18 @@ set main_canvas_elem [canvas $mf.canvas_elem \
 	-background gray \
 	-xscrollcommand "$mf.hframe.scroll set" \
 	-yscrollcommand "$mf.vframe.scroll set"]
+attachHelp "$main_canvas_elem" "IMUNES canvas"
+attachHelp "$main_canvas_elem,background" "IMUNES canvas"
+attachHelp "$main_canvas_elem,selectmark" "IMUNES canvas"
+attachHelp "$main_canvas_elem,grid" "Canvas grid"
+attachHelp "$main_canvas_elem,node" "IMUNES nodes"
+attachHelp "$main_canvas_elem,link" "IMUNES links"
+attachHelp "$main_canvas_elem,point" "Segment links"
+attachHelp "$main_canvas_elem,interface" "IMUNES interfaces"
+attachHelp "$main_canvas_elem,text" "IMUNES text annotations"
+attachHelp "$main_canvas_elem,oval" "IMUNES oval annotations"
+attachHelp "$main_canvas_elem,rectangle" "IMUNES rectangle annotations"
+attachHelp "$main_canvas_elem,freeform" "IMUNES freeform annotations"
 
 canvas $mf.hframe.t \
 	-width 160 \
@@ -1195,6 +1286,8 @@ canvas $mf.hframe.t \
 	-highlightthickness 0 \
 	-background #d9d9d9 \
 	-xscrollcommand "$mf.hframe.ts set"
+attachHelp "$mf.hframe.t" "Canvas list"
+attachHelp "$mf.hframe.t,text" "Canvas list"
 
 bind $mf.hframe.t <1> {
 	global mf
@@ -1241,8 +1334,11 @@ bind $mf.hframe.t <5> {
 #	-bd 1 -width 14
 
 ttk::scrollbar $mf.hframe.scroll -orient horiz -command "$main_canvas_elem xview"
+attachHelp "$mf.hframe.scroll" "Canvas scrollbar"
 ttk::scrollbar $mf.vframe.scroll -command "$main_canvas_elem yview"
+attachHelp "$mf.vframe.scroll" "Canvas scrollbar"
 ttk::scrollbar $mf.hframe.ts -orient horiz -command ".panwin.f1.hframe.t xview"
+attachHelp "$mf.hframe.ts" "Canvas list scrollbar"
 pack $mf.hframe.ts -side left -padx 0 -pady 0
 pack $mf.hframe.t -side left -padx 0 -pady 0 -fill both -expand true
 pack $mf.hframe.scroll -side left -padx 0 -pady 0 -fill both -expand true
@@ -1261,13 +1357,19 @@ ttk::frame .bottom
 pack .bottom -side bottom -fill x
 pack propagate $mf 0
 ttk::label .bottom.textbox -relief sunken -anchor w -width 998
+attachHelp ".bottom.textbox" "Status line"
 ttk::label .bottom.zoom -relief sunken -anchor w -width 10
+attachHelp ".bottom.zoom" "Zoom level"
 bind .bottom.zoom <Double-1> "selectZoom %X %Y"
 bind .bottom.zoom $rightClick "selectZoomPopupMenu %X %Y"
 ttk::label .bottom.cpu_load -relief sunken -anchor e -width 9
+attachHelp ".bottom.cpu_load" "Scheduler time"
 ttk::label .bottom.mbuf -relief sunken -anchor w -width 15
+attachHelp ".bottom.mbuf" "Auto-rearrange status"
 ttk::label .bottom.oper_mode -relief sunken -anchor w -width 10
+attachHelp ".bottom.oper_mode" "Operational mode"
 ttk::label .bottom.experiment_id -relief sunken -anchor w -width 21
+attachHelp ".bottom.experiment_id" "Experiment ID"
 pack .bottom.experiment_id .bottom.oper_mode .bottom.mbuf .bottom.cpu_load \
 	.bottom.zoom .bottom.textbox -side right -padx 0 -fill both
 

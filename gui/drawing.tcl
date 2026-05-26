@@ -51,6 +51,8 @@ proc refreshToolBarNodes {} {
 		$mf.left.${tool}_nodes add command -image $image -hidemargin 1 \
 			-compound left -label $type_label \
 			-command "setActiveTool ${tool}_layer $node_type" {*}$background_color
+
+		attachHelp "$mf.left.${tool}_nodes,$type_label" "$type_label node"
 	}
 }
 
