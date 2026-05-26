@@ -27,10 +27,12 @@
 
 
 menu .menubar.t_g -tearoff 0
+attachHelp ".#menubar,TopoGen" "Topology generator"
 
 set m .menubar.t_g.chain
 menu $m -tearoff 0
 .menubar.t_g add cascade -label "Chain" -menu $m -underline 0 -state disabled
+attachHelp ".#menubar.#menubar#t_g,Chain" "Topology generator"
 for { set i 2 } { $i <= 24 } { incr i } {
 	$m add command -label "P($i)" -command "P \[newNodes $i\]"
 }
@@ -38,6 +40,7 @@ for { set i 2 } { $i <= 24 } { incr i } {
 set m .menubar.t_g.star
 menu $m -tearoff 0
 .menubar.t_g add cascade -label "Star" -menu $m -underline 0 -state disabled
+attachHelp ".#menubar.#menubar#t_g,Star" "Topology generator"
 for { set i 3 } { $i <= 25 } { incr i } {
 	$m add command -label "S($i)" \
 		-command "Kb \[newNodes 1\] \[newNodes [expr {$i - 1}]\]"
@@ -46,6 +49,7 @@ for { set i 3 } { $i <= 25 } { incr i } {
 set m .menubar.t_g.cycle
 menu $m -tearoff 0
 .menubar.t_g add cascade -label "Cycle" -menu $m -underline 1 -state disabled
+attachHelp ".#menubar.#menubar#t_g,Cycle" "Topology generator"
 for { set i 3 } { $i <= 24 } { incr i } {
 	$m add command -label "C($i)" -command "C \[newNodes $i\]"
 }
@@ -53,6 +57,7 @@ for { set i 3 } { $i <= 24 } { incr i } {
 set m .menubar.t_g.wheel
 menu $m -tearoff 0
 .menubar.t_g add cascade -label "Wheel" -menu $m -underline 0 -state disabled
+attachHelp ".#menubar.#menubar#t_g,Wheel" "Topology generator"
 for { set i 4 } { $i <= 25 } { incr i } {
 	$m add command -label "W($i)" \
 		-command "W \"\[newNodes 1\] \[newNodes [expr {$i - 1}]\]\""
@@ -61,6 +66,7 @@ for { set i 4 } { $i <= 25 } { incr i } {
 set m .menubar.t_g.cube
 menu $m -tearoff 0
 .menubar.t_g add cascade -label "Cube" -menu $m -underline 1 -state disabled
+attachHelp ".#menubar.#menubar#t_g,Cube" "Topology generator"
 for { set i 2 } { $i <= 6 } { incr i } {
 	$m add command -label "Q($i)" \
 		-command "Q \[newNodes [expr {int(pow(2,$i))}]\]"
@@ -69,6 +75,7 @@ for { set i 2 } { $i <= 6 } { incr i } {
 set m .menubar.t_g.clique
 menu $m -tearoff 0
 .menubar.t_g add cascade -label "Clique" -menu $m -underline 3 -state disabled
+attachHelp ".#menubar.#menubar#t_g,Clique" "Topology generator"
 for { set i 3 } { $i <= 24 } { incr i } {
 	$m add command -label "K($i)" -command "K \[newNodes $i\]"
 }
@@ -77,6 +84,7 @@ set m .menubar.t_g.bipartite
 menu $m -tearoff 0
 .menubar.t_g add cascade -label "Bipartite" -menu $m -underline 0 \
 	-state disabled
+attachHelp ".#menubar.#menubar#t_g,Bipartite" "Topology generator"
 for { set i 1 } { $i <= 12 } { incr i } {
 	set n $m.$i
 	menu $n -tearoff 0
@@ -89,6 +97,7 @@ for { set i 1 } { $i <= 12 } { incr i } {
 set m .menubar.t_g.random
 menu $m -tearoff 0
 .menubar.t_g add cascade -label "Random" -menu $m -underline 0 -state disabled
+attachHelp ".#menubar.#menubar#t_g,Random" "Topology generator"
 for { set i 3 } { $i <= 24 } { incr i } {
 	set n $m.$i
 	menu $n -tearoff 0
