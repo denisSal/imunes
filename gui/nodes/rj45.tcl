@@ -57,7 +57,7 @@ namespace eval ${MODULE}::gui {
 	#   * descr -- string describing the toolbar icon
 	#****
 	proc toolbarIconDescr {} {
-		return "External interface"
+		return "External Interface"
 	}
 
 	proc _confNewIfc { node_id ifc } {
