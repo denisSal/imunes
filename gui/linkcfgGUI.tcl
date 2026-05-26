@@ -243,6 +243,8 @@ proc configGUI_linkFromTo { wi link_id } {
 
 	ttk::frame $link_frame_elem -borderwidth 6
 	ttk::label $link_frame_elem.txt -text "Link from [getNodeName $node1] to [getNodeName $node2]"
+	attachHelp $link_frame_elem "Link from"
+	attachHelp "$link_frame_elem.txt" "Link from"
 
 	pack $link_frame_elem.txt
 	pack $link_frame_elem -fill both -expand 1
@@ -269,19 +271,26 @@ proc configGUI_linkConfig { wi link_id param label } {
 	lappend configelements $param
 	if { $param == "Bandwidth" } {
 		set from 0; set to 1000000000000; set inc 1000
+		set help_title "Link bandwidth"
 	} elseif { $param == "Delay" } {
 		set from 0; set to 10000000; set inc 1000
+		set help_title "Link delay"
 	} elseif { $param == "BER" } {
 		set from 0; set to 10000000000000; set inc 1000
+		set help_title "Link BER"
 	} elseif { $param == "Loss" } {
 		set from 0; set to 100; set inc 1
+		set help_title "Link packet loss"
 	} elseif { $param == "Dup" } {
 		set from 0; set to 50; set inc 1
+		set help_title "Link packet duplication"
 	} elseif { $param == "Width" } {
 		set from 1; set to 8; set inc 1
 		set gui "_gui"
+		set help_title "Link width"
 	} elseif { $param == "Color" } {
 		set gui "_gui"
+		set help_title "Link color"
 	} else {
 		return
 	}
@@ -289,6 +298,7 @@ proc configGUI_linkConfig { wi link_id param label } {
 	set fr [string tolower $param ]
 	ttk::frame $wi.$fr -borderwidth 4
 	ttk::label $wi.$fr.txt -text $label
+	attachHelp "$wi.$fr.txt" $help_title
 	set value [_getLink$param [set link_cfg${gui}]]
 
 	if { $param == "Color" } {
@@ -354,24 +364,34 @@ proc linkJitterConfigGUI { link_id } {
 	ttk::label $wi.down.label -text "Downstream ($node1_name->$node2_name):"
 
 	ttk::label $wi.up.modelab -text "Jitter mode:"
+	#attachHelp "$wi.up.modelab" "Jitter mode"
 	ttk::label $wi.down.modelab -text "Jitter mode:"
+	#attachHelp "$wi.down.modelab" "Jitter mode"
+
 	ttk::combobox $wi.up.jitmode -justify right -width 10 \
 		-textvariable up_jitmode -state readonly
+	#attachHelp "$wi.up.jitmode" "Jitter mode"
 	$wi.up.jitmode configure -values "sequential random"
 	ttk::combobox $wi.down.jitmode -justify right -width 10 \
 		-textvariable down_jitmode -state readonly
 	$wi.down.jitmode configure -values "sequential random"
 
 	ttk::label $wi.up.holdlab -text "Jitter hold (ms):"
+	#attachHelp "$wi.up.holdlab" "Jitter hold"
 	ttk::label $wi.down.holdlab -text "Jitter hold (ms):"
+	#attachHelp "$wi.down.holdlab" "Jitter hold"
 
 	ttk::spinbox $wi.up.holdval -width 9 -increment 10 -from 0 -to 10000000 \
 		-justify right
+	#attachHelp "$wi.up.holdval" "Jitter hold"
 	ttk::spinbox $wi.down.holdval -width 9 -increment 10 -from 0 -to 10000000 \
 		-justify right
+	#attachHelp "$wi.down.holdval" "Jitter hold"
 
 	ttk::label $wi.up.elab -text "Jitter values (ms):"
+	#attachHelp "$wi.up.elab" "Jitter values"
 	ttk::label $wi.down.elab -text "Jitter values (ms):"
+	#attachHelp "$wi.down.elab" "Jitter values"
 
 	ttk::scrollbar $wi.up.vsb -orient vertical \
 		-command [list $wi.up.editor yview]
@@ -380,8 +400,10 @@ proc linkJitterConfigGUI { link_id } {
 
 	text $wi.up.editor -width 30 -height 20 -bg white -wrap none \
 		-yscrollcommand [list $wi.up.vsb set]
+	#attachHelp "$wi.up.editor" "Jitter values"
 	text $wi.down.editor -width 30 -height 20 -bg white -wrap none \
 		-yscrollcommand [list $wi.down.vsb set]
+	#attachHelp "$wi.down.editor" "Jitter values"
 
 	ttk::frame $wi.buttons -borderwidth 3
 	ttk::button $wi.buttons.apply -text "Apply" -command \
