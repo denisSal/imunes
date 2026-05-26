@@ -243,6 +243,8 @@ proc configGUI_linkFromTo { wi link_id } {
 
 	ttk::frame $link_frame_elem -borderwidth 6
 	ttk::label $link_frame_elem.txt -text "Link from [getNodeName $node1] to [getNodeName $node2]"
+	attachHelp $link_frame_elem "Link from"
+	attachHelp "$link_frame_elem.txt" "Link from"
 
 	pack $link_frame_elem.txt
 	pack $link_frame_elem -fill both -expand 1

@@ -66,28 +66,249 @@ IMUNES manual (pdf and html):
   https://imunes.net/dl/guide/
 }
 
-global help_strings
-array set help_strings {
-    "Custom image" "If enabled, IMUNES will use the given Docker image (virtual root - vroot) instead of the default one when running the node.\n\nThe default vroot is imunes/template Docker image."
-    "Custom vroot" "If enabled, IMUNES will use the given jail path (virtual root - vroot) instead of the default one when running the node.\n\nThe default vroot is /var/imunes/vroot directory."
-    "External Docker interface" "(Linux only)\n\nIf enabled, IMUNES will create a Docker interface inside a node (dext0) connected to the imunes-bridge Docker network.\n\nThis interface is primarily used to enable internet connection on a node in a quick and easy way - the default route is automatically added on its creation. Users should configure /etc/resolv.conf by themselves as DNS resolver is not set automatically."
-    "Services" "For each enabled service, the node will start its daemon on node startup."
-    "Routes" "Custom static routes - add defined routes on node startup. Set one route per line in the format\na.b.c.d/prefix x.y.z.w\n-> for example: 0.0.0.0/0 10.0.0.1\n\nAutomatic default routes - if enabled, IMUNES will dynamically generate default routes for this node and automatically add them on node startup. You can see the default routes that will be generated in the 'Automatic default routes' tab."
+global all_help_strings meta
+
+set array_names {}
+
+set menubarfile_help_strings {
+	"New topology" "Creates a new, empty IMUNES topology in Edit mode."
+	"Open topology" "Open an existing IMUNES topology in Edit mode."
+	"Recent files" "Show a list of recently opened files. It is possible to set a maximum number of these files to keep in a list using `recents_number` option."
+	"Pin to `Recent files`" "Pin the selected topology to the `Recent files` list."
+	"Remove from 'Recent files'" "Remove the currently opened file from the `Recent files` list."
+	"Save topology" "Save the current topology to its existing file."
+	"Save topology as" "Save the current topology to a new file."
+	"Close topology" "Close the currently opened topology. Unsaved changes may prompt for confirmation."
+	"Print topology" "Print the currently displayed topology using the system print service."
+	"Print topology to file" "Export the current topology to a printable file format."
+	"Quit IMUNES" "Exit IMUNES. You may be prompted to save unsaved changes."
+}
+lappend array_names "menubarfile"
+
+set menubaredit_help_strings {
+	"Undo last change" "Revert the most recent topology modification."
+	"Redo last change" "Reapply the last reverted topology modification."
+	"Cut nodes + links" "Remove selected nodes and links from the canvas and place them into the clipboard."
+	"Copy nodes + links" "Copy selected nodes and links into the clipboard."
+	"Paste nodes + links" "Insert nodes and links from the clipboard to the topology."
+	"Select all objects" "Select all nodes and annotations on the current canvas."
+	"Select adjacent nodes" "Select all nodes directly connected to the currently selected nodes."
+	"Editor preferences" "Configure IMUNES default/current global options."
+}
+lappend array_names "menubaredit"
+
+set menubarcanvas_help_strings {
+	"New canvas" "Create a new canvas. Large topologies can be split across multiple canvases."
+	"Rename canvas" "Change the name of the currently opened canvas."
+	"Delete canvas" "Delete the current canvas and all elements placed on it."
+	"Resize canvas" "Change the dimensions of the current canvas."
+	"Canvas background image" "Configure the background image displayed on the current canvas."
+	"Previous canvas" "Switch to the previous canvas."
+	"Next canvas" "Switch to the next canvas."
+	"First canvas" "Switch to the first canvas."
+	"Last canvas" "Switch to the last canvas."
+}
+lappend array_names "menubarcanvas"
+
+set menubarview_help_strings {
+	"Node icon size" "Change the size of node icons displayed on the canvas (`Normal` or `Small`)."
+	"Show Interface Names" "Display interface names on links next to node interfaces."
+	"Show IPv4 Addresses" "Display configured IPv4 addresses on links next to interfaces."
+	"Show IPv6 Addresses" "Display configured IPv6 addresses on links next to interfaces."
+	"Show VLAN Interfaces" "Display VLAN interfaces, their identifiers, and their IPv4/IPv6 addresses."
+	"Show Node Labels" "Display node names/labels on the canvas."
+	"Show Link Labels" "Display link options configured on each link."
+	"Show All" "Enable all topology information overlays."
+	"Show None" "Hide all topology information overlays."
+	"Show Topology Tree" "Display the topology tree panel for easier navigation."
+	"Customize Node Types" "Select which node types are visible in the node toolbar."
+	"Show Unsupported Nodes" "Display node types not supported on the current platform."
+	"Show Custom Nodes" "Display user-defined custom node types."
+	"Show Background Image" "Display the configured canvas background image."
+	"Show Annotations" "Display text and graphical annotations."
+	"Show Grid" "Display the canvas alignment grid."
+	"Zoom In" "Increase canvas zoom level."
+	"Zoom Out" "Decrease canvas zoom level."
+	"Themes" "Select the visual theme used by the IMUNES interface."
+}
+lappend array_names "menubarview"
+
+set menubartools_help_strings {
+	"Auto rearrange all" "Automatically arrange all nodes on the current topology based on its connection/placement compared to other nodes."
+	"Auto rearrange selected" "Automatically arrange only the selected nodes."
+	"Align to grid" "Move selected elements so they align with the canvas grid."
+	"IPv4 auto-assign" "Automatically generate and assign IPv4 addresses to interfaces."
+	"IPv6 auto-assign" "Automatically generate and assign IPv6 addresses to interfaces."
+	"Auto-generate /etc/hosts" "Generate hosts file entries for all nodes in the topology."
+	"Randomize MAC bytes" "Generate new last 3 bytes of MAC addresses for newly created node interfaces."
+	"IPv4 address pool" "Configure the IPv4 address ranges used for automatic address assignment."
+	"IPv6 address pool" "Configure the IPv6 address ranges used for automatic address assignment."
+	"Routing protocol defaults" "Configure default routing settings used when creating new routers."
+	"Debugger" "Open the interactive shell widget for running Tcl/Tk commands."
+}
+lappend array_names "menubartools"
+
+set menubartopogen_help_strings {
+	"Topology generator" "Generate predefined or parameterized network topologies automatically."
+}
+lappend array_names "menubartopogen"
+
+set menubarwidgets_help_strings {
+	"IMUNES Widgets" "Show available interactive widgets used for visualization, monitoring and experimentation."
+}
+lappend array_names "menubarwidgets"
+
+set menubarevents_help_strings {
+	"IMUNES Events" "Tools for scheduling topology changes and actions during experiment execution."
+	"Events - start scheduling" "Start processing scheduled events."
+	"Events - stop scheduling" "Stop processing scheduled events."
+	"Event editor" "Create, modify and delete scheduled events."
+}
+lappend array_names "menubarevents"
+
+set menubarexperiment_help_strings {
+	"IMUNES experiment modes" "IMUNES has three modes of operation: `edit`, `exec` and `paused`. TODO"
+	"Execute experiment" "Start the experiment and instantiate all configured network elements."
+	"Terminate experiment" "Stop the running experiment and remove all instantiated resources."
+	"Restart experiment" "Terminate and execute the experiment again."
+	"Pausing/Resuming experiment" "Temporarily pause or resume runtime topology updates."
+	"Attaching to experiment" "Attach IMUNES to an already running experiment."
+	"Refreshing experiment" "Synchronize the GUI with the current state of the running experiment. Used only when multiple UI instances are attached to the same experiment."
+}
+lappend array_names "menubarexperiment"
+
+set menubarhelp_help_strings {
+	"About IMUNES" "Display version information, authorship and licensing details."
+}
+lappend array_names "menubarhelp"
+
+set selecttool_help_strings {
+	"Select tool" "The default tool for selecting and moving elements."
+}
+lappend array_names "selecttool"
+
+set linktool_help_strings {
+	"Link tool" "Tool for creating links between nodes on the canvas. Drag the line from one node to another to create a link."
+}
+lappend array_names "linktool"
+
+set linklayertools_help_strings {
+	"Link layer node tool" "This is a list of link-layer (L2) nodes available for use. It is not possible to execute node types with red background on current architecture."
+	"LAN switch node" "A link layer element that forwards incoming packets to connected nodes using the table of destination addresses and its ports."
+	"Hub node" "A link layer element that forwards every incoming packet to all of its ports and, thus, to every connected node."
+	"External interface node" "A tool that provides the possibility to connect a virtual node with the physical interface (e.g. to give the node the access to the Internet)."
+	"RSTP switch node" "A Rapid Spanning Tree Protocol switch that can prevent bridge loops and allow providing backup links if an active link fails. (FreeBSD only)"
+	"Filter node" "A link layer element that can filter/divert/forward packets depending on their content. (FreeBSD only)"
+	"Packet generator node" "A link layer element to craft custom packets and send them with given packet rate. (FreeBSD only)"
+}
+lappend array_names "linklayertools"
+
+set netlayertools_help_strings {
+	"Network layer node tool" "This is a list of network-layer (L3) nodes available for use. It is not possible to execute node types with red background on current architecture."
+	"Router node" "A network layer element that is capable of packet forwarding using the routes obtained by dynamic routing protocols (available through quagga or xorp by default installation or any other standard FreeBSD routing daemon)."
+	"Host node" "A network layer element that does not forward packets and has static routes. It starts standard network services, via portmap and inetd."
+	"PC node" "A network layer element that also does not forward packets and has static routes. Unlike host, it does not start any network services."
+	"NAT64 node" "A router node which is capable to enable translation between IPv4 and IPv6 protocols using a form of network address translation (NAT)."
+	"External connection node" "A tool that provides the possibility to connect your host PC with a virtual node by creating an interface on your computer."
+	"Netns node" "A Linux network namespace node that allows integration with existing namespaces and processes. (Linux only)"
+}
+lappend array_names "netlayertools"
+
+set annotationtools_help_strings {
+	"Text annotation tool" "Create a text annotation on the canvas. Opens a basic text editor and places the text on the clicked location."
+	"Freeform annotation tool" "Create a freeform annotation on the canvas. Follows the mouse cursor and leaves a trail, similarly to a pen."
+	"Oval annotation tool" "Create an oval annotation on the canvas. Define upper-left and lower-right 'corners' of the oval to draw on the canvas."
+	"Rectangle annotation tool" "Create a rectangle annotation on the canvas. Define upper-left and lower-right corners of the rectangle to draw on the canvas."
+}
+lappend array_names "annotationtools"
+
+set bottombar_help_strings {
+	"Canvas list scrollbar" "Use this to scroll through the list of available canvases."
+	"Canvas list" "A list of created canvases. The currently selected canvas is marked using a different color.\n\nUse left click to select the canvas, double click to rename it, or mouse-scroll to switch between different canvases. Double-click on the empty element creates a new canvas with the default name."
+	"Canvas scrollbar" "Used to move left/right and up/down on the canvas, if the canvas is not fully visible."
+	"Status line" "Used for various informational messages such as: current execution/termination step, node/link details, etc."
+	"Zoom level" "Current zoom level. Double-click to insert custom zoom percentage value, or right-click to choose a pre-defined value."
+	"Scheduler time" "Current step for event scheduler - time in seconds from the event scheduling start."
+	"Auto-rearrange status" "Notifies user that either 'Auto rearrange all' or 'Auto rearrange selected' is enabled."
+	"Operational mode" "Shows current mode of operation:\n - 'edit mode' - the experiment is not executed, normal editing\n - 'exec mode' - the experiment is executed\n - 'pause mode' - the experiment is executed, but new elements will not trigger a runtime change"
+	"Experiment ID" "Shows the currently running experiment ID (EID) if the experiment is running."
+}
+lappend array_names "bottombar"
+
+set canvas_help_strings {
+	"IMUNES canvas" "The main workspace where topology elements are created, positioned and connected."
+	"Canvas grid" "Alignment guide used for placing nodes more precisely."
+}
+lappend array_names "canvas"
+
+set node_help_strings {
+	"IMUNES nodes" "Network devices and virtual systems that make up the topology. Double-click a node to configure it."
+}
+lappend array_names "node"
+
+set link_help_strings {
+	"IMUNES links" "Connections between nodes used to transport packets and model network connectivity."
+	"Segment links" "Individual link segments that can be adjusted to modify link appearance on the canvas."
+}
+lappend array_names "link"
+
+set ifaces_help_strings {
+	"IMUNES interfaces" "Network interfaces belonging to nodes and used to connect links."
+}
+lappend array_names "ifaces"
+
+set annotation_help_strings {
+	"IMUNES text annotations" "User-defined text labels displayed on the canvas."
+	"IMUNES oval annotations" "Oval graphical annotations."
+	"IMUNES rectangle annotations" "Rectangular graphical annotations."
+	"IMUNES freeform annotations" "Freehand drawings."
+}
+lappend array_names "annotation"
+
+set confignode_help_strings {
+	"Node name" "Name that will be displayed next to the node. If this is a virtualized node, this will be configured as the node hostname."
+	"Force node" "When applying the configuration, the node (or its interfaces) will be forcefully recreated/reconfigured with the currently configured values."
+	"Custom static routes" "Add defined routes on node startup. Set one route per line in the format\na.b.c.d/prefix x.y.z.w\n\nFor example: 0.0.0.0/0 10.0.0.1"
+	"Automatic default routes" "If 'Enable automatic default routes' is enabled, IMUNES will dynamically generate default routes for this node and automatically add them on node startup.\n\nYou can see the default routes that will be generated in the 'Automatic default routes' tab."
+	"Configure External interface" "'Steal' an interface from the host OS.\nDepending on the type of link it connects to, the interface is handled differently.\n\nFreeBSD\n - 'normal' link: the interface is moved to the experiment jail and connected with the nodes interface over a bridge\n - 'direct' link: the interface is moved to the experiment jail and connected with the nodes interface without a bridge\n\nLinux\n - 'normal' link: the interface is moved to the experiment namespace and connected with the nodes interface over a bridge\n - 'direct' link: a new macvlan (or ipvlan if wireless) interface is created, and moved to the nodes namespace"
     "Custom config" "If enabled, custom configuration(s) will be run instead of default behaviour. There are currently two custom configuration options: interfaces config and node config."
     "Custom interfaces config" "If enabled, custom interfaces configuration will be run instead of default behaviour from the 'Interfaces' tab. More information is available inside the custom config editor."
     "Custom node config" "If enabled, custom node configuration will be run instead of default commands. More information is available inside the custom config editor."
-    "Force node" "When applying the configuration, the node (or its interfaces) will be forcefully recreated/reconfigured with the currently configured values."
-	"Configure External interface" "'Steal' an interface from the host OS.\nDepending on the type of link it connects to, the interface is handled differently.\n\nFreeBSD\n - 'normal' link: the interface is moved to the experiment jail and connected with the nodes interface over a bridge\n - 'direct' link: the interface is moved to the experiment jail and connected with the nodes interface without a bridge\n\nLinux\n - 'normal' link: the interface is moved to the experiment namespace and connected with the nodes interface over a bridge\n - 'direct' link: a new macvlan (or ipvlan if wireless) interface is created, and moved to the nodes namespace"
+	"Open in external editor" "Open the selected custom configuration in external editor (configured in 'external_editor_command' custom variable).\n\nIgnored if custom configuration is DISABLED.\n\nExample values for 'external_editor_command' are:
+    xterm+vim:	{xterm -T \"%TITLE%\" -e \"vim %FILE_PATH%\"}
+    gedit:		{gedit --standalone %FILE_PATH%}
+    mousepad:	{mousepad --disable-server %FILE_PATH%}
+    kate		{kate --block %FILE_PATH%}
+    vscode		{code --wait --new-window %FILE_PATH%}
+    sublime	{subl -n -w %FILE_PATH%}
+    gvim		{gvim -f %FILE_PATH%}\n\nThe external editor must quit, only then will IMUNES fetch the latest changes."
+    "Services" "For each enabled service, the node will start its daemon on node startup."
+}
+lappend array_names "confignode"
+
+set configlink_help_strings {
+	"Link from" "Defines the two endpoints connected by the link.\n\n`Normal` links use an intermediate bridge/switch segment when required by the platform.\n`Direct` links connect endpoints directly without an intermediate bridge."
+}
+lappend array_names "configlink"
+
+set advancedopts_help_strings {
+    "Custom vroot" "If enabled, IMUNES will use the given jail path (virtual root - vroot) instead of the default one when running the node.\n\nThe default vroot is /var/imunes/vroot directory."
+	"Custom image" "If enabled, IMUNES will use the given Docker image (virtual root - vroot) instead of the default one when running the node.\n\nThe default vroot is imunes/template Docker image."
+    "External Docker interface" "(Linux only)\n\nIf enabled, IMUNES will create a Docker interface inside a node (dext0) connected to the imunes-bridge Docker network.\n\nThis interface is primarily used to enable internet connection on a node in a quick and easy way - the default route is automatically added on its creation. Users should configure /etc/resolv.conf by themselves as DNS resolver is not set automatically."
     "Advanced virt options" "Additional options for Docker/Jail/others when creating the current node (such as mounts, CPUs, memory, etc.)"
     "CPUs count" "The maximum CPU resources a node can use."
     "Custom flags" "Insert any custom Docker/jail flags."
-	"Open in external editor" "Open the selected custom configuration in external editor (configured in 'external_editor_command' custom variable).\n\nIgnored if custom configuration is DISABLED."
-	"Editor Preferences" "'Active options'\nPreview of currently active options combining Custom, Topology and Default options. The Default options are loaded first, overwritten by the Topology options and Custom options. If 'custom_override' is enabled for the option, the Custom option will always overwrite the topology option.\n\n'Custom options'\nOptions loaded from .rc files ('/etc/imunes/config', '\$HOME/.imunes.rc' if it exists, otherwise '\$XDG_CONFIG_HOME/imunes/config', './.imunes.rc', '/etc/imunes/override' - in that order). Apply button will save the configured options to the last loaded existing .rc file - not including /etc/imunes/override.\n\n'Topology options'\nOptions loaded from, and saved to the .imn file - some options cannot be saved."
 }
+lappend array_names "advancedopts"
 
-foreach array_name "menubar confignode configlink advancedopts misc" {
+set misc_help_strings {
+	"Editor Preferences" "`Active options`\nPreview of currently active options combining Custom, Topology and Default options. The Default options are loaded first, overwritten by the Topology options and Custom options. If `custom_override` is enabled for the option, the Custom option will always overwrite the topology option.\n\n`Custom options`\nOptions loaded from .rc files (`/etc/imunes/config`, `\$HOME/.imunes.rc` if it exists, otherwise `\$XDG_CONFIG_HOME/imunes/config`, `./.imunes.rc`, `/etc/imunes/override` - in that order). Apply button will save the configured options to the last loaded existing .rc file - not including /etc/imunes/override.\n\n`Topology options`\nOptions loaded from, and saved to the .imn file - some options cannot be saved."
+}
+lappend array_names "misc"
+
+foreach array_name $array_names {
     upvar 0 ${array_name}_help_strings var_name
-    lappend all {*}[array get var_name]
+    lappend all {*}$var_name
 }
 
 array set all_help_strings $all

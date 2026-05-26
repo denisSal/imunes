@@ -1478,9 +1478,11 @@ proc configGUI_nodeName { wi node_id label } {
 
 	ttk::frame $wi.name -borderwidth 6
 	ttk::label $wi.name.txt -text $label
+	attachHelp "$wi.name.txt" "Node name"
 
 	ttk::entry $wi.name.nodename -width 14 -validate focus
 	$wi.name.nodename insert 0 [lindex [split [_getNodeName $node_cfg] .] 0]
+	attachHelp "$wi.name.nodename" "Node name"
 
 	pack $wi.name.txt -side left -anchor e -expand 1 -padx 4 -pady 4
 	pack $wi.name.nodename -side left -anchor w -expand 1 -padx 4 -pady 4
@@ -1497,6 +1499,7 @@ proc configGUI_nodeRestart { wi node_id } {
 	set w $wi.node_force_options
 	ttk::frame $w -relief groove -borderwidth 2 -padding 2
 	ttk::label $w.label -text "Force node:"
+	attachHelp "$w.label" "Force node"
 	ttk::frame $w.options -padding 2
 
 	pack $w.label -side left -padx 2
@@ -1519,6 +1522,7 @@ proc configGUI_nodeRestart { wi node_id } {
 			$w.options.$element configure -state disabled
 		}
 
+		attachHelp "$w.options.$element" "Force node"
 		if { $node_type == "rj45" } {
 			break
 		}
@@ -1864,6 +1868,7 @@ proc configGUI_staticRoutes { wi node_id } {
 	set ifc_routes_enable $wi.ifc_routes_enable
 	ttk::checkbutton $ifc_routes_enable -text "Enable automatic default routes" \
 		-variable auto_default_routes -padding 4 -onvalue "enabled" -offvalue "disabled"
+	attachHelp "$ifc_routes_enable" "Automatic default routes"
 	pack $ifc_routes_enable -anchor w
 
 	set sroutes_nb $wi.sroutes
@@ -1874,6 +1879,7 @@ proc configGUI_staticRoutes { wi node_id } {
 	set user_routes $sroutes_nb.user
 	ttk::frame $user_routes
 	$sroutes_nb add $user_routes -text "Custom static routes"
+	attachHelp "$sroutes_nb,Custom static routes" "Custom static routes"
 	ttk::scrollbar $user_routes.vsb -orient vertical -command [list $user_routes.editor yview]
 	ttk::scrollbar $user_routes.hsb -orient horizontal -command [list $user_routes.editor xview]
 	text $user_routes.editor -width 42 -bg white -takefocus 0 -wrap none \
@@ -1889,6 +1895,7 @@ proc configGUI_staticRoutes { wi node_id } {
 	set auto_routes $sroutes_nb.auto
 	ttk::frame $auto_routes
 	$sroutes_nb add $auto_routes -text "Automatic default routes"
+	attachHelp "$sroutes_nb,Automatic default routes" "Automatic default routes"
 	ttk::scrollbar $auto_routes.vsb -orient vertical -command [list $auto_routes.editor yview]
 	ttk::scrollbar $auto_routes.hsb -orient horizontal -command [list $auto_routes.editor xview]
 	text $auto_routes.editor -width 42 -bg white -wrap none \
@@ -1928,6 +1935,7 @@ proc configGUI_addNotebookRj45 { wi node_id ifaces } {
 		ttk::label $wi.nbook.label \
 			-text "No connected nodes" \
 			-anchor center
+		attachHelp "$wi.nbook.label" "Configure External interface"
 		pack $wi.nbook.label \
 			-pady 5
 
@@ -1976,7 +1984,9 @@ proc configGUI_addRj45PanedWin { wi node_id } {
 
 	ttk::frame $wi.stolen -borderwidth 6
 	ttk::label $wi.stolen.label -text "Stolen interface:"
+	attachHelp "$wi.stolen.label" "Configure External interface"
 	ttk::combobox $wi.stolen.name -width 14 -textvariable extIfc$iface_id
+	attachHelp "$wi.stolen.name" "Configure External interface"
 	set ifcs [getHostIfcList]
 	$wi.stolen.name configure -values [concat UNASSIGNED $ifcs]
 	$wi.stolen.name set [_getIfcName $node_cfg $iface_id]
@@ -2071,10 +2081,12 @@ proc configGUI_customConfig { wi node_id } {
 
 	ttk::frame $wi.custcfg -borderwidth 2 -relief groove -padding 4
 	ttk::label $wi.custcfg.etxt -text "Enable custom startup config:"
+	attachHelp "$wi.custcfg.etxt" "Custom config"
 
 	set customEnabled [_getNodeCustomEnabled $node_cfg]
 	ttk::checkbutton $wi.custcfg.echeckOnOff -text "Enabled" \
 		-variable customEnabled -onvalue true -offvalue false
+	attachHelp "$wi.custcfg.echeckOnOff" "Custom config"
 
 	grid $wi.custcfg.etxt -in $wi.custcfg -sticky w -column 0 -row 0
 	grid $wi.custcfg.echeckOnOff -in $wi.custcfg -sticky w -column 1 \
@@ -2086,7 +2098,9 @@ proc configGUI_customConfig { wi node_id } {
 		ttk::frame $o
 
 		ttk::label $o.ld -text "$label_text" -width 32
+		attachHelp "$o.ld" [string range $label_text 0 end-1]
 		ttk::combobox $o.cb -height 10 -width 12 -state readonly
+		attachHelp "$o.cb" [string range $label_text 0 end-1]
 		$o.cb configure -values "DISABLED [_getNodeCustomConfigEntriesNames $node_cfg $hook]"
 		set defaultConfig [_getNodeCustomConfigSelected $node_cfg $hook]
 		if { $defaultConfig == "" } {
@@ -2126,6 +2140,7 @@ proc configGUI_customConfig { wi node_id } {
 			$hook
 		]
 		ttk::button $o.beditor -text "Editor" -command $tmp_command
+		attachHelp "$o.beditor" [string range $label_text 0 end-1]
 
 		set tmp_command [list apply {
 			{ gui_element node_id hook } {
@@ -2148,6 +2163,7 @@ proc configGUI_customConfig { wi node_id } {
 			$hook
 		]
 		ttk::button $o.external_editor -width 2 -text "⤴" -command $tmp_command
+		attachHelp "$o.external_editor" "Open in external editor"
 
 		grid $o.ld -sticky w -column 0 -row 0
 		grid $o.cb -row 0 -column 1 -sticky we -padx 10
@@ -2332,6 +2348,7 @@ proc configGUI_servicesConfig { wi node_id } {
 	set w $wi.services
 	ttk::frame $w -relief groove -borderwidth 2 -padding 2
 	ttk::label $w.label -text "Services:"
+	attachHelp "$w.label" "Services"
 	ttk::frame $w.list -padding 2
 
 	pack $w.label -side left -padx 2
@@ -2343,6 +2360,7 @@ proc configGUI_servicesConfig { wi node_id } {
 		set $srv\_enable 0
 		ttk::checkbutton $w.list.$srv -text "$srv" -variable $srv\_enable
 		pack $w.list.$srv -side left -padx 6
+		attachHelp "$w.list.$srv" "Services"
 	}
 
 	foreach srv [_getNodeServices $node_cfg] {
@@ -2372,6 +2390,7 @@ proc configGUI_advancedVirtOptions { wi node_id virt_types } {
 	set advanced_frame $wi.advanced
 	ttk::frame $advanced_frame -relief groove -borderwidth 2 -padding 2
 	ttk::label $advanced_frame.label -text "Advanced node options:"
+	attachHelp "$advanced_frame.label" "Advanced virt options"
 
 	pack $advanced_frame.label -side left -padx 2
 
@@ -2838,12 +2857,14 @@ proc jailOptionsGUI { node_id } {
 	set custom_vroot_frame $general.custom_vroot_frame
 	ttk::frame $custom_vroot_frame -relief groove -borderwidth 2 -padding 2
 	ttk::label $custom_vroot_frame.label -text "Custom vroot:"
+	attachHelp "$custom_vroot_frame.label" "Custom vroot"
 
 	pack $custom_vroot_frame.label -side left -padx 2
 
 	ttk::entry $custom_vroot_frame.img -width 40
 	$custom_vroot_frame.img insert 0 $custom_vroot
 	pack $custom_vroot_frame.img -side left -padx 7
+	attachHelp "$custom_vroot_frame.img" "Custom vroot"
 
 	pack $custom_vroot_frame -fill both
 
@@ -2851,12 +2872,14 @@ proc jailOptionsGUI { node_id } {
 	set custom_flags_frame $general.custom_flags_frame
 	ttk::frame $custom_flags_frame -relief groove -borderwidth 2 -padding 2
 	ttk::label $custom_flags_frame.label -text "Custom flags:"
+	attachHelp "$custom_flags_frame.label" "Custom flags"
 
 	pack $custom_flags_frame.label -side left -padx 2
 
 	ttk::entry $custom_flags_frame.flags -width 40
 	$custom_flags_frame.flags insert 0 $custom_flags
 	pack $custom_flags_frame.flags -side left -padx 7
+	attachHelp "$custom_flags_frame.flags" "Custom flags"
 
 	pack $custom_flags_frame -fill both
 
@@ -2982,12 +3005,14 @@ proc dockerOptionsGUI { node_id } {
 	set cpus_frame $general.cpus_frame
 	ttk::frame $cpus_frame -relief groove -borderwidth 2 -padding 2
 	ttk::label $cpus_frame.label -text "CPUs count"
+	attachHelp "$cpus_frame.label" "CPUs count"
 
 	pack $cpus_frame.label -side left -padx 2
 
 	ttk::entry $cpus_frame.cpus -width 10
 	$cpus_frame.cpus insert 0 $cpus_count
 	pack $cpus_frame.cpus -side left -padx 7
+	attachHelp "$cpus_frame.cpus" "CPUs count"
 
 	pack $cpus_frame -fill both
 
@@ -2995,12 +3020,14 @@ proc dockerOptionsGUI { node_id } {
 	set custom_image_frame $general.custom_image_frame
 	ttk::frame $custom_image_frame -relief groove -borderwidth 2 -padding 2
 	ttk::label $custom_image_frame.label -text "Custom image:"
+	attachHelp "$custom_image_frame.label" "Custom image"
 
 	pack $custom_image_frame.label -side left -padx 2
 
 	ttk::entry $custom_image_frame.img -width 40
 	$custom_image_frame.img insert 0 $custom_image
 	pack $custom_image_frame.img -side left -padx 7
+	attachHelp "$custom_image_frame.img" "Custom image"
 
 	pack $custom_image_frame -fill both
 
@@ -3008,6 +3035,7 @@ proc dockerOptionsGUI { node_id } {
 	set dext_frame $general.dext_frame
 	ttk::frame $dext_frame -relief groove -borderwidth 2 -padding 2
 	ttk::label $dext_frame.label -text "Attach external Docker interface:"
+	attachHelp "$dext_frame.label" "External Docker interface"
 
 	pack $dext_frame.label -side left -padx 2
 
@@ -3017,6 +3045,7 @@ proc dockerOptionsGUI { node_id } {
 	} else {
 		$dext_frame.dext_enable state "!selected"
 	}
+	attachHelp "$dext_frame.dext_enable" "External Docker interface"
 
 	pack $dext_frame.dext_enable -side left -padx 7
 
@@ -3026,12 +3055,14 @@ proc dockerOptionsGUI { node_id } {
 	set custom_flags_frame $general.custom_flags_frame
 	ttk::frame $custom_flags_frame -relief groove -borderwidth 2 -padding 2
 	ttk::label $custom_flags_frame.label -text "Custom flags:"
+	attachHelp "$custom_flags_frame.label" "Custom flags"
 
 	pack $custom_flags_frame.label -side left -padx 2
 
 	ttk::entry $custom_flags_frame.flags -width 40
 	$custom_flags_frame.flags insert 0 $custom_flags
 	pack $custom_flags_frame.flags -side left -padx 7
+	attachHelp "$custom_flags_frame.label" "Custom flags"
 
 	pack $custom_flags_frame -fill both
 
@@ -5223,6 +5254,7 @@ proc createTab { node_id selected_hook cfg_id } {
 		-command "deleteConfig $wi $node_id"
 	ttk::button $w.external_editor -text "Open in editor" \
 		-command "customConfigOpenInExternal $wi $node_id"
+	attachHelp "$w.external_editor" "Open in external editor"
 
 	ttk::scrollbar $w.vsb -orient vertical -command [list $w.editor yview]
 	ttk::scrollbar $w.hsb -orient horizontal -command [list $w.editor xview]
