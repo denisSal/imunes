@@ -437,211 +437,6 @@ bind . <Home> { switchCanvas first }
 	-command { switchCanvas last }
 bind . <End> { switchCanvas last }
 
-
-#
-# Tools
-#
-menu .menubar.tools -tearoff 0
-.menubar.tools add command -label "Auto rearrange all" -underline 0 \
-	-command { rearrange all }
-.menubar.tools add command -label "Auto rearrange selected" -underline 15 \
-	-command { rearrange selected }
-.menubar.tools add separator
-.menubar.tools add command -label "Align to grid" -underline 9 \
-	-command { align2grid }
-.menubar.tools add separator
-.menubar.tools add checkbutton -label "IPv4 auto-assign addresses/routes" \
-	-variable IPv4autoAssign -command { setGlobalOption "IPv4autoAssign" - "toggle" }
-.menubar.tools add checkbutton -label "IPv6 auto-assign addresses/routes" \
-	-variable IPv6autoAssign -command { setGlobalOption "IPv6autoAssign" - "toggle" }
-.menubar.tools add checkbutton -label "Auto-generate /etc/hosts file" \
-	-variable auto_etc_hosts -command { setGlobalOption "auto_etc_hosts" - "toggle" }
-.menubar.tools add separator
-.menubar.tools add command -label "Randomize MAC bytes" -underline 10 \
-	-command randomizeMACbytes
-
-set tmp_command {
-	set w .entry1
-	catch { destroy $w }
-	toplevel $w
-	wm transient $w .
-	#wm resizable $w 0 0
-	wm title $w "IPv4 autonumbering address pool"
-	wm iconname $w "IPv4 address pool"
-	grab $w
-
-	#dodan glavni frame "ipv4frame"
-	ttk::frame $w.ipv4frame
-	pack $w.ipv4frame -fill both -expand 1
-
-	ttk::label $w.ipv4frame.msg -text "IPv4 address range:"
-	pack $w.ipv4frame.msg -side top
-
-	ttk::entry $w.ipv4frame.e1 -width 27 -validate focus -invalidcommand "focusAndFlash %W"
-	$w.ipv4frame.e1 insert 0 $ipv4
-	pack $w.ipv4frame.e1 -side top -pady 5 -padx 10 -fill x
-
-	$w.ipv4frame.e1 configure -invalidcommand { checkIPv4Net %P }
-
-	ttk::frame $w.ipv4frame.buttons
-	pack $w.ipv4frame.buttons -side bottom -fill x -pady 2m
-	ttk::button $w.ipv4frame.buttons.apply -text "Apply" -command "IPv4AddrApply $w"
-	ttk::button $w.ipv4frame.buttons.cancel -text "Cancel" -command "destroy $w"
-
-	bind $w <Key-Return> "IPv4AddrApply $w"
-	bind $w <Key-Escape> "destroy $w"
-
-	pack $w.ipv4frame.buttons.apply -side left -expand 1 -anchor e -padx 2
-	pack $w.ipv4frame.buttons.cancel -side right -expand 1 -anchor w -padx 2
-}
-.menubar.tools add command -label "IPv4 address pool" -underline 3 \
-	-command $tmp_command
-set tmp_command {
-	global numbits6
-
-	set w .entry1
-	catch { destroy $w }
-	toplevel $w
-	wm transient $w .
-	#wm resizable $w 0 0
-	wm title $w "IPv6 autonumbering address pool"
-	wm iconname $w "IPv6 address pool"
-	grab $w
-
-	ttk::frame $w.ipv6frame
-	pack $w.ipv6frame -fill both -expand 1
-
-	ttk::label $w.ipv6frame.msg -text "IPv6 address range:"
-	pack $w.ipv6frame.msg -side top
-
-	ttk::entry $w.ipv6frame.e1 -width 27 -validate focus -invalidcommand "focusAndFlash %W"
-	$w.ipv6frame.e1 insert 0 $ipv6
-	pack $w.ipv6frame.e1 -side top -pady 5 -padx 10 -fill x
-
-	$w.ipv6frame.e1 configure -invalidcommand { checkIPv6Net %P }
-
-	ttk::frame $w.ipv6frame.steps
-	pack $w.ipv6frame.steps -fill both -expand 1
-	ttk::label $w.ipv6frame.steps.stepl -text "Next subnet increment (bits):" -anchor e
-	ttk::spinbox $w.ipv6frame.steps.stepv -width 5 \
-		-validate focus -invalidcommand "focusAndFlash %W"
-	$w.ipv6frame.steps.stepv insert 1 $numbits6
-	$w.ipv6frame.steps.stepv configure \
-		-from 1 -to 128 -increment 1 \
-		-validatecommand { checkIntRange %P 1 128 }
-
-	pack $w.ipv6frame.steps.stepl -fill y
-	pack $w.ipv6frame.steps.stepv -fill both -padx 10
-
-	ttk::frame $w.ipv6frame.buttons
-	pack $w.ipv6frame.buttons -side bottom -fill x -pady 2m
-	ttk::button $w.ipv6frame.buttons.apply -text "Apply" -command "IPv6AddrApply $w"
-	ttk::button $w.ipv6frame.buttons.cancel -text "Cancel" -command "destroy $w"
-
-	bind $w <Key-Return> "IPv6AddrApply $w"
-	bind $w <Key-Escape> "destroy $w"
-
-	pack $w.ipv6frame.buttons.apply -side left -expand 1 -anchor e -padx 2
-	pack $w.ipv6frame.buttons.cancel -side right -expand 1 -anchor w -padx 2
-}
-.menubar.tools add command -label "IPv6 address pool" -underline 3 \
-	-command $tmp_command
-set routing_defaults_command {
-	global supp_router_models router_protocols
-
-	set wi .popup
-	catch { destroy $wi }
-	toplevel $wi
-	wm transient $wi .
-	wm resizable $wi 0 0
-	wm title $wi "Router Defaults"
-	grab $wi
-
-	#dodan glavni frame "routerframe"
-	ttk::frame $wi.routerframe
-	pack $wi.routerframe -fill both -expand 1
-
-	set w $wi.routerframe
-
-	ttk::labelframe $w.model -text "Model:"
-	ttk::labelframe $w.protocols -text "Protocols:"
-
-	set checkbutton_dict "0 !selected 1 selected"
-	foreach item $router_protocols {
-		lassign $item protocol - protocol_label
-		set var_name "router[string totitle $protocol 0 0]Enable"
-
-		ttk::checkbutton $w.protocols.$protocol \
-			-text $protocol_label
-
-		$w.protocols.$protocol state [dict get $checkbutton_dict [getActiveOption "$var_name"]]
-	}
-
-	# set last argument as empty string
-	set tmp_command [list apply {
-		{ popup_window state } {
-			global router_protocols
-
-			foreach item $router_protocols {
-				set protocol [lindex $item 0]
-
-				$popup_window.protocols.$protocol configure -state $state
-			}
-		}
-	} \
-		$w \
-		""
-	]
-
-	# replace last argument for each binding
-	ttk::radiobutton $w.model.frr -text frr \
-		-value frr -command [lreplace $tmp_command end end "normal"]
-	ttk::radiobutton $w.model.quagga -text quagga \
-		-value quagga -command [lreplace $tmp_command end end "normal"]
-	ttk::radiobutton $w.model.static -text static \
-		-value static -command [lreplace $tmp_command end end "disabled"]
-
-	foreach model "frr quagga static" {
-		$w.model.$model state "!selected"
-	}
-
-	set default_model [getActiveOption "routerDefaultsModel"]
-	$w.model.$default_model state selected
-
-	if { $default_model == "static" } {
-		foreach item $router_protocols {
-			set protocol [lindex $item 0]
-
-			$w.protocols.$protocol configure -state "disabled"
-		}
-	}
-
-	if { "frr" ni $supp_router_models } {
-		$w.model.frr configure -state disabled
-	}
-
-	ttk::frame $w.buttons
-	ttk::button $w.buttons.b1 -text "Apply" -command "routerDefaultsApply $wi"
-	ttk::button $w.buttons.b2 -text "Cancel" -command "destroy $wi"
-
-	pack $w.model -side top -fill x -pady 5
-	pack $w.model.frr $w.model.quagga $w.model.static \
-		-side left -expand 1
-	pack $w.protocols -side top -pady 5
-
-	set protocols_to_pack {}
-	foreach item $router_protocols {
-		lappend protocols_to_pack $w.protocols.[lindex $item 0]
-	}
-	pack {*}$protocols_to_pack -side left
-
-	pack $w.buttons -side bottom -fill x  -pady 2
-	pack $w.buttons.b1 -side left -expand 1 -anchor e -padx 2
-	pack $w.buttons.b2 -side right -expand 1 -anchor w -padx 2
-}
-.menubar.tools add command -label "Routing protocol defaults" -underline 0 \
-	-command $routing_defaults_command
-
 #
 # View
 #
@@ -660,10 +455,10 @@ $m add radiobutton -label "Normal" -variable icon_size \
 .menubar.view add checkbutton -label "Show Interface Names" \
 	-underline 5 -variable show_interface_names \
 	-command { setGlobalOption "show_interface_names" - "toggle" ; redrawAll }
-.menubar.view add checkbutton -label "Show IPv4 Addresses " \
+.menubar.view add checkbutton -label "Show IPv4 Addresses" \
 	-underline 8 -variable show_interface_ipv4 \
 	-command { setGlobalOption "show_interface_ipv4" - "toggle" ; redrawAll }
-.menubar.view add checkbutton -label "Show IPv6 Addresses " \
+.menubar.view add checkbutton -label "Show IPv6 Addresses" \
 	-underline 8 -variable show_interface_ipv6 \
 	-command { setGlobalOption "show_interface_ipv6" - "toggle" ; redrawAll }
 .menubar.view add checkbutton -label "Show VLAN Interfaces" \
@@ -887,7 +682,211 @@ $m add radiobutton -label "imunes" -variable currentTheme\
 	-value imunes -command "ttk::style theme use imunes"
 
 #
-# Show
+# Tools
+#
+menu .menubar.tools -tearoff 0
+.menubar.tools add command -label "Auto rearrange all" -underline 0 \
+	-command { rearrange all }
+.menubar.tools add command -label "Auto rearrange selected" -underline 15 \
+	-command { rearrange selected }
+.menubar.tools add separator
+.menubar.tools add command -label "Align to grid" -underline 9 \
+	-command { align2grid }
+.menubar.tools add separator
+.menubar.tools add checkbutton -label "IPv4 auto-assign addresses/routes" \
+	-variable IPv4autoAssign -command { setGlobalOption "IPv4autoAssign" - "toggle" }
+.menubar.tools add checkbutton -label "IPv6 auto-assign addresses/routes" \
+	-variable IPv6autoAssign -command { setGlobalOption "IPv6autoAssign" - "toggle" }
+.menubar.tools add checkbutton -label "Auto-generate /etc/hosts file" \
+	-variable auto_etc_hosts -command { setGlobalOption "auto_etc_hosts" - "toggle" }
+.menubar.tools add separator
+.menubar.tools add command -label "Randomize MAC bytes" -underline 10 \
+	-command randomizeMACbytes
+
+set tmp_command {
+	set w .entry1
+	catch { destroy $w }
+	toplevel $w
+	wm transient $w .
+	#wm resizable $w 0 0
+	wm title $w "IPv4 autonumbering address pool"
+	wm iconname $w "IPv4 address pool"
+	grab $w
+
+	#dodan glavni frame "ipv4frame"
+	ttk::frame $w.ipv4frame
+	pack $w.ipv4frame -fill both -expand 1
+
+	ttk::label $w.ipv4frame.msg -text "IPv4 address range:"
+	pack $w.ipv4frame.msg -side top
+
+	ttk::entry $w.ipv4frame.e1 -width 27 -validate focus -invalidcommand "focusAndFlash %W"
+	$w.ipv4frame.e1 insert 0 $ipv4
+	pack $w.ipv4frame.e1 -side top -pady 5 -padx 10 -fill x
+
+	$w.ipv4frame.e1 configure -invalidcommand { checkIPv4Net %P }
+
+	ttk::frame $w.ipv4frame.buttons
+	pack $w.ipv4frame.buttons -side bottom -fill x -pady 2m
+	ttk::button $w.ipv4frame.buttons.apply -text "Apply" -command "IPv4AddrApply $w"
+	ttk::button $w.ipv4frame.buttons.cancel -text "Cancel" -command "destroy $w"
+
+	bind $w <Key-Return> "IPv4AddrApply $w"
+	bind $w <Key-Escape> "destroy $w"
+
+	pack $w.ipv4frame.buttons.apply -side left -expand 1 -anchor e -padx 2
+	pack $w.ipv4frame.buttons.cancel -side right -expand 1 -anchor w -padx 2
+}
+.menubar.tools add command -label "IPv4 address pool" -underline 3 \
+	-command $tmp_command
+set tmp_command {
+	global numbits6
+
+	set w .entry1
+	catch { destroy $w }
+	toplevel $w
+	wm transient $w .
+	#wm resizable $w 0 0
+	wm title $w "IPv6 autonumbering address pool"
+	wm iconname $w "IPv6 address pool"
+	grab $w
+
+	ttk::frame $w.ipv6frame
+	pack $w.ipv6frame -fill both -expand 1
+
+	ttk::label $w.ipv6frame.msg -text "IPv6 address range:"
+	pack $w.ipv6frame.msg -side top
+
+	ttk::entry $w.ipv6frame.e1 -width 27 -validate focus -invalidcommand "focusAndFlash %W"
+	$w.ipv6frame.e1 insert 0 $ipv6
+	pack $w.ipv6frame.e1 -side top -pady 5 -padx 10 -fill x
+
+	$w.ipv6frame.e1 configure -invalidcommand { checkIPv6Net %P }
+
+	ttk::frame $w.ipv6frame.steps
+	pack $w.ipv6frame.steps -fill both -expand 1
+	ttk::label $w.ipv6frame.steps.stepl -text "Next subnet increment (bits):" -anchor e
+	ttk::spinbox $w.ipv6frame.steps.stepv -width 5 \
+		-validate focus -invalidcommand "focusAndFlash %W"
+	$w.ipv6frame.steps.stepv insert 1 $numbits6
+	$w.ipv6frame.steps.stepv configure \
+		-from 1 -to 128 -increment 1 \
+		-validatecommand { checkIntRange %P 1 128 }
+
+	pack $w.ipv6frame.steps.stepl -fill y
+	pack $w.ipv6frame.steps.stepv -fill both -padx 10
+
+	ttk::frame $w.ipv6frame.buttons
+	pack $w.ipv6frame.buttons -side bottom -fill x -pady 2m
+	ttk::button $w.ipv6frame.buttons.apply -text "Apply" -command "IPv6AddrApply $w"
+	ttk::button $w.ipv6frame.buttons.cancel -text "Cancel" -command "destroy $w"
+
+	bind $w <Key-Return> "IPv6AddrApply $w"
+	bind $w <Key-Escape> "destroy $w"
+
+	pack $w.ipv6frame.buttons.apply -side left -expand 1 -anchor e -padx 2
+	pack $w.ipv6frame.buttons.cancel -side right -expand 1 -anchor w -padx 2
+}
+.menubar.tools add command -label "IPv6 address pool" -underline 3 \
+	-command $tmp_command
+set routing_defaults_command {
+	global supp_router_models router_protocols
+
+	set wi .popup
+	catch { destroy $wi }
+	toplevel $wi
+	wm transient $wi .
+	wm resizable $wi 0 0
+	wm title $wi "Router Defaults"
+	grab $wi
+
+	#dodan glavni frame "routerframe"
+	ttk::frame $wi.routerframe
+	pack $wi.routerframe -fill both -expand 1
+
+	set w $wi.routerframe
+
+	ttk::labelframe $w.model -text "Model:"
+	ttk::labelframe $w.protocols -text "Protocols:"
+
+	set checkbutton_dict "0 !selected 1 selected"
+	foreach item $router_protocols {
+		lassign $item protocol - protocol_label
+		set var_name "router[string totitle $protocol 0 0]Enable"
+
+		ttk::checkbutton $w.protocols.$protocol \
+			-text $protocol_label
+
+		$w.protocols.$protocol state [dict get $checkbutton_dict [getActiveOption "$var_name"]]
+	}
+
+	# set last argument as empty string
+	set tmp_command [list apply {
+		{ popup_window state } {
+			global router_protocols
+
+			foreach item $router_protocols {
+				set protocol [lindex $item 0]
+
+				$popup_window.protocols.$protocol configure -state $state
+			}
+		}
+	} \
+		$w \
+		""
+	]
+
+	# replace last argument for each binding
+	ttk::radiobutton $w.model.frr -text frr \
+		-value frr -command [lreplace $tmp_command end end "normal"]
+	ttk::radiobutton $w.model.quagga -text quagga \
+		-value quagga -command [lreplace $tmp_command end end "normal"]
+	ttk::radiobutton $w.model.static -text static \
+		-value static -command [lreplace $tmp_command end end "disabled"]
+
+	foreach model "frr quagga static" {
+		$w.model.$model state "!selected"
+	}
+
+	set default_model [getActiveOption "routerDefaultsModel"]
+	$w.model.$default_model state selected
+
+	if { $default_model == "static" } {
+		foreach item $router_protocols {
+			set protocol [lindex $item 0]
+
+			$w.protocols.$protocol configure -state "disabled"
+		}
+	}
+
+	if { "frr" ni $supp_router_models } {
+		$w.model.frr configure -state disabled
+	}
+
+	ttk::frame $w.buttons
+	ttk::button $w.buttons.b1 -text "Apply" -command "routerDefaultsApply $wi"
+	ttk::button $w.buttons.b2 -text "Cancel" -command "destroy $wi"
+
+	pack $w.model -side top -fill x -pady 5
+	pack $w.model.frr $w.model.quagga $w.model.static \
+		-side left -expand 1
+	pack $w.protocols -side top -pady 5
+
+	set protocols_to_pack {}
+	foreach item $router_protocols {
+		lappend protocols_to_pack $w.protocols.[lindex $item 0]
+	}
+	pack {*}$protocols_to_pack -side left
+
+	pack $w.buttons -side bottom -fill x  -pady 2
+	pack $w.buttons.b1 -side left -expand 1 -anchor e -padx 2
+	pack $w.buttons.b2 -side right -expand 1 -anchor w -padx 2
+}
+.menubar.tools add command -label "Routing protocol defaults" -underline 0 \
+	-command $routing_defaults_command
+
+#
+# Widgets
 #
 menu .menubar.widgets
 global showConfig lastObservedNode
