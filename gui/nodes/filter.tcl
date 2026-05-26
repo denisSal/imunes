@@ -44,7 +44,7 @@ namespace eval ${MODULE}::gui {
 	namespace export *
 
 	proc toolbarIconDescr {} {
-		return "Add new Filter node"
+		return "Add new Filter"
 	}
 
 	proc icon {size} {
