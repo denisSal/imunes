@@ -1,0 +1,435 @@
+{
+  "options": {
+    "version": "2",
+    "IPv6autoAssign": "1"
+  },
+  "nodes": {
+    "n0": {
+      "type": "pc",
+      "name": "pc_acc6",
+      "auto_default_routes": "enabled",
+      "ifaces": {
+        "ifc0": {
+          "type": "lo",
+          "name": "lo0",
+          "ipv4_addrs": [
+            "127.0.0.1/8"
+          ],
+          "ipv6_addrs": [
+            "::1/128"
+          ]
+        },
+        "ifc1": {
+          "type": "phys",
+          "name": "eth0",
+          "link": "l0",
+          "ipv4_addrs": [
+            "60.0.0.20/24"
+          ],
+          "mac": "42:00:aa:00:00:00",
+          "ipv6_addrs": [
+            "fc00::20/64"
+          ]
+        }
+      }
+    },
+    "n1": {
+      "type": "pc",
+      "name": "pc_acc7",
+      "auto_default_routes": "enabled",
+      "ifaces": {
+        "ifc0": {
+          "type": "lo",
+          "name": "lo0",
+          "ipv4_addrs": [
+            "127.0.0.1/8"
+          ],
+          "ipv6_addrs": [
+            "::1/128"
+          ]
+        },
+        "ifc1": {
+          "type": "phys",
+          "name": "eth0",
+          "link": "l1",
+          "ipv4_addrs": [
+            "70.0.0.20/24"
+          ],
+          "mac": "42:00:aa:00:00:01"
+        },
+        "ifc2": {
+          "type": "vlan",
+          "name": "vlan0",
+          "vlan_dev": "eth0",
+          "vlan_tag": "11",
+          "ipv4_addrs": [
+            "1.2.3.5/24"
+          ]
+        }
+      }
+    },
+    "n2": {
+      "type": "router",
+      "name": "router",
+      "auto_default_routes": "enabled",
+      "ifaces": {
+        "ifc0": {
+          "type": "lo",
+          "name": "lo0",
+          "ipv4_addrs": [
+            "127.0.0.1/8"
+          ],
+          "ipv6_addrs": [
+            "::1/128"
+          ]
+        },
+        "ifc1": {
+          "type": "phys",
+          "name": "eth0",
+          "link": "l2",
+          "mac": "42:00:aa:00:00:02"
+        },
+        "ifc2": {
+          "type": "vlan",
+          "name": "vlan0",
+          "vlan_dev": "eth0",
+          "vlan_tag": "6",
+          "ipv4_addrs": [
+            "60.0.0.1/24"
+          ],
+          "ipv6_addrs": [
+            "fc00::11/64"
+          ]
+        },
+        "ifc3": {
+          "type": "vlan",
+          "name": "vlan1",
+          "vlan_dev": "eth0",
+          "vlan_tag": "7",
+          "ipv4_addrs": [
+            "70.0.0.1/24"
+          ]
+        },
+        "ifc4": {
+          "type": "vlan",
+          "name": "vlan2",
+          "vlan_dev": "vlan1",
+          "vlan_tag": "11",
+          "ipv4_addrs": [
+            "1.2.3.4/24"
+          ],
+          "oper_state": "up"
+        }
+      },
+      "model": "frr",
+      "router_config": "rip 1 ripng 1 ospf 0 ospf6 0 bgp 0 ldp 0 isis 0"
+    },
+    "n3": {
+      "type": "lanswitch",
+      "name": "sw",
+      "ifaces": {
+        "ifc0": {
+          "type": "phys",
+          "name": "e0",
+          "link": "l0",
+          "vlan_tag": "6"
+        },
+        "ifc1": {
+          "type": "phys",
+          "name": "e1",
+          "link": "l1",
+          "vlan_tag": "7"
+        },
+        "ifc2": {
+          "type": "phys",
+          "name": "e2",
+          "link": "l2",
+          "vlan_type": "trunk"
+        },
+        "ifc3": {
+          "type": "phys",
+          "name": "e3",
+          "link": "l3",
+          "vlan_type": "trunk"
+        }
+      },
+      "vlan_filtering": "1"
+    },
+    "n4": {
+      "type": "pc",
+      "name": "pc_trunk",
+      "auto_default_routes": "enabled",
+      "ifaces": {
+        "ifc0": {
+          "type": "lo",
+          "name": "lo0",
+          "ipv4_addrs": [
+            "127.0.0.1/8"
+          ],
+          "ipv6_addrs": [
+            "::1/128"
+          ]
+        },
+        "ifc1": {
+          "type": "phys",
+          "name": "eth0",
+          "link": "l3",
+          "ipv6_addrs": [
+            "fc00::21/64"
+          ],
+          "mac": "42:00:aa:00:00:03"
+        },
+        "ifc2": {
+          "type": "vlan",
+          "name": "vlan0",
+          "vlan_dev": "eth0",
+          "vlan_tag": "6"
+        }
+      }
+    },
+    "n5": {
+      "type": "pc",
+      "name": "pc_loop1",
+      "auto_default_routes": "enabled",
+      "ifaces": {
+        "ifc0": {
+          "type": "lo",
+          "name": "lo0",
+          "ipv4_addrs": [
+            "127.0.0.1/8"
+          ],
+          "ipv6_addrs": [
+            "::1/128"
+          ]
+        },
+        "ifc1": {
+          "type": "phys",
+          "name": "eth0",
+          "link": "l4",
+          "mac": "42:00:aa:00:00:04",
+          "ipv4_addrs": [
+            "10.0.1.20/24"
+          ],
+          "ipv6_addrs": [
+            "fc00:1::20/64"
+          ]
+        }
+      }
+    },
+    "n6": {
+      "type": "pc",
+      "name": "pc_loop2",
+      "auto_default_routes": "enabled",
+      "ifaces": {
+        "ifc0": {
+          "type": "lo",
+          "name": "lo0",
+          "ipv4_addrs": [
+            "127.0.0.1/8"
+          ],
+          "ipv6_addrs": [
+            "::1/128"
+          ]
+        },
+        "ifc1": {
+          "type": "phys",
+          "name": "eth0",
+          "link": "l5",
+          "mac": "42:00:aa:00:00:05",
+          "ipv4_addrs": [
+            "10.0.1.21/24"
+          ],
+          "ipv6_addrs": [
+            "fc00:1::21/64"
+          ]
+        }
+      }
+    },
+    "n7": {
+      "type": "lanswitch",
+      "name": "sw_loop1",
+      "ifaces": {
+        "ifc0": {
+          "type": "phys",
+          "name": "e0",
+          "link": "l4",
+          "vlan_tag": "2"
+        },
+        "ifc1": {
+          "type": "phys",
+          "name": "e1",
+          "link": "l6",
+          "vlan_type": "access",
+          "vlan_tag": "2"
+        },
+        "ifc2": {
+          "type": "phys",
+          "name": "e2",
+          "link": "l7",
+          "vlan_tag": "2"
+        }
+      },
+      "vlan_filtering": "1"
+    },
+    "n8": {
+      "type": "lanswitch",
+      "name": "sw_loop2",
+      "ifaces": {
+        "ifc0": {
+          "type": "phys",
+          "name": "e0",
+          "link": "l6",
+          "vlan_tag": "2"
+        },
+        "ifc1": {
+          "type": "phys",
+          "name": "e1",
+          "link": "l5",
+          "vlan_type": "trunk",
+          "vlan_tag": "2"
+        },
+        "ifc2": {
+          "type": "phys",
+          "name": "e2",
+          "link": "l7",
+          "vlan_type": "trunk"
+        }
+      },
+      "vlan_filtering": "1"
+    }
+  },
+  "links": {
+    "l0": {
+      "peers": "n0 n3",
+      "peers_ifaces": "ifc1 ifc0"
+    },
+    "l1": {
+      "peers": "n3 n1",
+      "peers_ifaces": "ifc1 ifc1"
+    },
+    "l2": {
+      "peers": "n3 n2",
+      "peers_ifaces": "ifc2 ifc1"
+    },
+    "l3": {
+      "peers": "n4 n3",
+      "peers_ifaces": "ifc1 ifc3"
+    },
+    "l4": {
+      "peers": "n5 n7",
+      "peers_ifaces": "ifc1 ifc0"
+    },
+    "l5": {
+      "peers": "n8 n6",
+      "peers_ifaces": "ifc1 ifc1"
+    },
+    "l6": {
+      "peers": "n7 n8",
+      "peers_ifaces": "ifc1 ifc0",
+      "loss": "100"
+    },
+    "l7": {
+      "peers": "n7 n8",
+      "peers_ifaces": "ifc2 ifc2"
+    }
+  },
+  "gui": {
+    "canvases": {
+      "c0": {
+        "name": "Canvas0"
+      }
+    },
+    "links": {
+      "l0": {
+        "peers": "n0 n3"
+      },
+      "l1": {
+        "peers": "n3 n1"
+      },
+      "l2": {
+        "peers": "n3 n2"
+      },
+      "l3": {
+        "peers": "n4 n3"
+      },
+      "l4": {
+        "peers": "n5 n7"
+      },
+      "l5": {
+        "peers": "n8 n6"
+      },
+      "l6": {
+        "peers": "n7 n8",
+        "points": "p0 p1"
+      },
+      "l7": {
+        "peers": "n7 n8"
+      }
+    },
+    "nodes": {
+      "n0": {
+        "label": "pc_acc6",
+        "canvas": "c0",
+        "iconcoords": "72 360",
+        "labelcoords": "72 391"
+      },
+      "n1": {
+        "label": "pc_acc7",
+        "canvas": "c0",
+        "iconcoords": "792 360",
+        "labelcoords": "792 391"
+      },
+      "n2": {
+        "label": "router",
+        "canvas": "c0",
+        "iconcoords": "432 504",
+        "labelcoords": "433 532"
+      },
+      "n3": {
+        "label": "sw",
+        "canvas": "c0",
+        "iconcoords": "432 360",
+        "labelcoords": "432 383"
+      },
+      "n4": {
+        "label": "pc_trunk",
+        "canvas": "c0",
+        "iconcoords": "72 480",
+        "labelcoords": "72 511"
+      },
+      "n5": {
+        "label": "pc_loop1",
+        "canvas": "c0",
+        "iconcoords": "72 192",
+        "labelcoords": "72 223"
+      },
+      "n6": {
+        "label": "pc_loop2",
+        "canvas": "c0",
+        "iconcoords": "792 192",
+        "labelcoords": "792 223"
+      },
+      "n7": {
+        "label": "sw_loop1",
+        "canvas": "c0",
+        "iconcoords": "264 192",
+        "labelcoords": "264 215"
+      },
+      "n8": {
+        "label": "sw_loop2",
+        "canvas": "c0",
+        "iconcoords": "600 192",
+        "labelcoords": "600 215"
+      }
+    },
+    "options": {
+      "show_interface_names": "1",
+      "show_interface_ipv6": "0",
+      "show_vlan_interfaces": "1"
+    },
+    "points": {
+      "p0": "264.0 96.0",
+      "p1": "600.0 96.0"
+    }
+  }
+}

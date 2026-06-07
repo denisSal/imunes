@@ -1,0 +1,369 @@
+set test_dir [file dirname [info script]]
+set imns_dir $test_dir/topologies/
+
+source $test_dir/common.tcl
+
+set gui 0
+catch { destroy . }
+
+# API specific procs
+# /API specific procs
+
+################# start tests
+
+test api_checkInteractive "Check if we're running in GUI (interactive) mode" -body {
+	set execMode
+} -result "interactive"
+
+set test_cmd_create_node [list apply {
+	{ node_type } {
+		set node_id [newNode $node_type]
+		if { [getNodeType $node_id] != $node_type } {
+			return "Failed creating $node_type"
+		}
+
+		return 0
+	}
+} \
+	""
+]
+
+foreach node_type $all_modules_list {
+	test api_createNode_$node_type "Create a single $node_type" \
+		-body [lreplace $test_cmd_create_node end end $node_type] \
+		-result "0" \
+		-cleanup { closeFile "noprompt" }
+}
+
+set test_cmd_create_link [list apply {
+	{ node_type1 node_type2 } {
+		set node1_id [newNode $node_type1]
+		if { [getNodeType $node1_id] != $node_type1 } {
+			return "Failed creating $node_type1"
+		}
+
+		set node2_id [newNode $node_type2]
+		if { [getNodeType $node2_id] != $node_type2 } {
+			return "Failed creating $node_type2"
+		}
+
+		set l0 [newLink $node1_id $node2_id]
+		if { $l0 != "l0" } {
+			return "Failed creating $node_type1-$node_type2 link"
+		}
+
+		return 0
+	}
+} \
+	"" \
+	""
+]
+
+foreach node_type1 $all_modules_list {
+	foreach node_type2 $all_modules_list {
+		test api_createLink_$node_type1-$node_type2 "Create a link between $node_type1 and $node_type2" \
+			-body [lreplace $test_cmd_create_link end-1 end $node_type1 $node_type2] \
+			-result "0" \
+			-cleanup { closeFile "noprompt" }
+	}
+}
+
+set test_cmd_create_topology {
+	global imns_dir
+
+	set node_list {}
+	set link_list {}
+
+	set pc1_id [newNode "pc"]
+	if { [getNodeType $pc1_id] != "pc" } {
+		return "Failed creating pc1"
+	}
+	lappend node_list $pc1_id
+
+	set router1_id [newNode "router"]
+	if { [getNodeType $router1_id] != "router" } {
+		return "Failed creating router1"
+	}
+	lappend node_list $router1_id
+
+	set pc2_id [newNode "pc"]
+	if { [getNodeType $pc2_id] != "pc" } {
+		return "Failed creating pc2"
+	}
+	lappend node_list $pc2_id
+
+	set l0 [newLink $pc1_id $router1_id]
+	if { $l0 != "l0" } {
+		return "Failed creating pc1-router1 link"
+	}
+	lappend link_list $l0
+
+	set l1 [newLink $router1_id $pc2_id]
+	if { $l1 != "l1" } {
+		return "Failed creating router1-pc2 link"
+	}
+	lappend link_list $l1
+
+	if { [getFromRunning "node_list"] != $node_list } {
+		return "Wrong node_list"
+	}
+
+	if { [getFromRunning "link_list"] != $link_list } {
+		return "Wrong link_list"
+	}
+
+	set mac_list {}
+	set ipv4_list {}
+	set ipv6_list {}
+	foreach node_id $node_list {
+		foreach iface_id [ifcList $node_id] {
+			set mac_addr [getIfcMACaddr $node_id $iface_id]
+			set ipv4_addrs [getIfcIPv4addrs $node_id $iface_id]
+			set ipv6_addrs [getIfcIPv6addrs $node_id $iface_id]
+
+			if { $mac_addr != "" } {
+				lappend mac_list $mac_addr
+			}
+
+			if { $ipv4_addrs != "" } {
+				lappend ipv4_list {*}$ipv4_addrs
+			}
+
+			if { $ipv6_addrs != "" } {
+				lappend ipv6_list {*}$ipv6_addrs
+			}
+		}
+	}
+
+	if { [lsort $mac_list] != [lsort [getFromRunning "mac_used_list"]] } {
+		return "Used MAC list mismatch"
+	}
+
+	if { [lsort $ipv4_list] != [lsort [getFromRunning "ipv4_used_list"]] } {
+		return "Used IPv4 list mismatch"
+	}
+
+	if { [lsort $ipv6_list] != [lsort [getFromRunning "ipv6_used_list"]] } {
+		return "Used IPv6 list mismatch"
+	}
+
+	set cfg [cfgGet]
+	saveCfgJson $imns_dir/api_createTopology.imn
+	closeFile "noprompt"
+
+	set cfg_load [readCfgJson $imns_dir/api_createTopology.imn]
+	if { $cfg != $cfg_load } {
+		return "Loaded topology not same as original"
+	}
+
+	return 0
+}
+
+test api_createTopology "Create a custom topology and do some basic tests" \
+	-body $test_cmd_create_topology \
+	-result "0" \
+	-cleanup { closeFile "noprompt" }
+
+set test_cmd_check_subnet {
+	global possible_loop possible_vlan_loop
+	global imns_dir
+
+	readCfgJson $imns_dir/api_checkSubnet.imn
+
+	set node_list [getFromRunning "node_list"]
+	foreach node_id $node_list {
+		set [getNodeName $node_id]_id $node_id
+	}
+
+	set expected_dict [dict create]
+	set subnet_data_list {}
+
+	# loopback interfaces
+	lappend subnet_data_list "{$router_id ifc0}"
+	lappend subnet_data_list "{$pc_trunk_id ifc0}"
+	lappend subnet_data_list "{$pc_acc6_id ifc0}"
+	lappend subnet_data_list "{$pc_acc7_id ifc0}"
+	lappend subnet_data_list "{$pc_loop1_id ifc0}"
+	lappend subnet_data_list "{$pc_loop2_id ifc0}"
+
+	# normal subnet
+	# router-eth0, sw-e2, sw-e3, pc_trunk-eth0
+	lappend subnet_data_list "{$router_id ifc1} {$sw_id ifc2} {$sw_id ifc3} {$pc_trunk_id ifc1}"
+	# router-vlan0, sw-e0, pc_acc6-eth0, pc_trunk-vlan0
+	lappend subnet_data_list "{$router_id ifc2} {$sw_id ifc0} {$pc_acc6_id ifc1} {$pc_trunk_id ifc2}"
+	# router-vlan1, sw-e1, pc_acc7-eth0
+	lappend subnet_data_list "{$router_id ifc3} {$sw_id ifc1} {$pc_acc7_id ifc1}"
+	# router-vlan2, pc_acc7-vlan0
+	lappend subnet_data_list "{$router_id ifc4} {$pc_acc7_id ifc2}"
+
+	# looped subnet
+	# pc_loop1-ifc1, sw_loop1-ifc0, sw_loop1-ifc1, sw_loop1-ifc2, sw_loop2-ifc0, sw_loop2-ifc1, sw_loop2-ifc2, pc_loop2-ifc1
+	set looped_subnet_data_list "{$pc_loop1_id ifc1} {$sw_loop1_id ifc0} {$sw_loop1_id ifc1} {$sw_loop1_id ifc2} \
+		{$sw_loop2_id ifc0} {$sw_loop2_id ifc1} {$sw_loop2_id ifc2} {$pc_loop2_id ifc1}"
+	lappend subnet_data_list $looped_subnet_data_list
+
+	foreach subnet_data $subnet_data_list {
+		foreach pair $subnet_data {
+			lassign $pair node_id iface_id
+			dict set expected_dict $node_id $iface_id $subnet_data
+		}
+	}
+
+	set expected_dict_nodes [dict keys $expected_dict]
+	#sputs "NODES: '$expected_dict_nodes'"
+	foreach node_id $node_list {
+		if { $node_id ni $expected_dict_nodes } {
+			#sputs "Skipping '$node_id'"
+			continue
+		}
+
+		set expected_dict_node_ifaces [dict keys [dictGet $expected_dict $node_id]]
+		#sputs "IFACES: '$expected_dict_node_ifaces'"
+		foreach iface_id [allIfcList $node_id] {
+			if { $iface_id ni [dict keys [dictGet $expected_dict $node_id]] } {
+				#sputs "Skipping '$node_id-$iface_id'"
+				continue
+			}
+			sputs "Checking '$node_id-$iface_id'"
+
+			set expected [dictGet $expected_dict $node_id $iface_id]
+			set expected [lsort $expected]
+
+			set got {}
+			set nodes_ifaces [getSubnetIfaces $node_id $iface_id]
+			foreach ifaces_data $nodes_ifaces {
+				lassign $ifaces_data - got_node_id got_iface_id -
+				lappend got "$got_node_id $got_iface_id"
+			}
+			set got [lsort $got]
+
+			if { "$node_id $iface_id" in $looped_subnet_data_list } {
+				if { $possible_loop || $possible_vlan_loop } {
+					continue
+				}
+			}
+
+			if { $got != $expected } {
+				#sputs "EXP: '$expected'"
+				#sputs "GOT: '$got'"
+
+				return "Wrong calculated subnet for $node_id-$iface_id ([getNodeName $node_id]-[getIfcName $node_id $iface_id])"
+			}
+		}
+	}
+
+	return 0
+}
+
+test api_checkSubnet "Check subnets in different settings" \
+	-body $test_cmd_check_subnet \
+	-result "0" \
+	-cleanup { closeFile "noprompt" }
+
+set test_cmd_check_topogen {
+	set i 6
+
+	# Chain
+	P [newNodes $i "pc"]
+	if { [llength [getFromRunning "node_list"]] != $i } {
+		return "Wrong number of generated nodes (P)!"
+	}
+
+	if { [llength [getFromRunning "link_list"]] != [expr { $i - 1 }] } {
+		return "Wrong number of generated links (P)!"
+	}
+
+	closeFile "noprompt"
+
+	# Star
+	Kb [newNodes 1 "pc"] [newNodes [expr { $i - 1 }] "pc"]
+	if { [llength [getFromRunning "node_list"]] != $i } {
+		return "Wrong number of generated nodes (Kb)!"
+	}
+
+	if { [llength [getFromRunning "link_list"]] != [expr { $i - 1 }] } {
+		return "Wrong number of generated links (Kb)!"
+	}
+	closeFile "noprompt"
+
+	# Cycle
+	C [newNodes $i "pc"]
+	if { [llength [getFromRunning "node_list"]] != $i } {
+		return "Wrong number of generated nodes (C)!"
+	}
+
+	if { [llength [getFromRunning "link_list"]] != $i } {
+		return "Wrong number of generated nodes (C)!"
+	}
+	closeFile "noprompt"
+
+	# Wheel
+	W "[newNodes 1 "pc"] [newNodes [expr { $i - 1 }] "pc"]"
+	if { [llength [getFromRunning "node_list"]] != $i } {
+		return "Wrong number of generated nodes (W)!"
+	}
+
+	if { [llength [getFromRunning "link_list"]] != [expr { 2 * ($i - 1) }] } {
+		return "Wrong number of generated nodes (W)!"
+	}
+	closeFile "noprompt"
+
+	# Cube
+	set qi 3
+	set qn [expr { int(pow(2, $qi)) }]
+	set ql [expr { int(($qn * $qi)/2) }]
+	Q [newNodes $qn "pc"]
+	if { [llength [getFromRunning "node_list"]] != $qn } {
+		return "Wrong number of generated nodes (Q)!"
+	}
+
+	if { [llength [getFromRunning "link_list"]] != $ql } {
+		return "Wrong number of generated nodes (Q)!"
+	}
+	closeFile "noprompt"
+
+	# Clique
+	K [newNodes $i "pc"]
+	if { [llength [getFromRunning "node_list"]] != $i } {
+		return "Wrong number of generated nodes (K)!"
+	}
+
+	if { [llength [getFromRunning "link_list"]] != [expr { int(($i * ($i-1))/2) }] } {
+		return "Wrong number of generated nodes (K)!"
+	}
+	closeFile "noprompt"
+
+	# Bipartite
+	set nodes [newNodes [expr $i + $i] "pc"]
+	Kb [lrange $nodes 0 [expr $i - 1]] [lrange $nodes $i end]
+	if { [llength [getFromRunning "node_list"]] != [expr { $i + $i }] } {
+		return "Wrong number of generated nodes (Kb)!"
+	}
+
+	if { [llength [getFromRunning "link_list"]] != [expr { $i * $i }] } {
+		return "Wrong number of generated nodes (Kb)!"
+	}
+	closeFile "noprompt"
+
+	# Random
+	R [newNodes $i "pc"] $i
+	if { [llength [getFromRunning "node_list"]] != $i } {
+		return "Wrong number of generated nodes (R)!"
+	}
+
+	if { [llength [getFromRunning "link_list"]] != $i } {
+		return "Wrong number of generated nodes (R)!"
+	}
+	closeFile "noprompt"
+
+	return 0
+}
+
+test api_checkTopogen "Check TopoGen for different topology types" \
+	-body $test_cmd_check_topogen \
+	-result "0" \
+	-cleanup { closeFile "noprompt" }
+
+################# end tests
+
+cleanupTests
