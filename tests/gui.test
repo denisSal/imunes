@@ -1,0 +1,163 @@
+set test_dir [file dirname [info script]]
+source $test_dir/common.tcl
+
+# GUI specific procs
+
+proc ::tcltest::leftClick { x1 y1 { x2 "" } { y2 "" } } {
+	global main_canvas_elem
+
+	if { $x2 == "" } {
+		set x2 $x1
+	}
+
+	if { $y2 == "" } {
+		set y2 $y1
+	}
+
+	focus $main_canvas_elem
+	event generate $main_canvas_elem <Enter>
+
+	event generate $main_canvas_elem <Motion> -x $x1 -y $y1
+	button1 $x1 $y1 ""
+	button1-motion $x2 $y2
+	button1-release $x2 $y2
+}
+
+proc ::tcltest::makeLink { x1 y1 x2 y2 } {
+	setActiveTool link link
+
+	::tcltest::leftClick $x1 $y1 $x2 $y2
+
+	return [lindex [getFromRunning "link_list"] end]
+}
+
+proc ::tcltest::createNode { node_type x y } {
+	if { [invokeTypeProc $node_type "netlayer"] == "LINK" } {
+		setActiveTool "link_layer" $node_type
+	} elseif { [invokeTypeProc $node_type "netlayer"] == "NETWORK" } {
+		setActiveTool "net_layer" $node_type
+	}
+
+	::tcltest::leftClick $x $y
+
+	set last [lindex [getFromRunning "node_list"] end]
+	if { [getNodeType $last] == $node_type } {
+		return $last
+	}
+}
+
+# /GUI specific procs
+
+################# start tests
+
+test gui_checkInteractive "Check if we're running in GUI (interactive) mode" -body {
+	set execMode
+} -result "interactive"
+
+set test_cmd_create_node [list apply {
+	{ node_type } {
+		set node_id [::tcltest::createNode $node_type 100 100]
+		if { [getNodeType $node_id] != $node_type } {
+			return "Failed creating $node_type"
+		}
+
+		return 0
+	}
+} \
+	""
+]
+
+foreach node_type $all_modules_list {
+	test gui_createNode_$node_type "Create a single $node_type" \
+		-body [lreplace $test_cmd_create_node end end $node_type] \
+		-result "0" \
+		-cleanup { closeFile "noprompt" }
+}
+
+set test_cmd_create_link [list apply {
+	{ node_type1 node_type2 } {
+		set x1 100
+		set y1 70
+
+		set node1_id [::tcltest::createNode $node_type1 $x1 $y1]
+		if { $node1_id != "" && [getNodeType $node1_id] != $node_type1 } {
+			return
+		}
+
+		set x2 500
+		set y2 70
+
+		set node2_id [::tcltest::createNode $node_type2 $x2 $y2]
+		if { $node2_id != "" && [getNodeType $node2_id] != $node_type2 } {
+			return
+		}
+
+		set l0 [::tcltest::makeLink $x1 $y1 $x2 $y2]
+		if { $l0 != "l0" } {
+			return "Failed creating $node_type1-$node_type2 link"
+		}
+
+		return 0
+	}
+} \
+	"" \
+	""
+]
+
+foreach node_type1 $all_modules_list {
+	foreach node_type2 $all_modules_list {
+		test gui_createLink_$node_type1-$node_type2 "Create a link between $node_type1 and $node_type2" \
+			-body [lreplace $test_cmd_create_link end-1 end $node_type1 $node_type2] \
+			-result "0" \
+			-cleanup { closeFile "noprompt" }
+	}
+}
+
+set test_cmd_create_topology {
+	set x1 100
+	set y1 70
+
+	set pc1_id [::tcltest::createNode "pc" $x1 $y1]
+	if { [getNodeType $pc1_id] != "pc" } {
+		return "Failed creating pc1"
+	}
+
+	set x2 500
+	set y2 70
+
+	set router1_id [::tcltest::createNode "router" $x2 $y2]
+	if { [getNodeType $router1_id] != "router" } {
+		return "Failed creating router1"
+	}
+
+	set x3 500
+	set y3 270
+
+	set pc2_id [::tcltest::createNode "pc" $x3 $y3]
+	if { [getNodeType $pc2_id] != "pc" } {
+		return "Failed creating pc2"
+	}
+
+	set l0 [::tcltest::makeLink $x1 $y1 $x2 $y2]
+	if { $l0 != "l0" } {
+		return "Failed creating pc1-router1 link"
+	}
+
+	set l1 [::tcltest::makeLink $x2 $y2 $x3 $y3]
+	if { $l1 != "l1" } {
+		return "Failed creating router1-pc2 link"
+	}
+
+	return 0
+}
+
+test gui_createTopology "Create a custom topology" \
+	-body $test_cmd_create_topology \
+	-result "0" \
+	-cleanup { closeFile "noprompt" }
+
+################# end tests
+
+catch { destroy . }
+
+cleanupTests
