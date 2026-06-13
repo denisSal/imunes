@@ -53,13 +53,13 @@
 #  3. add any node
 # Should reset redolog when changing config from somewhere in undolog
 proc updateUndoLog {} {
-	global changed showTree
+	global changed showTree gui
 
 	set undolevel [getFromRunning "undolevel"]
 
 	if { $changed } {
 		setToRunning "undolevel" [incr undolevel]
-		if { $undolevel == 1 } {
+		if { $gui && $undolevel == 1 } {
 			.menubar.edit entryconfigure "Undo" -state normal
 		}
 
@@ -70,7 +70,7 @@ proc updateUndoLog {} {
 		# When some changes are made in the topology, new /etc/hosts files
 		# should be generated.
 		setToRunning "etc_hosts" ""
-		if { $showTree } {
+		if { $gui && $showTree } {
 			refreshTopologyTree
 		}
 	}
@@ -1156,7 +1156,12 @@ proc setActiveToolGroup { group } {
 proc setActiveTool { group tool } {
 	global tool_groups active_tools
 
-	dict set active_tools $group [lsearch [dict get $tool_groups $group] $tool]
+	set tool_idx [lsearch [dict get $tool_groups $group] $tool]
+	if { $tool_idx < 0 } {
+		return -code error "No tool '$tool' in group '$group'."
+	}
+
+	dict set active_tools $group $tool_idx
 	setActiveToolGroup $group
 }
 
