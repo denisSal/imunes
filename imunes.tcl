@@ -596,7 +596,7 @@ if { $execMode == "interactive" } {
 			safeSourceFile $file_path
 		}
 
-		set skip_files "theme.tcl initgui.tcl topogen.tcl debug.tcl"
+		set skip_files "theme.tcl initgui.tcl debug.tcl"
 		foreach file_path [glob -directory $ROOTDIR/$LIBDIR/gui *.tcl] {
 			if { [file tail $file_path] ni $skip_files } {
 				safeSourceFile $file_path
