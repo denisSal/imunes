@@ -37,30 +37,44 @@
 # RESULT
 #   * new_nodes -- created nodes
 #****
-proc newNodes { node_num } {
-	global grid sizex sizey
+proc newNodes { node_num { node_type "" } } {
+	global grid sizex sizey gui
+	global all_modules_list
 
-	set active_tool [getActiveTool]
-	set new_nodes {}
-	set r [expr {($node_num - 1) * (1 + 4 / $node_num) * $grid / 2}]
-	set x0 [expr {$sizex / 2}]
-	set y0 [expr {$sizey / 2}]
-	set twopidivn [expr {acos(0) * 4 / $node_num}]
-	if { $active_tool == "router" } {
-		set dy 24
-	} else {
-		set dy 32
+	if { $node_type == "" } {
+		set node_type [getActiveTool]
 	}
 
-	for { set i 0 } { $i < $node_num } { incr i } {
-		set new_node_id [newNode $active_tool]
-		set x [expr {$x0 + $r * cos($twopidivn * $i)}]
-		set y [expr {$y0 - $r * sin($twopidivn * $i)}]
+	if { $node_type ni $all_modules_list } {
+		return -code error "Node type '$node_type' does not exist."
+	}
 
-		setNodeCoords $new_node_id "$x $y"
-		setNodeLabelCoords $new_node_id "$x [expr {$y + $dy}]"
-		setNodeCanvas $new_node_id [getFromRunning_gui "curcanvas"]
-		setNodeLabel $new_node_id [getNodeName $new_node_id]
+	if { $gui } {
+		set r [expr {($node_num - 1) * (1 + 4 / $node_num) * $grid / 2}]
+		set x0 [expr {$sizex / 2}]
+		set y0 [expr {$sizey / 2}]
+		set twopidivn [expr {acos(0) * 4 / $node_num}]
+
+		if { $node_type == "router" } {
+			set dy 24
+		} else {
+			set dy 32
+		}
+	}
+
+	set new_nodes {}
+	for { set i 0 } { $i < $node_num } { incr i } {
+		set new_node_id [newNode $node_type]
+
+		if { $gui } {
+			set x [expr {$x0 + $r * cos($twopidivn * $i)}]
+			set y [expr {$y0 - $r * sin($twopidivn * $i)}]
+
+			setNodeCoords $new_node_id "$x $y"
+			setNodeLabelCoords $new_node_id "$x [expr {$y + $dy}]"
+			setNodeCanvas $new_node_id [getFromRunning_gui "curcanvas"]
+			setNodeLabel $new_node_id [getNodeName $new_node_id]
+		}
 
 		lappend new_nodes $new_node_id
 	}
@@ -79,7 +93,7 @@ proc newNodes { node_num } {
 #   * nodes -- generated nodes
 #****
 proc topoGenDone { nodes } {
-	global changed
+	global changed gui
 
 	if { [getFromRunning "stop_sched"] } {
 		redeployCfg
@@ -87,8 +101,10 @@ proc topoGenDone { nodes } {
 
 	set changed 1
 	updateUndoLog
-	redrawAll
-	selectNodes $nodes
+	if { $gui } {
+		redrawAll
+		selectNodes $nodes
+	}
 }
 
 #
@@ -105,16 +121,20 @@ proc topoGenDone { nodes } {
 #   * nodes -- nodes
 #****
 proc P { nodes } {
-	global main_canvas_elem
+	global main_canvas_elem gui
 
-	$main_canvas_elem config -cursor watch; update
+	if { $gui } {
+		$main_canvas_elem config -cursor watch; update
+	}
 
 	set node_num [llength $nodes]
 	for { set i 0 } { $i < [expr {$node_num - 1}] } { incr i } {
 		set node1_id [lindex $nodes $i]
 		set node2_id [lindex $nodes [expr {($i + 1) % $node_num}]]
 		set link_id [newLink $node1_id $node2_id]
-		setLinkPeers_gui $link_id "$node1_id $node2_id"
+		if { $gui } {
+			setLinkPeers_gui $link_id "$node1_id $node2_id"
+		}
 	}
 
 	topoGenDone $nodes
@@ -134,16 +154,21 @@ proc P { nodes } {
 #   * nodes -- nodes
 #****
 proc C { nodes } {
-	global main_canvas_elem
+	global main_canvas_elem gui
 
-	$main_canvas_elem config -cursor watch; update
+	if { $gui } {
+		$main_canvas_elem config -cursor watch; update
+	}
 
 	set node_num [llength $nodes]
 	for { set i 0 } { $i < $node_num } { incr i } {
 		set node1_id [lindex $nodes $i]
 		set node2_id [lindex $nodes [expr {($i + 1) % $node_num}]]
 		set link_id [newLink $node1_id $node2_id]
-		setLinkPeers_gui $link_id "$node1_id $node2_id"
+
+		if { $gui } {
+			setLinkPeers_gui $link_id "$node1_id $node2_id"
+		}
 	}
 
 	topoGenDone $nodes
@@ -163,9 +188,11 @@ proc C { nodes } {
 #   * nodes -- nodes
 #****
 proc W { nodes } {
-	global main_canvas_elem
+	global main_canvas_elem gui
 
-	$main_canvas_elem config -cursor watch; update
+	if { $gui } {
+		$main_canvas_elem config -cursor watch; update
+	}
 
 	set node_num [llength $nodes]
 	set vr [lindex $nodes 0]
@@ -174,12 +201,16 @@ proc W { nodes } {
 		set node1_id $vr
 		set node2_id [lindex $nodes $i]
 		set link_id [newLink $node1_id $node2_id]
-		setLinkPeers_gui $link_id "$node1_id $node2_id"
+		if { $gui } {
+			setLinkPeers_gui $link_id "$node1_id $node2_id"
+		}
 
 		set node1_id [lindex $nodes $i]
 		set node2_id [lindex $vt [expr {$i + 1}]]
 		set link_id [newLink $node1_id $node2_id]
-		setLinkPeers_gui $link_id "$node1_id $node2_id"
+		if { $gui } {
+			setLinkPeers_gui $link_id "$node1_id $node2_id"
+		}
 	}
 
 	topoGenDone $nodes
@@ -199,17 +230,24 @@ proc W { nodes } {
 #   * nodes -- nodes
 #****
 proc Q { nodes } {
+	global gui
+
 	set node_num [llength $nodes]
 	set order [expr int(log($node_num)/log(2))]
 	for { set i 0 } { $i < $order } { incr i } {
-		animateCursor
+		if { $gui } {
+			animateCursor
+		}
+
 		set d [expr {int(pow(2, $i))}]
 		for { set j 0 } { $j < $node_num } { incr j } {
 			if { [llength [ifcList [lindex $nodes $j]]] <= $i } {
 				set node1_id [lindex $nodes $j]
 				set node2_id [lindex $nodes [expr {($j + $d) % $node_num}]]
 				set link_id [newLink $node1_id $node2_id]
-				setLinkPeers_gui $link_id "$node1_id $node2_id"
+				if { $gui } {
+					setLinkPeers_gui $link_id "$node1_id $node2_id"
+				}
 			}
 		}
 	}
@@ -231,14 +269,21 @@ proc Q { nodes } {
 #   * nodes -- nodes
 #****
 proc K { nodes } {
+	global gui
+
 	set node_num [llength $nodes]
 	for { set i 0 } { $i < [expr {$node_num - 1}] } { incr i } {
-		animateCursor
+		if { $gui } {
+			animateCursor
+		}
+
 		for { set j [expr {$i + 1}] } { $j < $node_num } { incr j } {
 			set node1_id [lindex $nodes $i]
 			set node2_id [lindex $nodes $j]
 			set link_id [newLink $node1_id $node2_id]
-			setLinkPeers_gui $link_id "$node1_id $node2_id"
+			if { $gui } {
+				setLinkPeers_gui $link_id "$node1_id $node2_id"
+			}
 		}
 	}
 
@@ -260,15 +305,22 @@ proc K { nodes } {
 #   * v2 -- nodes2
 #****
 proc Kb { v1 v2 } {
+	global gui
+
 	set n1 [llength $v1]
 	set n2 [llength $v2]
 	for { set i 0 } { $i < $n1 } { incr i } {
-		animateCursor
+		if { $gui } {
+			animateCursor
+		}
+
 		for { set j 0 } { $j < $n2 } { incr j } {
 			set node1_id [lindex $v1 $i]
 			set node2_id [lindex $v2 $j]
 			set link_id [newLink $node1_id $node2_id]
-			setLinkPeers_gui $link_id "$node1_id $node2_id"
+			if { $gui } {
+				setLinkPeers_gui $link_id "$node1_id $node2_id"
+			}
 		}
 	}
 
@@ -306,6 +358,8 @@ proc Kbhelper { node_num m } {
 #   * m --
 #****
 proc R { nodes m } {
+	global gui
+
 	set cn [lindex $nodes 0]
 	set dn [lrange $nodes 1 end]
 
@@ -317,7 +371,9 @@ proc R { nodes m } {
 			set node2_id [lindex $dn $node2_idx]
 
 			set link_id [newLink $node1_id $node2_id]
-			setLinkPeers_gui $link_id "$node1_id $node2_id"
+			if { $gui } {
+				setLinkPeers_gui $link_id "$node1_id $node2_id"
+			}
 
 			lappend cn $node2_id
 			set dn [lreplace $dn $node2_idx $node2_idx]
@@ -327,7 +383,9 @@ proc R { nodes m } {
 			set node2_id [lindex $nodes [expr int(rand() * [llength $nodes])]]
 			if { $node1_id != $node2_id && [llength [linksByPeers $node1_id $node2_id]] == 0 } {
 				set link_id [newLink $node1_id $node2_id]
-				setLinkPeers_gui $link_id "$node1_id $node2_id"
+				if { $gui } {
+					setLinkPeers_gui $link_id "$node1_id $node2_id"
+				}
 
 				incr i
 			}
