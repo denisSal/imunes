@@ -2398,6 +2398,7 @@ proc configGUI_advancedVirtOptions { wi node_id virt_types } {
 		-width 10 \
 		-values $virt_types \
 		-state readonly
+	attachHelp "$advanced_frame.picker" "Advanced options types"
 	$advanced_frame.picker set [lindex $virt_types 0]
 	pack $advanced_frame.picker -side left -padx 7
 
@@ -2415,6 +2416,7 @@ proc configGUI_advancedVirtOptions { wi node_id virt_types } {
 	ttk::button $advanced_frame.btn \
 		-text "Advanced options" \
 		-command [lreplace $tmp_command end end $advanced_frame.picker]
+	attachHelp "$advanced_frame.btn" "Advanced virt options"
 	pack $advanced_frame.btn -side left -padx 7
 
 	if { [llength $virt_types] == 0 } {

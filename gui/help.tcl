@@ -167,71 +167,73 @@ set menubarevents_help_strings {
 lappend array_names "menubarevents"
 
 set menubarexperiment_help_strings {
-	"IMUNES experiment modes" "IMUNES has three modes of operation: `edit`, `exec` and `paused`. TODO"
-	"Execute experiment" "Start the experiment and instantiate all configured network elements."
-	"Terminate experiment" "Stop the running experiment and remove all instantiated resources."
-	"Restart experiment" "Terminate and execute the experiment again."
-	"Pausing/Resuming experiment" "Temporarily pause or resume runtime topology updates."
-	"Attaching to experiment" "Attach IMUNES to an already running experiment."
-	"Refreshing experiment" "Synchronize the GUI with the current state of the running experiment. Used only when multiple UI instances are attached to the same experiment."
+	"<<NOSECTION>>IMUNES Experiment Modes" "IMUNES operates in three modes: `edit`, `exec`, and `paused`.\n\nIn `edit` mode, the topology exists only as a configuration and no system resources are instantiated. Starting an experiment switches IMUNES to `exec` mode, where the topology is instantiated and runs as an independent experiment identified by a unique experiment ID (*eid*). Changes made to the topology while in `exec` mode are immediately reflected in the running experiment.\n\nThe `paused` mode temporarily suspends the application of topology changes. Any modifications made while paused are accumulated and applied simultaneously when execution is resumed.\n\nA running experiment exists independently of the IMUNES GUI and can be detached from and reattached to at any time. Terminating an experiment destroys all instantiated resources while preserving the topology configuration.\n\nThe *Experiment* submenus can be used to transition between these modes and manage the experiment lifecycle.<<FAKENEWLINE>>"
+	"<<LEVEL1>><<*>>Execute<<*>>" "<<BULLET_EXP>>Start an experiment and switch to `exec` mode. In the process of starting an experiment, IMUNES creates and configures the virtual network. All events during this process will be shown in the statusbar."
+	"<<LEVEL1>><<*>>Terminate<<*>>" "<<BULLET_EXP>>Terminate an experiment and switch to `edit` mode. During the termination process, IMUNES will shut down all network elements and it will terminate active services on each node. All events during this process will be shown in the statusbar."
+	"<<LEVEL1>><<*>>Restart<<*>>" "<<BULLET_EXP>>Terminate and immediately execute the experiment again."
+	"<<LEVEL1>><<*>>Pause/Resume execution<<*>>" "<<BULLET_EXP>>Temporarily pause or resume runtime topology updates."
+	"<<LEVEL1>><<*>>Attach to experiment<<*>>" "<<BULLET_EXP>>This option opens a window with the list of attachable experiments on this (or the remote) machine."
+	"<<LEVEL1>><<*>>Refresh running experiment<<*>>" "<<BULLET_EXP>>Synchronize the GUI with the current state of the running experiment. Useful only when multiple UI instances are attached to the same experiment."
 }
 lappend array_names "menubarexperiment"
 
 set menubarhelp_help_strings {
-	"About IMUNES" "Display version information, authorship and licensing details."
+	"<<NOSECTION>>IMUNES Help" "When hovering over certain GUI elements, it is possible to get help for that element with the `F1` button on your keyboard. This will open a popup with explanations for that element.\n\nThe *Help* menu has only one submenu.<<FAKENEWLINE>>"
+	"<<LEVEL1>><<*>>About<<*>>" "<<BULLET_EXP>>Display version information, authorship and licensing details."
 }
 lappend array_names "menubarhelp"
 
 set selecttool_help_strings {
-	"Select tool" "The default tool for selecting and moving elements."
+	"<<SUBSUBSECTION>>Select tool" "The default tool for selecting and moving elements."
 }
 lappend array_names "selecttool"
 
 set linktool_help_strings {
-	"Link tool" "Tool for creating links between nodes on the canvas. Drag the line from one node to another to create a link."
+	"<<SUBSUBSECTION>>Link tool" "Tool for creating links between nodes on the canvas. Drag the line from one node to another to create a link."
 }
 lappend array_names "linktool"
 
 set linklayertools_help_strings {
-	"Link layer node tool" "This is a list of link-layer (L2) nodes available for use. It is not possible to execute node types with red background on current architecture."
-	"LAN switch node" "A link layer element that forwards incoming packets to connected nodes using the table of destination addresses and its ports."
-	"Hub node" "A link layer element that forwards every incoming packet to all of its ports and, thus, to every connected node."
-	"External interface node" "A tool that provides the possibility to connect a virtual node with the physical interface (e.g. to give the node the access to the Internet)."
-	"RSTP switch node" "A Rapid Spanning Tree Protocol switch that can prevent bridge loops and allow providing backup links if an active link fails. (FreeBSD only)"
-	"Filter node" "A link layer element that can filter/divert/forward packets depending on their content. (FreeBSD only)"
-	"Packet generator node" "A link layer element to craft custom packets and send them with given packet rate. (FreeBSD only)"
+	"<<SUBSUBSECTION>>Link layer node tool" "This opens a list of link-layer (L2) nodes available for use:<<NEWLINE>><<LEVEL1>>LAN switch node\n<<LEVEL1>>Hub node\n<<LEVEL1>>External interface node\n<<LEVEL1>>RSTP switch node (FreeBSD only)\n<<LEVEL1>>Filter node (FreeBSD only)\n<<LEVEL1>>Packet generator node (FreeBSD only)\n\n**NOTE**: It is not possible to execute node types with red background on the current architecture."
+	"<<SUBSUBSUBSECTION>>LAN switch node" "A link layer element that forwards incoming packets to connected nodes using the table of destination addresses and its ports."
+	"<<SUBSUBSUBSECTION>>Hub node" "A link layer element that forwards every incoming packet to all of its ports and, thus, to every connected node."
+	"<<SUBSUBSUBSECTION>>External interface node" "A tool that provides the possibility to connect a virtual node with the physical interface (e.g. to give the node the access to the Internet)."
+	"<<SUBSUBSUBSECTION>>RSTP switch node" "A Rapid Spanning Tree Protocol switch that can prevent bridge loops and allow providing backup links if an active link fails. (FreeBSD only)"
+	"<<SUBSUBSUBSECTION>>Filter node" "A link layer element that can filter/divert/forward packets depending on their content. (FreeBSD only)"
+	"<<SUBSUBSUBSECTION>>Packet generator node" "A link layer element to craft custom packets and send them with given packet rate. (FreeBSD only)"
 }
 lappend array_names "linklayertools"
 
 set netlayertools_help_strings {
-	"Network layer node tool" "This is a list of network-layer (L3) nodes available for use. It is not possible to execute node types with red background on current architecture."
-	"Router node" "A network layer element that is capable of packet forwarding using the routes obtained by dynamic routing protocols (available through quagga or xorp by default installation or any other standard FreeBSD routing daemon)."
-	"Host node" "A network layer element that does not forward packets and has static routes. It starts standard network services, via portmap and inetd."
-	"PC node" "A network layer element that also does not forward packets and has static routes. Unlike host, it does not start any network services."
-	"NAT64 node" "A router node which is capable to enable translation between IPv4 and IPv6 protocols using a form of network address translation (NAT)."
-	"External connection node" "A tool that provides the possibility to connect your host PC with a virtual node by creating an interface on your computer."
-	"Netns node" "A Linux network namespace node that allows integration with existing namespaces and processes. (Linux only)"
+	"<<SUBSUBSECTION>>Network layer node tool" "This opens a list of network-layer (L3) nodes available for use:<<NEWLINE>><<LEVEL1>>Router node\n<<LEVEL1>>Host node\n<<LEVEL1>>PC node\n<<LEVEL1>>NAT64 node\n<<LEVEL1>>External connection node\n<<LEVEL1>>Netns node (Linux only)\n\n**NOTE**: It is not possible to execute node types with red background on current architecture."
+	"<<SUBSUBSUBSECTION>>Router node" "A network layer element that is capable of packet forwarding using the routes obtained by dynamic routing protocols (available through quagga or xorp by default installation or any other standard FreeBSD routing daemon)."
+	"<<SUBSUBSUBSECTION>>Host node" "A network layer element that does not forward packets and has static routes. It starts standard network services, via portmap and inetd."
+	"<<SUBSUBSUBSECTION>>PC node" "A network layer element that also does not forward packets and has static routes. Unlike host, it does not start any network services."
+	"<<SUBSUBSUBSECTION>>NAT64 node" "A router node which is capable to enable translation between IPv4 and IPv6 protocols using a form of network address translation (NAT)."
+	"<<SUBSUBSUBSECTION>>External connection node" "A tool that provides the possibility to connect your host PC with a virtual node by creating an interface on your computer."
+	"<<SUBSUBSUBSECTION>>Netns node" "A Linux network namespace node that allows integration with existing namespaces and processes. (Linux only)"
 }
 lappend array_names "netlayertools"
 
 set annotationtools_help_strings {
-	"Text annotation tool" "Create a text annotation on the canvas. Opens a basic text editor and places the text on the clicked location."
-	"Freeform annotation tool" "Create a freeform annotation on the canvas. Follows the mouse cursor and leaves a trail, similarly to a pen."
-	"Oval annotation tool" "Create an oval annotation on the canvas. Define upper-left and lower-right 'corners' of the oval to draw on the canvas."
-	"Rectangle annotation tool" "Create a rectangle annotation on the canvas. Define upper-left and lower-right corners of the rectangle to draw on the canvas."
+	"<<SUBSUBSECTION>>Annotations" "Create different types of graphical annotations on the canvas:<<NEWLINE>><<LEVEL1>>Text annotation\n<<LEVEL1>>Freeform annotation\n<<LEVEL1>>Oval annotation\n<<LEVEL1>>Rectangle annotation"
+	"<<SUBSUBSUBSECTION>>Text annotation tool" "Create a text annotation on the canvas. Opens a basic text editor and places the text on the clicked location."
+	"<<SUBSUBSUBSECTION>>Freeform annotation tool" "Create a freeform annotation on the canvas. Follows the mouse cursor and leaves a trail, similarly to a pen."
+	"<<SUBSUBSUBSECTION>>Oval annotation tool" "Create an oval annotation on the canvas. Define upper-left and lower-right 'corners' of the oval to draw on the canvas."
+	"<<SUBSUBSUBSECTION>>Rectangle annotation tool" "Create a rectangle annotation on the canvas. Define upper-left and lower-right corners of the rectangle to draw on the canvas."
 }
 lappend array_names "annotationtools"
 
 set bottombar_help_strings {
-	"Canvas list scrollbar" "Use this to scroll through the list of available canvases."
-	"Canvas list" "A list of created canvases. The currently selected canvas is marked using a different color.\n\nUse left click to select the canvas, double click to rename it, or mouse-scroll to switch between different canvases. Double-click on the empty element creates a new canvas with the default name."
-	"Canvas scrollbar" "Used to move left/right and up/down on the canvas, if the canvas is not fully visible."
-	"Status line" "Used for various informational messages such as: current execution/termination step, node/link details, etc."
-	"Zoom level" "Current zoom level. Double-click to insert custom zoom percentage value, or right-click to choose a pre-defined value."
-	"Scheduler time" "Current step for event scheduler - time in seconds from the event scheduling start."
-	"Auto-rearrange status" "Notifies user that either 'Auto rearrange all' or 'Auto rearrange selected' is enabled."
-	"Operational mode" "Shows current mode of operation:\n - 'edit mode' - the experiment is not executed, normal editing\n - 'exec mode' - the experiment is executed\n - 'pause mode' - the experiment is executed, but new elements will not trigger a runtime change"
-	"Experiment ID" "Shows the currently running experiment ID (EID) if the experiment is running."
+	"<<LEVEL1>>Canvas list scrollbar<< 1>>" "<<BULLET_EXP>>Use this to scroll through the list of available canvases."
+	"<<LEVEL1>>Canvas list<< 2>>" "<<BULLET_EXP>>A list of created canvases. The currently selected canvas is marked using a different color.\n<<LEVEL2>>Use left click to select the canvas, double click to rename it, or mouse-scroll to switch between different canvases.\n<<LEVEL2>>Double-click on the empty part of this element creates a new canvas with the default name."
+	"<<LEVEL1>>Canvas scrollbar<< 3>>" "<<BULLET_EXP>>Used to move left/right and up/down on the canvas, if the canvas is not fully visible."
+	"<<LEVEL1>>Status line<< 4>>" "<<BULLET_EXP>>Used for various informational messages such as: current execution/termination step, node/link details, etc."
+	"<<LEVEL1>>Zoom level<< 5>>" "<<BULLET_EXP>>Current zoom level. Double-click to insert custom zoom percentage value, or right-click to choose a pre-defined value."
+	"<<LEVEL1>>Scheduler time<< 6>>" "<<BULLET_EXP>>Current step for event scheduler - time in seconds from the event scheduling start."
+	"<<LEVEL1>>Auto-rearrange status<< 7>>" "<<BULLET_EXP>>Notifies user that either `Auto rearrange all` or `Auto rearrange selected` is enabled."
+	"<<LEVEL1>>Operational mode<< 8>>" "<<BULLET_EXP>>Shows current mode of operation:\n<<LEVEL2>>`edit mode` - the experiment is not executed, normal editing\n<<LEVEL2>>`exec mode` - the experiment is executed\n<<LEVEL2>>`pause mode` - the experiment is executed, but new elements will not trigger a runtime change"
+	"<<LEVEL1>>Experiment ID<< 9>>" "<<BULLET_EXP>>Shows the currently running experiment ID (EID) if the experiment is running."
 }
 lappend array_names "bottombar"
 
@@ -242,18 +244,18 @@ set canvas_help_strings {
 lappend array_names "canvas"
 
 set node_help_strings {
-	"IMUNES nodes" "Network devices and virtual systems that make up the topology. Double-click a node to configure it."
+	"<<SUBSUBSECTION>>IMUNES Nodes" "Network devices and virtual systems that make up the topology. Double-click a node to configure it."
 }
 lappend array_names "node"
 
 set link_help_strings {
-	"IMUNES links" "Connections between nodes used to transport packets and model network connectivity."
-	"Segment links" "Individual link segments that can be adjusted to modify link appearance on the canvas."
+	"<<SUBSUBSECTION>>IMUNES links" "Connections between nodes used to transport packets and model network connectivity."
+	"<<SUBSUBSUBSECTION>>Segment links" "Individual link segments that can be adjusted to modify link appearance on the canvas."
 }
 lappend array_names "link"
 
 set ifaces_help_strings {
-	"IMUNES interfaces" "Network interfaces belonging to nodes and used to connect links."
+	"<<SUBSUBSECTION>>IMUNES interfaces" "Network interfaces belonging to nodes and used to connect links."
 }
 lappend array_names "ifaces"
 
@@ -278,9 +280,9 @@ set confignode_help_strings {
     xterm+vim:	{xterm -T \"%TITLE%\" -e \"vim %FILE_PATH%\"}
     gedit:		{gedit --standalone %FILE_PATH%}
     mousepad:	{mousepad --disable-server %FILE_PATH%}
-    kate		{kate --block %FILE_PATH%}
-    vscode		{code --wait --new-window %FILE_PATH%}
-    sublime		{subl -n -w %FILE_PATH%}
+    kate:		{kate --block %FILE_PATH%}
+    vscode:		{code --wait --new-window %FILE_PATH%}
+    sublime:	{subl -n -w %FILE_PATH%}
     gvim		{gvim -f %FILE_PATH%}\n\nThe external editor must quit, only then will IMUNES fetch the latest changes."
     "Services" "For each enabled service, the node will start its daemon on node startup."
 }
@@ -291,7 +293,7 @@ set configlink_help_strings {
 	"Link bandwidth" "Maximum link bandwidth in bits per second. Set this to 0 to leave bandwidth unlimited (or rather: limited by your hardware)."
 	"Link delay" "Propagation delay added to packets crossing this link, in microseconds. Set this to 0 for no additional delay."
 	"Link BER" "(FreeBSD only)\n\nBit error rate expressed as 1/N. Smaller non-zero N values produce errors more frequently. Set this to 0 to disable BER emulation."
-	"Link packet loss" "(Lunux only)\n\nPercentage of packets dropped on this link. Set this to 0 for no artificial packet loss."
+	"Link packet loss" "(Linux only)\n\nPercentage of packets dropped on this link. Set this to 0 for no artificial packet loss."
 	"Link packet duplication" "Percentage of packets duplicated on this link. Set this to 0 to disable packet duplication."
 	"Link width" "Width of the link line on the canvas. This changes only the visual representation of the link."
 	"Link color" "Color of the link line on the canvas. This changes only the visual representation of the link."
@@ -302,59 +304,257 @@ set configlink_help_strings {
 lappend array_names "configlink"
 
 set advancedopts_help_strings {
-	"Imported files" "Import (embed) host files in IMUNES topology file."
-	"Imported file enabled" "Enable or disable this imported file. Validation errors are ignored while the entry is disabled."
-	"Imported file internal path" "Destination of the imported file. Use an absolute file path, @node:path to link to an imported file from another node, or #hook:filename to make the file available to a trigger hook.\n\nLinked entries cannot link to another linked entry.\n\nValid hooks are:\npre-init_config\npost-init_config\npre-pifaces_create\npost-pifaces_create\npre-pifaces_dcreate\npost-pifaces_dcreate\npre-lifaces_create\npost-lifaces_create\npre-ifaces_config\npost-ifaces_config\npre-node_config\npost-node_config\npre-node_unconfig\npost-node_unconfig\npre-node_shutdown\npost-node_shutdown\npre-ifaces_unconfig\npost-ifaces_unconfig\npre-lifaces_destroy\npost-lifaces_destroy\npre-pifaces_destroy\npost-pifaces_destroy\npre-pifaces_ddestroy\npost-pifaces_ddestroy\npre-node_destroy"
-	"Imported file mode" "File permissions specified as a numeric mode, for example 644. An environment variable (a value starting with $) is also accepted."
-	"Imported file edit" "Edit the contents of the imported file using the built-in editor."
-	"Imported file external edit" "Edit the contents of the imported file using an external editor."
-	"Imported file import" "Select a local file and load its contents into this imported file entry."
-	"Imported file encode" "Store the file contents base64-encoded in the IMUNES configuration. Use this for binary files or other content that should not be stored as plain text."
-	"Imported file delete" "Delete this imported file entry."
-	"Imported dirs" "Import (embed) host directories in IMUNES topology file."
-	"Imported dir enabled" "Enable or disable this imported directory. Validation errors are ignored while the entry is disabled."
-	"Imported dir internal path" "Destination of the imported directory. Use an absolute directory path, @node:path to link to an imported directory from another node, or #hook:dirname to make the directory available to a trigger hook.\n\nLinked entries cannot link to another linked entry.\n\nValid hooks are:\npre-init_config\npost-init_config\npre-pifaces_create\npost-pifaces_create\npre-pifaces_dcreate\npost-pifaces_dcreate\npre-lifaces_create\npost-lifaces_create\npre-ifaces_config\npost-ifaces_config\npre-node_config\npost-node_config\npre-node_unconfig\npost-node_unconfig\npre-node_shutdown\npost-node_shutdown\npre-ifaces_unconfig\npost-ifaces_unconfig\npre-lifaces_destroy\npost-lifaces_destroy\npre-pifaces_destroy\npost-pifaces_destroy\npre-pifaces_ddestroy\npost-pifaces_ddestroy\npre-node_destroy"
-	"Imported dir import" "Select a local directory and import its contents. The directory contents are stored as a base64-encoded tar archive in the IMUNES configuration."
-	"Imported dir delete" "Delete this imported directory entry."
-	"General Docker options" "General options to attach to `docker run` command."
-	"General jail options" "General options to attach to `jail -c` command"
-    "Custom vroot" "If enabled, IMUNES will use the given jail path (virtual root - vroot) instead of the default one when running the node.\n\nThe default vroot is /var/imunes/vroot directory."
-	"Custom image" "If enabled, IMUNES will use the given Docker image (virtual root - vroot) instead of the default one when running the node.\n\nThe default vroot is imunes/template Docker image."
-    "External Docker interface" "If enabled, IMUNES will create a Docker interface inside a node (dext0) connected to the imunes-bridge Docker network.\n\nThis interface is primarily used to enable internet connection on a node in a quick and easy way - the default route is automatically added on its creation. Users should configure /etc/resolv.conf by themselves as DNS resolver is not set automatically."
-    "Advanced virt options" "Additional options for Docker/Jail/others when creating the current node (such as mounts, CPUs, memory, etc.)"
-    "CPUs count" "The maximum CPU resources a node can use."
-    "Custom jail flags" "Insert any custom jail flags."
-    "Custom Docker flags" "Insert any custom Docker flags."
-	"Docker port forwardings" "Configure TCP, UDP, SCTP or any port mappings from the host to this Docker node. Each entry defines the protocol and host/container ports used by Docker."
-	"Port forwarding enabled" "Enable or disable this port forwarding rule. Disabled rules are kept in the configuration but are not applied."
-	"Port forwarding host IP" "Optional host IP address on which the forwarded port is exposed. Leave empty to use Docker's default host binding."
-	"Port forwarding host port" "Optional port number exposed on the host. Leave empty to let Docker automatically assign an available host port."
-	"Port forwarding node port" "Port number inside the Docker node to which incoming connections are forwarded."
-	"Port forwarding protocol" "Network protocol used by this port forwarding rule. Use tcp/udp/sctp or leave empty for any."
-	"Port forwarding delete" "Delete this port forwarding rule."
-	"Docker environment variables" "Define environment variables passed to the Docker container when the node is created."
-	"Environment variable enable" "Enable or disable this environment variable. Disabled variables are kept in the configuration but are not applied."
-	"Environment variable name" "Name of the environment variable passed to the Docker container."
-	"Environment variable value" "Value assigned to the environment variable. The value may be left empty."
-	"Environment variable deleted" "Delete this environment variable."
-	"Docker volumes" "Configure host paths or Docker volumes that are mounted inside the node container."
-	"Volume enabled" "Enable or disable this volume. Disabled volumes are kept in the configuration but are not applied."
-	"Volume type" "Bind mount (host file/directoey) or Docker volume."
-	"Volume source" "Host path or Docker volume name to mount into the container."
-	"Volume destination" "Path inside the Docker container where the volume is mounted."
-	"Volume read only" "Mount the volume as read-only. When enabled, the container can read files from the volume but cannot modify them."
-	"Volume delete" "Delete this volume mapping."
+	"<<NOSECTION>>Advanced virt options" \
+"Additional options for Docker/Jail/others when creating the current node (such as mounts, CPUs, memory, etc)."
+
+	"<<NOSECTION>>Advanced options types" \
+"Each node has `generic`, `docker` and `jail` specific options. Generic options are available on all platforms, while `jail` and `docker` options only on FreeBSD and Linux."
+	
+	"<<SUBSUBSECTION>>Generic options" \
+"These are the options that are available for every platform IMUNES runs on (FreeBSD/Linux)."
+
+	"<<SUBSUBSUBSECTION>>Imported files" \
+"Import (embed) host files in IMUNES topology file. Files are embedded as JSON arrays of plain text or, optionally, base64-encoded.
+
+**NOTE**: embedding files increases total topology file size, base64-encoding even more so.<<FAKENEWLINE>>"
+
+	"<<LEVEL1>>Imported file enabled" \
+"<<BULLET_EXP>>Enable or disable this imported file. Validation errors are ignored while the entry is disabled."
+
+	"<<LEVEL1>>Imported file internal path" \
+"<<BULLET_EXP>>Destination of the imported file. Use either:
+
+<<LEVEL2>>`absolute file path`,
+<<LEVEL2>>`@node:path` - to link to an imported file from another node (linked entries cannot link to another linked entry), or
+<<LEVEL2>>`#hook:filename` - to make `filename` executed when hook is reached during deployCfg/undeployCfg.
+
+Valid hooks are:
+
+<<LEVEL2>>`pre-init_config` - before the initial node configuration
+<<LEVEL2>>`post-init_config` - after initial node configuration
+<<LEVEL2>>`pre-pifaces_create` - before creating physical interfaces
+<<LEVEL2>>`post-pifaces_create` - after creating physical interfaces
+<<LEVEL2>>`pre-pifaces_dcreate` - before creating physical interfaces (direct links)
+<<LEVEL2>>`post-pifaces_dcreate` - after creating physical interfaces (direct links)
+<<LEVEL2>>`pre-lifaces_create` - before creating logical interfaces
+<<LEVEL2>>`post-lifaces_create` - after creating logical interfaces
+<<LEVEL2>>`pre-ifaces_config` - before configuring all interfaces
+<<LEVEL2>>`post-ifaces_config` - after configuring all interfaces
+<<LEVEL2>>`pre-node_config` - before configuring the node
+<<LEVEL2>>`post-node_config` - after configuring the node
+<<LEVEL2>>`pre-node_unconfig` - before unconfiguring the node
+<<LEVEL2>>`post-node_unconfig` - after unconfiguring the node
+<<LEVEL2>>`pre-node_shutdown` - before shutting down all processes on the node
+<<LEVEL2>>`post-node_shutdown` - after shutting down all processes on the node
+<<LEVEL2>>`pre-ifaces_unconfig` - before unconfiguring all interfaces
+<<LEVEL2>>`post-ifaces_unconfig` - after unconfiguring all interfaces
+<<LEVEL2>>`pre-lifaces_destroy` - before destroying logical interfaces
+<<LEVEL2>>`post-lifaces_destroy` - after destroying logical interfaces
+<<LEVEL2>>`pre-pifaces_destroy` - before destroying physical interfaces
+<<LEVEL2>>`post-pifaces_destroy` - after destroying physical interfaces
+<<LEVEL2>>`pre-pifaces_ddestroy` - before destroying physical interfaces (direct links)
+<<LEVEL2>>`post-pifaces_ddestroy` - after destroying physical interfaces (direct links)
+<<LEVEL2>>`pre-node_destroy` - before destroying the node"
+
+	"<<LEVEL1>>Imported file mode" \
+"<<BULLET_EXP>>File permissions specified as a numeric mode, for example 644. An environment variable (a value starting with $) is also accepted."
+
+	"<<LEVEL1>>Imported file edit" \
+"<<BULLET_EXP>>Edit the contents of the imported file using the built-in editor."
+
+	"<<LEVEL1>>Imported file external edit" \
+"<<BULLET_EXP>>Edit the contents of the imported file using an external editor."
+
+	"<<LEVEL1>>Imported file import" \
+"<<BULLET_EXP>>Select a local file and load its contents into this imported file entry."
+
+	"<<LEVEL1>>Imported file encode" \
+"<<BULLET_EXP>>Store the file contents base64-encoded in the IMUNES configuration.  Use this for binary files or other content that should not be stored as plain text."
+
+	"<<LEVEL1>>Imported file delete" \
+"<<BULLET_EXP>>Delete this imported file entry."
+
+	"<<SUBSUBSUBSECTION>>Imported dirs" \
+"Import (embed) host directories in IMUNES topology file. Directories are embedded as base64-encoded tar archives.
+<<NEWLINE>>**NOTE**: embedding directories increases total topology file size.<<FAKENEWLINE>>"
+
+	"<<LEVEL1>>Imported dir enabled" \
+"<<BULLET_EXP>>Enable or disable this imported directory. Validation errors are ignored while the entry is disabled."
+
+	"<<LEVEL1>>Imported dir internal path" \
+"<<BULLET_EXP>>Destination of the imported directory. Use either:
+
+<<LEVEL2>>`absolute directory path`,
+<<LEVEL2>>`@node:path` - to link to an imported directory from another node (linked entries cannot link to another linked entry), or
+<<LEVEL2>>`#hook:dirname` - to save `dirname` in the `hook` folder.
+
+Valid hooks are:
+
+<<LEVEL2>>`pre-init_config` - before the initial node configuration
+<<LEVEL2>>`post-init_config` - after initial node configuration
+<<LEVEL2>>`pre-pifaces_create` - before creating physical interfaces
+<<LEVEL2>>`post-pifaces_create` - after creating physical interfaces
+<<LEVEL2>>`pre-pifaces_dcreate` - before creating physical interfaces (direct links)
+<<LEVEL2>>`post-pifaces_dcreate` - after creating physical interfaces (direct links)
+<<LEVEL2>>`pre-lifaces_create` - before creating logical interfaces
+<<LEVEL2>>`post-lifaces_create` - after creating logical interfaces
+<<LEVEL2>>`pre-ifaces_config` - before configuring all interfaces
+<<LEVEL2>>`post-ifaces_config` - after configuring all interfaces
+<<LEVEL2>>`pre-node_config` - before configuring the node
+<<LEVEL2>>`post-node_config` - after configuring the node
+<<LEVEL2>>`pre-node_unconfig` - before unconfiguring the node
+<<LEVEL2>>`post-node_unconfig` - after unconfiguring the node
+<<LEVEL2>>`pre-node_shutdown` - before shutting down all processes on the node
+<<LEVEL2>>`post-node_shutdown` - after shutting down all processes on the node
+<<LEVEL2>>`pre-ifaces_unconfig` - before unconfiguring all interfaces
+<<LEVEL2>>`post-ifaces_unconfig` - after unconfiguring all interfaces
+<<LEVEL2>>`pre-lifaces_destroy` - before destroying logical interfaces
+<<LEVEL2>>`post-lifaces_destroy` - after destroying logical interfaces
+<<LEVEL2>>`pre-pifaces_destroy` - before destroying physical interfaces
+<<LEVEL2>>`post-pifaces_destroy` - after destroying physical interfaces
+<<LEVEL2>>`pre-pifaces_ddestroy` - before destroying physical interfaces (direct links)
+<<LEVEL2>>`post-pifaces_ddestroy` - after destroying physical interfaces (direct links)
+<<LEVEL2>>`pre-node_destroy` - before destroying the node"
+
+	"<<LEVEL1>>Imported dir import" \
+"<<BULLET_EXP>>Select a local directory and import its contents. The directory contents are stored as a base64-encoded tar archive in the IMUNES configuration."
+
+	"<<LEVEL1>>Imported dir delete" \
+"<<BULLET_EXP>>Delete this imported directory entry."
+
+	"<<SUBSUBSECTION>>Jail options" \
+"Node options available specifically for nodes running jails (on FreeBSD)."
+
+	"<<SUBSUBSUBSECTION>>General jail options" \
+"General options to attach to `jail -c` command<<FAKENEWLINE>>"
+
+	"<<LEVEL1>>Custom vroot" \
+"<<BULLET_EXP>>If enabled, IMUNES will use the given jail path (virtual root - vroot) instead of the default one when running the node. The default vroot is /var/imunes/vroot directory."
+
+	"<<LEVEL1>>Custom image" \
+"<<BULLET_EXP>>If enabled, IMUNES will use the given Docker image (virtual root - vroot) instead of the default one when running the node. The default vroot is imunes/template Docker image."
+
+	"<<SUBSUBSECTION>>Docker options" \
+"Node options available specifically for nodes running Docker (on Linux)."
+
+	"<<SUBSUBSUBSECTION>>General Docker options" \
+"General options to attach to `docker run` command.<<FAKENEWLINE>>"
+
+	"<<LEVEL1>>External Docker interface" \
+"<<BULLET_EXP>>If enabled, IMUNES will create a Docker interface inside a node (`dext0`) connected to the imunes-bridge Docker network. This interface is primarily used to enable internet connection on a node in a quick and easy way - the default route is automatically added on its creation. Users should configure `/etc/resolv.conf` by themselves as DNS resolver is not set automatically."
+
+	"<<LEVEL1>>CPUs count" \
+"<<BULLET_EXP>>The maximum CPU resources a node can use."
+
+	"<<LEVEL1>>Custom jail flags" \
+"<<BULLET_EXP>>Insert any custom jail flags."
+
+	"<<LEVEL1>>Custom Docker flags" \
+"<<BULLET_EXP>>Insert any custom Docker flags."
+
+	"<<SUBSUBSUBSECTION>>Docker port forwardings" \
+"Configure TCP, UDP, SCTP or any port mappings from the host to this Docker node. Each entry defines the protocol and host/container ports used by Docker.<<FAKENEWLINE>>"
+
+	"<<LEVEL1>>Port forwarding enabled" \
+"<<BULLET_EXP>>Enable or disable this port forwarding rule. Disabled rules are kept in the configuration but are not applied."
+
+	"<<LEVEL1>>Port forwarding host IP" \
+"<<BULLET_EXP>>Optional host IP address on which the forwarded port is exposed. Leave empty to use Docker's default host binding."
+
+	"<<LEVEL1>>Port forwarding host port" \
+"<<BULLET_EXP>>Optional port number exposed on the host. Leave empty to let Docker automatically assign an available host port."
+
+	"<<LEVEL1>>Port forwarding node port" \
+"<<BULLET_EXP>>Port number inside the Docker node to which incoming connections are forwarded."
+
+	"<<LEVEL1>>Port forwarding protocol" \
+"<<BULLET_EXP>>Network protocol used by this port forwarding rule. Use tcp/udp/sctp or leave empty for any."
+
+	"<<LEVEL1>>Port forwarding delete" \
+"<<BULLET_EXP>>Delete this port forwarding rule."
+
+	"<<SUBSUBSUBSECTION>>Docker environment variables" \
+"Define environment variables passed to the Docker container when the node is created.<<FAKENEWLINE>>"
+
+	"<<LEVEL1>>Environment variable enable" \
+"<<BULLET_EXP>>Enable or disable this environment variable. Disabled variables are kept in the configuration but are not applied."
+
+	"<<LEVEL1>>Environment variable name" \
+"<<BULLET_EXP>>Name of the environment variable passed to the Docker container."
+
+	"<<LEVEL1>>Environment variable value" \
+"<<BULLET_EXP>>Value assigned to the environment variable. The value may be left empty."
+
+	"<<LEVEL1>>Environment variable deleted" \
+"<<BULLET_EXP>>Delete this environment variable."
+
+	"<<SUBSUBSUBSECTION>>Docker volumes" \
+"Configure host paths or Docker volumes that are mounted inside the node container.<<FAKENEWLINE>>"
+
+	"<<LEVEL1>>Volume enabled" \
+"<<BULLET_EXP>>Enable or disable this volume. Disabled volumes are kept in the configuration but are not applied."
+
+	"<<LEVEL1>>Volume type" \
+"<<BULLET_EXP>>Bind mount (host file/directoey) or Docker volume."
+
+	"<<LEVEL1>>Volume source" \
+"<<BULLET_EXP>>Host path or Docker volume name to mount into the container."
+
+	"<<LEVEL1>>Volume destination" \
+"<<BULLET_EXP>>Path inside the Docker container where the volume is mounted."
+
+	"<<LEVEL1>>Volume read only" \
+"<<BULLET_EXP>>Mount the volume as read-only. When enabled, the container can read files from the volume but cannot modify them."
+
+	"<<LEVEL1>>Volume delete" \
+"<<BULLET_EXP>>Delete this volume mapping."
 }
 lappend array_names "advancedopts"
 
 set misc_help_strings {
-	"Editor Preferences" "`Active options`\nPreview of currently active options combining Custom, Topology and Default options. The Default options are loaded first, overwritten by the Topology options and Custom options. If `custom_override` is enabled for the option, the Custom option will always overwrite the topology option.\n\n`Custom options`\nOptions loaded from .rc files (`/etc/imunes/config`, `\$HOME/.imunes.rc` if it exists, otherwise `\$XDG_CONFIG_HOME/imunes/config`, `./.imunes.rc`, `/etc/imunes/override` - in that order). Apply button will save the configured options to the last loaded existing .rc file - not including /etc/imunes/override.\n\n`Topology options`\nOptions loaded from, and saved to the .imn file - some options cannot be saved."
+	"Editor Preferences" "`Active options`<<NEWLINE>>Preview of currently active options combining Custom, Topology and Default options. The Default options are loaded first, overwritten by the Topology options and Custom options. If `custom_override` is enabled for the option, the Custom option will always overwrite the topology option.\n\n`Custom options`<<NEWLINE>>Options loaded from .rc files (`/etc/imunes/config`, `\$HOME/.imunes.rc` if it exists, otherwise `\$XDG_CONFIG_HOME/imunes/config`, `./.imunes.rc`, `/etc/imunes/override` - in that order). Apply button will save the configured options to the last loaded existing .rc file - not including /etc/imunes/override.\n\n`Topology options`<<NEWLINE>>Options loaded from, and saved to the .imn file - some options cannot be saved."
 }
 lappend array_names "misc"
 
+set section_tags {
+	{"NOSECTION"	""	"NOSECTION"}
+	{"SECTION"	""	"# "}
+	{"SUBSECTION"	""	"## "}
+	{"SUBSUBSECTION"	""	"### "}
+	{"SUBSUBSUBSECTION"	""	"#### "}
+}
+
+set nonsection_tags {
+	{"LEVEL1"	""	"  * "}
+	{"\\*"	""	"*"}
+	{"`"	""	"`"}
+	{"( *)(\[0-9\]+)( *)"	""	"\\1(\\2)\\3"}
+}
+
+set tags {
+	{"INDENT1"	""	"    "}
+	{"BULLET_EXP"	""	" - "}
+	{"LEVEL1"	"  - "	"  * "}
+	{"LEVEL2"	"    - "	"    - "}
+	{"FAKENEWLINE"	""	"\n"}
+	{"NEWLINE"	"\n"	"\n\n"}
+}
+
 foreach array_name $array_names {
     upvar 0 ${array_name}_help_strings var_name
-    lappend all {*}$var_name
+	dict for {section content} $var_name {
+		foreach tag_line [concat $section_tags $nonsection_tags] {
+			set tag [lindex $tag_line 0]
+			regsub -all "<<$tag>>" $section "" section
+		}
+
+		foreach tag_line $tags {
+			lassign $tag_line tag replace -
+			regsub -all "<<$tag>>" $content $replace content
+		}
+
+		lappend all $section $content
+	}
 }
 
 array set all_help_strings $all
@@ -375,7 +575,7 @@ proc helpPopup { title content } {
 	}
 
 	wm title $help_popup "IMUNES Help - $title"
-	wm minsize $help_popup 454 0
+	wm minsize $help_popup 654 0
 
 	set main_frame $help_popup.main
 	ttk::frame $main_frame -padding 4
@@ -389,7 +589,7 @@ proc helpPopup { title content } {
 	$image_label configure -image $image_obj
 
 	set content_label $main_frame.content_label
-	ttk::label $content_label -wraplength 434 -text "$content"
+	ttk::label $content_label -wraplength 634 -text "$content"
 
 	set close_button $main_frame.close_button
 	ttk::button $close_button -text "Close" -command "destroy $help_popup"
@@ -612,7 +812,7 @@ proc showHelp {} {
 proc attachHelp { element title } {
 	global all_help_strings meta
 
-	dputs "ADDING '$element' with '$title'"
+	#dputs "ADDING '$element' with '$title'"
 	set meta($element) $title
 }
 
