@@ -1054,34 +1054,35 @@ attachHelp ".#menubar.#menubar#events,Event editor" "Event editor"
 # Experiment
 #
 menu .menubar.experiment -tearoff 0
-attachHelp ".#menubar,Experiment" "IMUNES experiment modes"
+attachHelp ".#menubar,Experiment" "IMUNES Experiment Modes"
 .menubar.experiment add command -label "Execute" -underline 0 \
 	-command "setOperMode exec"
-attachHelp ".#menubar.#menubar#experiment,Execute" "Execute experiment"
+attachHelp ".#menubar.#menubar#experiment,Execute" "Execute"
 .menubar.experiment add command -label "Terminate" -underline 0 \
 	-command "setOperMode edit" -state disabled
-attachHelp ".#menubar.#menubar#experiment,Terminate" "Terminate experiment"
+attachHelp ".#menubar.#menubar#experiment,Terminate" "Terminate"
 .menubar.experiment add command -label "Restart" -underline 0 \
 	-command "setOperMode edit; setOperMode exec" -state disabled
-attachHelp ".#menubar.#menubar#experiment,Restart" "Restart experiment"
+attachHelp ".#menubar.#menubar#experiment,Restart" "Restart"
 .menubar.experiment add separator
 
 .menubar.experiment add command -label "Pause execution" -underline 2 \
 	-command "toggleAutoExecutionGUI"
-attachHelp ".#menubar.#menubar#experiment,Pause execution" "Pausing/Resuming experiment"
-attachHelp ".#menubar.#menubar#experiment,Resume execution" "Pausing/Resuming experiment"
+attachHelp ".#menubar.#menubar#experiment,Pause execution" "Pause/Resume execution"
+attachHelp ".#menubar.#menubar#experiment,Resume execution" "Pause/Resume execution"
 .menubar.experiment add separator
 .menubar.experiment add command -label "Attach to experiment" -underline 0 \
 	-command "attachToExperimentPopup"
-attachHelp ".#menubar.#menubar#experiment,Attach to experiment" "Attaching to experiment"
+attachHelp ".#menubar.#menubar#experiment,Attach to experiment" "Attach to experiment"
 .menubar.experiment add command -label "Refresh running experiment" -underline 17 \
 	-command "refreshRunningExperimentGUI"
-attachHelp ".#menubar.#menubar#experiment,Refresh running experiment" "Refreshing experiment"
+attachHelp ".#menubar.#menubar#experiment,Refresh running experiment" "Refresh running experiment"
 
 #
 # Help
 #
 menu .menubar.help -tearoff 0
+attachHelp ".#menubar,Help" "IMUNES Help"
 set tmp_command {
 	toplevel .about
 	wm title .about "About IMUNES"
@@ -1140,7 +1141,7 @@ set tmp_command {
 		$mainFrame config -cursor arrow"
 }
 .menubar.help add command -label "About" -command $tmp_command -underline 0
-attachHelp ".#menubar.#menubar#help,About" "About IMUNES"
+attachHelp ".#menubar.#menubar#help,About" "About"
 
 #
 # Left-side toolbar
@@ -1269,7 +1270,7 @@ attachHelp "$main_canvas_elem" "IMUNES canvas"
 attachHelp "$main_canvas_elem,background" "IMUNES canvas"
 attachHelp "$main_canvas_elem,selectmark" "IMUNES canvas"
 attachHelp "$main_canvas_elem,grid" "Canvas grid"
-attachHelp "$main_canvas_elem,node" "IMUNES nodes"
+attachHelp "$main_canvas_elem,node" "IMUNES Nodes"
 attachHelp "$main_canvas_elem,link" "IMUNES links"
 attachHelp "$main_canvas_elem,point" "Segment links"
 attachHelp "$main_canvas_elem,interface" "IMUNES interfaces"

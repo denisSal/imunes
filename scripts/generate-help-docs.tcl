@@ -13,29 +13,77 @@ set output_dir [file join $repo_root generated-docs]
 file delete -force $output_dir
 file mkdir $output_dir
 
+set section_tags {
+	{"NOSECTION"	""	"NOSECTION"}
+	{"SECTION"	""	"# "}
+	{"SUBSECTION"	""	"## "}
+	{"SUBSUBSECTION"	""	"### "}
+	{"SUBSUBSUBSECTION"	""	"#### "}
+}
+
+set nonsection_tags {
+	{"LEVEL1"	""	"  * "}
+	{"\\*"	""	"*"}
+	{"`"	""	"`"}
+	{"( *)(\[0-9\])+( *)"	""	"\\1(\\2)\\3"}
+}
+
+set tags {
+	{"INDENT1"	""	"    "}
+	{"BULLET_EXP"	""	" - "}
+	{"LEVEL1"	"  - "	"  * "}
+	{"LEVEL2"	"    - "	"    - "}
+	{"FAKENEWLINE"	""	"\n"}
+	{"NEWLINE"	"\n"	"\n\n"}
+}
+
 foreach array_name $array_names {
     upvar 0 ${array_name}_help_strings help_array
 
     set filename [file join $output_dir "${array_name}.md"]
     set fd [open $filename w]
 
-    #puts $fd "# $array_name"
-    #puts $fd ""
-
     dict for {key value} $help_array {
-		set key_link [string tolower $key]
-		set key_link [string map {" " "-"} $key_link]
-		set key_link [string map {"(" "" ")" "" "\}" "" "\{" "" "\[" "\]"} $key_link]
-        puts $fd "### \[$key\]\(#$key_link)"
-        puts $fd ""
+		set level ""
+		foreach tag_line $section_tags {
+			lassign $tag_line tag - replace
 
-        set help_string $value
-		set help_string [string map {"\n\n" "<DOUBLENEWLINE>"} $help_string]
-		set help_string [string map {"\n" "\n\n"} $help_string]
-		set help_string [string map {"<DOUBLENEWLINE>" "\n\n"} $help_string]
+			if { [regsub -all "<<$tag>>" $key "" pure_key] > 0 } {
+				set level $replace
 
-        puts $fd $help_string
-        puts $fd ""
+				set key_link [string tolower $pure_key]
+				regsub -all " " $key_link "-" key_link
+				regsub -all "\[(){}\[\\\]\]" $key_link "" key_link
+				set key "\[$pure_key\]\(#$key_link\)"
+
+				break
+			}
+		}
+
+		foreach tag_line $nonsection_tags {
+			lassign $tag_line tag - replace
+			regsub -all "<<$tag>>" $key $replace key
+		}
+
+		if { $level != "NOSECTION" } {
+			if { $level != "" } {
+				puts $fd "$level$key\n"
+			} else {
+				foreach tag_line $tags {
+					lassign $tag_line tag - replace
+					regsub -all "<<$tag>>" $key $replace key
+				}
+
+				puts -nonewline $fd "$key"
+			}
+		}
+
+		foreach tag_line $tags {
+			lassign $tag_line tag - replace
+			regsub -all "<<$tag>>" $value $replace value
+		}
+
+        puts $fd $value
     }
 
     close $fd
