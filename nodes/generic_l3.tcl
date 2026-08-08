@@ -648,7 +648,9 @@ namespace eval genericL3 {
 		set cmds "test -d $VROOT_RUNTIME || mkdir -p $VROOT_RUNTIME ; $cmds"
 
 		set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-d"]
+		runNodeHook $os_cmd "pre-init_config"
 		pipesExec "$os_cmd sh -c '$cmds ; touch $init_fname'" "hold"
+		runNodeHook $os_cmd "post-init_config"
 	}
 
 	proc nodeInitConfigure_check { eid node_id } {
@@ -682,6 +684,9 @@ namespace eval genericL3 {
 		global isOSlinux isOSfreebsd
 
 		addStateNode $node_id "pifaces_creating"
+
+		set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-d"]
+		runNodeHook $os_cmd "pre-pifaces_create"
 
 		set private_ns [invokeNodeProc $node_id "getPrivateNs" $eid $node_id]
 		set public_ns [invokeNodeProc $node_id "getPublicNs" $eid $node_id]
@@ -736,6 +741,8 @@ namespace eval genericL3 {
 				}
 			}
 		}
+
+		runNodeHook $os_cmd "post-pifaces_create"
 	}
 
 	proc nodePhysIfacesDirectCreate { eid node_id ifaces } {
@@ -743,6 +750,9 @@ namespace eval genericL3 {
 
 		set private_ns [invokeNodeProc $node_id "getPrivateNs" $eid $node_id]
 		set public_ns [invokeNodeProc $node_id "getPublicNs" $eid $node_id]
+
+		set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-d"]
+		runNodeHook $os_cmd "pre-pifaces_dcreate"
 
 		if { $isOSlinux } {
 			foreach iface_id $ifaces {
@@ -836,6 +846,8 @@ namespace eval genericL3 {
 			# same as regular interfaces
 			return [invokeNodeProc $node_id "nodePhysIfacesCreate" $eid $node_id $ifaces]
 		}
+
+		runNodeHook $os_cmd "post-pifaces_dcreate"
 	}
 
 	proc nodeLogIfacesCreate { eid node_id ifaces } {
@@ -922,6 +934,8 @@ namespace eval genericL3 {
 			}
 		}
 
+		set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-d"]
+		runNodeHook $os_cmd "pre-lifaces_create"
 
 		if { $cmds != "" } {
 			if { $isOSlinux } {
@@ -932,6 +946,8 @@ namespace eval genericL3 {
 				pipesExec "jexec $private_ns sh -c '$cmds'" "hold"
 			}
 		}
+
+		runNodeHook $os_cmd "post-lifaces_create"
 	}
 
 	proc nodePhysIfacesCreate_check { eid node_id ifaces } {
@@ -985,7 +1001,9 @@ namespace eval genericL3 {
 
 		set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-d"]
 
+		runNodeHook $os_cmd "pre-ifaces_config"
 		pipesExec "$os_cmd sh -c '$cmds' &" "hold"
+		runNodeHook $os_cmd "post-ifaces_config"
 	}
 
 	proc nodeIfacesConfigure_check { eid node_id ifaces } {
@@ -1064,7 +1082,9 @@ namespace eval genericL3 {
 
 		set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-d"]
 
+		runNodeHook $os_cmd "pre-node_config"
 		pipesExec "$os_cmd sh -c '$cmds' &" "hold"
+		runNodeHook $os_cmd "post-node_config"
 	}
 
 	proc nodeConfigure_check { eid node_id } {
@@ -1167,7 +1187,9 @@ namespace eval genericL3 {
 		set cmds "$cmds $bootcmd $confFile > $out_log 2> $err_log ;"
 
 		set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-d"]
+		runNodeHook $os_cmd "pre-node_unconfig"
 		pipesExec "$os_cmd sh -c '$cmds'" "hold"
+		runNodeHook $os_cmd "post-node_unconfig"
 	}
 
 	proc nodeUnconfigure_check { eid node_id } {
@@ -1210,6 +1232,7 @@ namespace eval genericL3 {
 		killExtProcess "socat.*$eid/$node_id.*"
 
 		set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-d"]
+		runNodeHook $os_cmd "pre-node_shutdown"
 
 		pipesExec "$os_cmd sh -c 'test -d $VROOT_RUNTIME || mkdir -p $VROOT_RUNTIME'" "hold"
 		if { $isOSlinux } {
@@ -1223,6 +1246,8 @@ namespace eval genericL3 {
 
 			pipesExec "$os_cmd touch $shut_fname" "hold"
 		}
+
+		runNodeHook $os_cmd "post-node_shutdown"
 	}
 
 	proc nodeShutdown_check { eid node_id } {
@@ -1305,7 +1330,9 @@ namespace eval genericL3 {
 		set cmds "$cmds $bootcmd $confFile > $out_ifaces_log 2> $err_ifaces_log ;"
 
 		set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-d"]
+		runNodeHook $os_cmd "pre-ifaces_unconfig"
 		pipesExec "$os_cmd sh -c '$cmds'" "hold"
+		runNodeHook $os_cmd "post-ifaces_unconfig"
 	}
 
 	proc nodeIfacesUnconfigure_check { eid node_id ifaces } {
@@ -1346,6 +1373,9 @@ namespace eval genericL3 {
 
 		addStateNode $node_id "lifaces_destroying"
 
+		set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-d"]
+		runNodeHook $os_cmd "pre-lifaces_destroy"
+
 		set private_ns [invokeNodeProc $node_id "getPrivateNs" $eid $node_id]
 		foreach iface_id $ifaces {
 			addStateNodeIface $node_id $iface_id "destroying"
@@ -1359,19 +1389,33 @@ namespace eval genericL3 {
 				pipesExec "jexec $private_ns ifconfig $iface_name destroy" "hold"
 			}
 		}
+
+		runNodeHook $os_cmd "post-lifaces_destroy"
 	}
 
-	proc nodePhysIfacesDestroy { eid node_id ifaces } {
+	proc nodePhysIfacesDestroy { eid node_id ifaces { are_direct "" } } {
 		global isOSlinux isOSfreebsd
 
+		set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-d"]
+
 		if { $isOSlinux } {
+			runNodeHook $os_cmd "pre-pifaces_destroy"
+
 			# same as L2
-			return [invokeTypeProc "genericL2" "nodePhysIfacesDestroy" $eid $node_id $ifaces]
+			set retv [invokeTypeProc "genericL2" "nodePhysIfacesDestroy" $eid $node_id $ifaces]
+
+			runNodeHook $os_cmd "post-pifaces_destroy"
+
+			return $retv
 		}
 
 		addStateNode $node_id "pifaces_destroying"
 
 		if { $isOSfreebsd } {
+			if { $are_direct == "" } {
+				runNodeHook $os_cmd "pre-pifaces_destroy"
+			}
+
 			set ngcmds ""
 			foreach iface_id $ifaces {
 				addStateNodeIface $node_id $iface_id "destroying"
@@ -1390,21 +1434,32 @@ namespace eval genericL3 {
 			if { $ngcmds != "" } {
 				pipesExec "printf \"$ngcmds\" | jexec $eid ngctl -f -" "hold"
 			}
+
+			if { $are_direct == "" } {
+				runNodeHook $os_cmd "post-pifaces_destroy"
+			}
 		}
 	}
 
 	proc nodePhysIfacesDirectDestroy { eid node_id ifaces } {
 		global isOSlinux isOSfreebsd
 
+		set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-d"]
+		runNodeHook $os_cmd "pre-pifaces_ddestroy"
+
 		if { $isOSlinux } {
 			# same as L2
-			return [invokeTypeProc "genericL2" "nodePhysIfacesDirectDestroy" $eid $node_id $ifaces]
+			set retv [invokeTypeProc "genericL2" "nodePhysIfacesDirectDestroy" $eid $node_id $ifaces]
 		}
 
 		if { $isOSfreebsd } {
 			# same as regular interfaces
-			return [invokeNodeProc $node_id "nodePhysIfacesDestroy" $eid $node_id $ifaces]
+			set retv [invokeNodeProc $node_id "nodePhysIfacesDestroy" $eid $node_id $ifaces "are_direct"]
 		}
+
+		runNodeHook $os_cmd "post-pifaces_ddestroy"
+
+		return $retv
 	}
 
 	proc nodeIfacesDestroy_check { eid node_id ifaces } {
@@ -1418,6 +1473,8 @@ namespace eval genericL3 {
 		addStateNode $node_id "node_destroying"
 
 		set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-d"]
+		runNodeHook $os_cmd "pre-node_destroy"
+
 		set private_ns [invokeNodeProc $node_id "getPrivateNs" $eid $node_id]
 		if { $isOSlinux } {
 			# remove node virtual interfaces
