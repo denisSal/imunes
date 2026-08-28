@@ -65,8 +65,13 @@ namespace eval ${MODULE}::gui {
 	}
 
 	proc doubleClick { node_id control } {
+		set VROOTDIR [getVrootDir]
+		set VROOT_RUNTIME $VROOTDIR/[getFromRunning "eid"]/$node_id
+
 		if { [isRunningNode $node_id] && ! $control } {
-			exec vncviewer "[getExperimentRuntimeDir]/$node_id-vnc.socket" &
+			exec vncviewer "$VROOT_RUNTIME/vnc.socket" &
+		} elseif { [isRunningNode $node_id] && $control } {
+			exec xterm -e "echo PRESS ENTER ; socat -,rawer,escape=0x1d UNIX-CONNECT:$VROOT_RUNTIME/console.socket" &
 		} else {
 			nodeConfigGUI $node_id
 		}
