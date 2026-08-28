@@ -105,9 +105,51 @@ namespace eval $MODULE {
 	}
 
 	proc nodeCreate { eid node_id } {
-		global runtimeDir
-
 		addStateNode $node_id "node_creating"
+
+		set VROOTDIR [getVrootDir]
+		set VROOT_RUNTIME $VROOTDIR/$eid/$node_id
+
+		pipesExec "mkdir -p $VROOT_RUNTIME &" "hold"
+
+		set meta_data "instance-id: imunes-$node_id-[clock seconds]"
+		set meta_fname $VROOT_RUNTIME/meta-data
+		append meta_data "\nlocal-hostname: [getNodeName $node_id]"
+		writeDataToFile $meta_fname $meta_data
+
+		set user_data "#cloud-config"
+		set user_fname $VROOT_RUNTIME/user-data
+		writeDataToFile $user_fname $user_data
+
+		set network_config "version: 2"
+		set netconf_fname $VROOT_RUNTIME/network-config
+		append network_config "\nethernets:"
+		foreach iface_id [allIfcList $node_id] {
+			set iface_name [getIfcName $node_id $iface_id]
+			append network_config "\n  $iface_name:"
+			append network_config "\n    match:"
+			append network_config "\n      macaddress: \"[getIfcMACaddr $node_id $iface_id]\""
+			append network_config "\n    set-name: \"$iface_name\""
+			set ipv4_addrs [getIfcIPv4addrs $node_id $iface_id]
+			set ipv6_addrs [getIfcIPv6addrs $node_id $iface_id]
+			if { $ipv4_addrs != {} || $ipv6_addrs != {} } {
+				append network_config "\n    addresses:"
+
+				foreach ipv4_addr $ipv4_addrs {
+					append network_config "\n      - $ipv4_addr"
+				}
+
+				foreach ipv6_addr $ipv6_addrs {
+					append network_config "\n      - $ipv6_addr"
+				}
+			}
+		}
+		writeDataToFile $netconf_fname $network_config
+
+		set seed_fname $VROOT_RUNTIME/seed.img
+		rexec truncate -s 128K $seed_fname
+		rexec mformat -i $seed_fname -v cidata ::
+		rexec mcopy -i $seed_fname $meta_fname $user_fname $netconf_fname ::
 
 		set vm_cfg [getNodeVMConfig $node_id]
 		set hdd_path [dictGet $vm_cfg "hdd_path"]
@@ -121,26 +163,38 @@ namespace eval $MODULE {
 		}
 
 		set args ""
-		set args "$args -m [dictGet $vm_cfg "memory_size"]"
+		append args " -m [dictGet $vm_cfg "memory_size"]"
 		if { $iso_path != "" } {
-			set args "$args -cdrom $iso_path -boot d"
+			append args "$args -cdrom $iso_path -boot d"
 		}
-		set args "$args -smp $cpu_count"
-		set args "$args -hda $hdd_path"
-		set args "$args -cpu host"
-		set args "$args --enable-kvm"
-		set args "$args -daemonize"
+		append args " -smp $cpu_count"
+		append args " -hda $hdd_path"
+		append args " -cpu host"
+		append args " --enable-kvm"
+		append args " -daemonize"
 
 		foreach iface_id [ifcList $node_id] {
 			lassign [invokeNodeProc $node_id "getHookData" $node_id $iface_id] iface_name public_iface -
 
 			set mac [getIfcMACaddr $node_id $iface_id]
-			set args "$args -netdev tap,id=$iface_id,ifname=$eid-$public_iface,script=no,downscript=no -device virtio-net,netdev=$iface_id,mac=$mac"
+			append args " -netdev tap,id=$iface_id,ifname=$eid-$public_iface,script=no,downscript=no -device virtio-net,netdev=$iface_id,mac=$mac"
 		}
 
-		set exp_runtime_dir [getExperimentRuntimeDir]
-		set args "$args -qmp unix:$exp_runtime_dir/$node_id-control.socket,server,nowait"
-		set args "$args -vnc unix:$exp_runtime_dir/$node_id-vnc.socket"
+		append args " -qmp unix:$VROOT_RUNTIME/control.socket,server,nowait"
+		append args " -vnc unix:$VROOT_RUNTIME/vnc.socket"
+
+		# cloud init
+		append args " -drive file=$VROOT_RUNTIME/seed.img,format=raw,if=virtio"
+
+		# qemu agent
+		append args " -chardev socket,path=$VROOT_RUNTIME/agent.socket,server=on,wait=off,id=qga0"
+		append args " -device virtio-serial"
+		append args " -device virtserialport,chardev=qga0,name=org.qemu.guest.agent.0"
+
+		# console
+		append args " -chardev socket,path=$VROOT_RUNTIME/console.socket,server=on,wait=off,id=console0"
+		append args " -device virtio-serial"
+		append args " -device virtconsole,chardev=console0"
 
 		dputs "qemu-system-x86_64 $args"
 
@@ -344,11 +398,12 @@ namespace eval $MODULE {
 	}
 
 	proc nodeDestroy { eid node_id } {
-		global runtimeDir
-
 		addStateNode $node_id "node_destroying"
 
-		pipesExec "echo '{\"execute\": \"qmp_capabilities\"} {\"execute\": \"system_powerdown\"}' | sudo socat unix-connect:[getExperimentRuntimeDir]/$node_id-control.socket -" "hold"
+		set VROOTDIR [getVrootDir]
+		set VROOT_RUNTIME $VROOTDIR/$eid/$node_id
+
+		pipesExec "echo '{\"execute\": \"qmp_capabilities\"} {\"execute\": \"system_powerdown\"}' | sudo socat unix-connect:$VROOT_RUNTIME/control.socket -" "hold"
 	}
 
 	proc nodeDestroy_check { eid node_id } {
