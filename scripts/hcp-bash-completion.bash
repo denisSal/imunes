@@ -272,8 +272,13 @@ _hcp()
 	local_files=()
 
 	while IFS= read -r file; do
-		[[ -n $file ]] &&
+		[[ -n $file ]] || continue
+
+		if [[ -d $file ]]; then
+			local_files+=( "${file%/}/" )
+		else
 			local_files+=( "$file" )
+		fi
 	done < <(compgen -f -- "$cur")
 
 	COMPREPLY=( "${local_files[@]}" )
@@ -293,10 +298,12 @@ _hcp()
 	# If completion resolves to a single node, do not append a space
 	# because the pathname follows the ':'.
 	#
-	if (( ${#COMPREPLY[@]} == 1 )) &&
-		[[ ${COMPREPLY[0]} == *: ]]; then
-		compopt -o nospace 2>/dev/null
-	fi
+	for candidate in "${COMPREPLY[@]}"; do
+		if [[ $candidate == */ || $candidate == *: ]]; then
+			compopt -o nospace 2>/dev/null
+			break
+		fi
+	done
 
 	return 0
 }
