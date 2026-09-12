@@ -1454,7 +1454,7 @@ proc resumeSelectedExperiment { exp } {
 	}
 
 	try {
-		openFile
+		openFile "no_recent"
 		readRunningVarsFile $exp
 	} on error err {
 		return -code error $err
@@ -1514,7 +1514,7 @@ proc refreshRunningExperiment {} {
 	}
 
 	try {
-		openFile
+		openFile "no_recent"
 		readRunningVarsFile $eid
 	} on error err {
 		return -code error $err
