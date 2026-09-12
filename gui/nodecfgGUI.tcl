@@ -102,6 +102,7 @@ proc configGUI_addNotebook { wi node_id labels } {
 	foreach label $labels {
 		ttk::frame $wi.nbook.nf$label
 		$wi.nbook add $wi.nbook.nf$label -text $label
+		attachHelp "$wi.nbook,$label" "$label tab"
 	}
 
 	configGUI_addPanedWin [lindex [$wi.nbook tabs] 1]
@@ -211,6 +212,11 @@ proc configGUI_addTree { wi node_id } {
 	ttk::treeview $wi.panwin.f1.tree -height 5 -selectmode browse \
 		-xscrollcommand "$wi.panwin.f1.hscroll set"\
 		-yscrollcommand "$wi.panwin.f1.vscroll set"
+	if { [_invokeNodeProc $node_cfg "virtlayer"] == "VIRTUALIZED" } {
+		attachHelp "$wi.panwin.f1.tree" "Interfaces tree (L3)"
+	} else {
+		attachHelp "$wi.panwin.f1.tree" "Interfaces tree (L2)"
+	}
 	ttk::scrollbar $wi.panwin.f1.hscroll -orient horizontal -command "$wi.panwin.f1.tree xview"
 	ttk::scrollbar $wi.panwin.f1.vscroll -orient vertical -command "$wi.panwin.f1.tree yview"
 	focus $wi.panwin.f1.tree
@@ -238,6 +244,12 @@ proc configGUI_addTree { wi node_id } {
 
 		$wi.panwin.f1.tree heading [lindex $column 0] \
 			-text [join [lrange $column 1 end]]
+
+		if { [_invokeNodeProc $node_cfg "virtlayer"] == "VIRTUALIZED" } {
+			attachHelp "$wi.panwin.f1.tree,[lindex $column 0]" "Interfaces tree (L3)"
+		} else {
+			attachHelp "$wi.panwin.f1.tree,[lindex $column 0]" "Interfaces tree (L2)"
+		}
 	}
 
 	set tmp_command [list apply {
@@ -4423,11 +4435,13 @@ proc configGUI_bridgeVLANConfig { wi node_id } {
 	set w $wi.vlan_filtering
 	ttk::frame $w -relief groove -borderwidth 2 -padding 2
 	ttk::label $w.label -text "Enable VLAN filtering:"
+	attachHelp "$w.label" "Enable VLAN filtering"
 
 	pack $w.label -side left -padx 2
 
 	ttk::checkbutton $w.enabled
 	pack $w.enabled -side left -padx 6
+	attachHelp "$w.enabled" "Enable VLAN filtering"
 
 	set checkbutton_dict "0 !selected 1 selected"
 	$w.enabled state [dict get $checkbutton_dict [_getNodeVlanFiltering $node_cfg]]

@@ -27,7 +27,7 @@
 
 
 menu .menubar.t_g -tearoff 0
-attachHelp ".#menubar,TopoGen" "Topology generator"
+attachHelp ".#menubar,TopoGen" "TopoGen Menu"
 
 set m .menubar.t_g.chain
 menu $m -tearoff 0
