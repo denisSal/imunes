@@ -26,6 +26,7 @@ set nonsection_tags {
 	{"\\*"	""	"*"}
 	{"`"	""	"`"}
 	{"( *)(\[0-9\])+( *)"	""	"\\1(\\2)\\3"}
+	{"DHIDE:(.*?)"	"\\1"	""}
 }
 
 set tags {
@@ -35,6 +36,9 @@ set tags {
 	{"LEVEL2"	"    - "	"    - "}
 	{"FAKENEWLINE"	""	"\n"}
 	{"NEWLINE"	"\n"	"\n\n"}
+	{"FIG:(.*?)"	""	"\\1"}
+	{"IHIDE:(.*?)"	""	"\\1"}
+	{"DHIDE:(.*?)"	"\\1"	""}
 }
 
 foreach array_name $array_names {

@@ -199,7 +199,7 @@ menu .menubar
 .menubar add cascade -label Tools -underline 0 -menu .menubar.tools
 .menubar add cascade -label TopoGen -underline 4 -menu .menubar.t_g
 .menubar add cascade -label Widgets -underline 0 -menu .menubar.widgets
-.menubar add cascade -label Events -underline 1 -menu .menubar.events
+.menubar add cascade -label Events -underline 3 -menu .menubar.events
 .menubar add cascade -label Experiment -underline 1 -menu .menubar.experiment
 .menubar add cascade -label Help -underline 0 -menu .menubar.help
 
@@ -207,6 +207,7 @@ menu .menubar
 # File
 #
 menu .menubar.file -tearoff 0
+attachHelp ".#menubar,File" "File Menu"
 
 .menubar.file add command -label New -underline 0 \
 	-accelerator "Ctrl+N" -command { newProject }
@@ -236,7 +237,7 @@ attachHelp ".#menubar.#menubar#file,Save" "Save topology"
 .menubar.file add command -label "Save As" -underline 5 \
 	-accelerator "Ctrl+Shift+S" -command { fileSaveAsDialogBox }
 bind . <Control-Shift-S> "fileSaveAsDialogBox"
-attachHelp ".#menubar.#menubar#file,Save As" "Save topology as"
+attachHelp ".#menubar.#menubar#file,Save As" "Save topology As"
 
 .menubar.file add command -label "Close" -underline 0 \
 	-accelerator "Ctrl+Q" -command { closeFile }
@@ -338,7 +339,7 @@ set tmp_command {
 }
 .menubar.file add command -label "Print To File" -underline 9 \
 	-command $tmp_command
-attachHelp ".#menubar.#menubar#file,Print To File" "Print topology to file"
+attachHelp ".#menubar.#menubar#file,Print To File" "Print topology To File"
 
 .menubar.file add separator
 .menubar.file add command -label Quit -underline 0 -command { checkAndPromptSave }
@@ -349,6 +350,7 @@ attachHelp ".#menubar.#menubar#file,Quit" "Quit IMUNES"
 # Edit
 #
 menu .menubar.edit -tearoff 0
+attachHelp ".#menubar,Edit" "Edit Menu"
 .menubar.edit add command -label "Undo" -underline 0 \
 	-accelerator "Ctrl+Z" -command undo -state disabled
 attachHelp ".#menubar.#menubar#edit,Undo" "Undo last change"
@@ -381,13 +383,14 @@ attachHelp ".#menubar.#menubar#edit,Select adjacent" "Select adjacent nodes"
 bind . <Control-d> selectAdjacent
 .menubar.edit add command -label "Editor preferences" \
 	-accelerator "Ctrl+P" -underline 0 -command editorPreferences_gui
-attachHelp ".#menubar.#menubar#edit,Editor preferences" "Editor preferences"
+attachHelp ".#menubar.#menubar#edit,Editor preferences" "Editor preferences menu"
 bind . <Control-p> editorPreferences_gui
 
 #
 # Canvas
 #
 menu .menubar.canvas -tearoff 0
+attachHelp ".#menubar,Canvas" "Canvas Menu"
 set tmp_command {
 	newCanvas ""
 
@@ -444,7 +447,7 @@ attachHelp ".#menubar.#menubar#canvas,Delete" "Delete canvas"
 attachHelp ".#menubar.#menubar#canvas,Resize" "Resize canvas"
 .menubar.canvas add command -label "Background image" -underline 0 \
 	-command changeBkgPopup
-attachHelp ".#menubar.#menubar#canvas,Background image" "Canvas background image"
+attachHelp ".#menubar.#menubar#canvas,Background image" "Canvas Background image"
 
 .menubar.canvas add separator
 .menubar.canvas add command -label "Previous" -accelerator "PgUp" \
@@ -470,11 +473,12 @@ bind . <End> { switchCanvas last }
 # View
 #
 menu .menubar.view -tearoff 0
+attachHelp ".#menubar,View" "View Menu"
 
 set m .menubar.view.iconsize
 menu $m -tearoff 0
 .menubar.view add cascade -label "Icon size" -menu $m -underline 5
-attachHelp ".#menubar.#menubar#view,Icon size" "Node icon size"
+attachHelp ".#menubar.#menubar#view,Icon size" "Node Icon size"
 $m add radiobutton -label "Small" -variable icon_size \
 	-value small -command { updateIconSize "small"; redrawAll }
 $m add radiobutton -label "Normal" -variable icon_size \
@@ -732,6 +736,7 @@ $m add radiobutton -label "imunes" -variable currentTheme\
 # Tools
 #
 menu .menubar.tools -tearoff 0
+attachHelp ".#menubar,Tools" "Tools Menu"
 .menubar.tools add command -label "Auto rearrange all" -underline 0 \
 	-command { rearrange all }
 attachHelp ".#menubar.#menubar#tools,Auto rearrange all" "Auto rearrange all"
@@ -745,13 +750,13 @@ attachHelp ".#menubar.#menubar#tools,Align to grid" "Align to grid"
 .menubar.tools add separator
 .menubar.tools add checkbutton -label "IPv4 auto-assign addresses/routes" \
 	-variable IPv4autoAssign -command { setGlobalOption "IPv4autoAssign" - "toggle" }
-attachHelp ".#menubar.#menubar#tools,IPv4 auto-assign addresses/routes" "IPv4 auto-assign"
+attachHelp ".#menubar.#menubar#tools,IPv4 auto-assign addresses/routes" "IPv4 auto-assign addresses/routes"
 .menubar.tools add checkbutton -label "IPv6 auto-assign addresses/routes" \
 	-variable IPv6autoAssign -command { setGlobalOption "IPv6autoAssign" - "toggle" }
-attachHelp ".#menubar.#menubar#tools,IPv6 auto-assign addresses/routes" "IPv6 auto-assign"
+attachHelp ".#menubar.#menubar#tools,IPv6 auto-assign addresses/routes" "IPv6 auto-assign addresses/routes"
 .menubar.tools add checkbutton -label "Auto-generate /etc/hosts file" \
 	-variable auto_etc_hosts -command { setGlobalOption "auto_etc_hosts" - "toggle" }
-attachHelp ".#menubar.#menubar#tools,Auto-generate /etc/hosts file" "Auto-generate /etc/hosts"
+attachHelp ".#menubar.#menubar#tools,Auto-generate /etc/hosts file" "Auto-generate /etc/hosts file"
 .menubar.tools add separator
 .menubar.tools add command -label "Randomize MAC bytes" -underline 10 \
 	-command randomizeMACbytes
@@ -946,7 +951,7 @@ attachHelp ".#menubar.#menubar#tools,Routing protocol defaults" "Routing protoco
 # Widgets
 #
 menu .menubar.widgets
-attachHelp ".#menubar,Widgets" "IMUNES Widgets"
+attachHelp ".#menubar,Widgets" "Widgets Menu"
 
 global showConfig lastObservedNode
 set showConfig "None"
@@ -965,7 +970,7 @@ set widgetlist { \
 	{ "Process list" "ps ax" } \
 	{ "IPv4 sockets" "netstat -4 -an" } \
 	{ "IPv6 sockets" "netstat -6 -an" } \
-	{ "View ifaces startup script" "sh -c 'cat /var/imunes/*/*/boot_ifaces.conf'" } \
+	{ "View ifaces startup script" "sh -c 'cat /var/imunes/*/*/boot_ifaces.conf /var/imunes/*/*/custom_ifaces.conf'" } \
 	{ "View ifaces startup logs" "sh -c 'cat /var/imunes/*/*/out_ifaces.log /var/imunes/*/*/err_ifaces.log'" } \
 	{ "View startup script" "sh -c 'cat /var/imunes/*/*/boot.conf /var/imunes/*/*/custom.conf'" } \
 	{ "View startup logs" "sh -c 'cat /var/imunes/*/*/out.log /var/imunes/*/*/err.log'" } \
@@ -1031,6 +1036,7 @@ set tmp_command {
 }
 .menubar.widgets add command -label "Custom..." \
 	-underline 0 -command $tmp_command
+attachHelp ".#menubar.#menubar#widgets,[lindex $widget 0]" "IMUNES Widgets"
 
 #.menubar.widgets add separator
 #.menubar.widgets add radiobutton -label "Route" \
@@ -1040,13 +1046,13 @@ set tmp_command {
 # Events
 #
 menu .menubar.events -tearoff 0
-attachHelp ".#menubar,Events" "IMUNES Events"
+attachHelp ".#menubar,Events" "Events Menu"
 .menubar.events add command -label "Start scheduling" -underline 0 \
 	-state normal -command "startEventScheduling ; .menubar.experiment entryconfigure \"Pause execution\" -state disabled"
-attachHelp ".#menubar.#menubar#events,Start scheduling" "Events - start scheduling"
+attachHelp ".#menubar.#menubar#events,Start scheduling" "Start event scheduling"
 .menubar.events add command -label "Stop scheduling" -underline 1 \
 	-state disabled -command "stopEventScheduling ; .menubar.experiment entryconfigure \"Pause execution\" -state normal"
-attachHelp ".#menubar.#menubar#events,Stop scheduling" "Events - stop scheduling"
+attachHelp ".#menubar.#menubar#events,Stop scheduling" "Stop event scheduling"
 .menubar.events add separator
 .menubar.events add command -label "Event editor" -underline 0 \
 	-command "elementsEventsEditor"
@@ -1056,7 +1062,7 @@ attachHelp ".#menubar.#menubar#events,Event editor" "Event editor"
 # Experiment
 #
 menu .menubar.experiment -tearoff 0
-attachHelp ".#menubar,Experiment" "IMUNES Experiment Modes"
+attachHelp ".#menubar,Experiment" "Experiment Menu"
 .menubar.experiment add command -label "Execute" -underline 0 \
 	-command "setOperMode exec"
 attachHelp ".#menubar.#menubar#experiment,Execute" "Execute"
@@ -1084,7 +1090,7 @@ attachHelp ".#menubar.#menubar#experiment,Refresh running experiment" "Refresh r
 # Help
 #
 menu .menubar.help -tearoff 0
-attachHelp ".#menubar,Help" "IMUNES Help"
+attachHelp ".#menubar,Help" "Help Menu"
 set tmp_command {
 	toplevel .about
 	wm title .about "About IMUNES"
