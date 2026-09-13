@@ -334,10 +334,21 @@ proc setZoom { x y } {
 #   * w -- tk widget (set zoom popup dialog box)
 #****
 proc setZoomApply { w } {
+	global autorearrange_enabled
+
 	set newzoom [expr [$w.setzoom.e1 get] / 100.0]
 	if { $newzoom != [getActiveOption "zoom"] } {
 		setGlobalOption "zoom" $newzoom
 		redrawAll
+
+		if { $autorearrange_enabled } {
+			set autorearrange_enabled 0
+			update
+		}
+
+		if { [snapCanvasNodesToGrid] } {
+			redrawAll
+		}
 	}
 
 	destroy $w
@@ -412,7 +423,7 @@ proc selectZoom { x y } {
 #   * w -- tk widget (select zoom popup dialog box)
 #****
 proc selectZoomApply { w } {
-	global hasIM changed
+	global hasIM changed autorearrange_enabled
 
 	set tempzoom [$w.selectzoom.e1 get]
 	if { ! $hasIM } {
@@ -435,8 +446,16 @@ proc selectZoomApply { w } {
 	set newzoom [ expr $tempzoom / 100.0]
 	if { $newzoom != [getActiveOption "zoom"] } {
 		setGlobalOption "zoom" $newzoom
-
 		redrawAll
+
+		if { $autorearrange_enabled } {
+			set autorearrange_enabled 0
+			update
+		}
+
+		if { [snapCanvasNodesToGrid] } {
+			redrawAll
+		}
 	}
 
 	destroy $w
