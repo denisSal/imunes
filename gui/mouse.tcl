@@ -1650,10 +1650,10 @@ proc button1-release { x y } {
 				return
 			}
 
-			set x [expr { int([lindex $coordinates 0] / $zoom) }]
-			set y [expr { int([lindex $coordinates 1] / $zoom) }]
-			set x1 [expr { int([lindex $coordinates 4] / $zoom) }]
-			set y1 [expr { int([lindex $coordinates 5] / $zoom) }]
+			set x [lindex $coordinates 0]
+			set y [lindex $coordinates 1]
+			set x1 [lindex $coordinates 4]
+			set y1 [lindex $coordinates 5]
 		}
 
 		if { $resizemode == "false" } {
