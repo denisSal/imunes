@@ -619,10 +619,7 @@ proc moveToCanvas { canvas_id } {
 		}
 
 		if { "$new_x $new_y" != "$node_x $node_y" } {
-			set image_obj [$main_canvas_elem find withtag "node && $node_id"]
-			$main_canvas_elem coords $image_obj $new_x $new_y
-
-			setNodeCoords $node_id [snapObjectToGrid $image_obj]
+			setNodeCoords $node_id [snapCoordsToGrid $new_x $new_y]
 		}
 
 		lassign [getNodeLabelCoords $node_id] lnode_x lnode_y
@@ -1374,224 +1371,252 @@ proc button1-release { x y } {
 	if { $changed == 1 } {
 		set regular true
 
-		# selects the node whose label was moved
+		set selected {}
+
 		if { [lindex [$main_canvas_elem gettags $curobj] 0] == "nodelabel" } {
 			set node_id [lindex [$main_canvas_elem gettags $curobj] 1]
+
+			lassign [$main_canvas_elem coords $curobj] view_lx view_ly
+			set lx [expr { $view_lx / $zoom }]
+			set ly [expr { $view_ly / $zoom }]
+			if { [isPseudoNode $node_id] } {
+				lassign [snapCoordsToGrid $lx $ly] lx ly
+				$main_canvas_elem addtag need_redraw withtag "link && $node_id"
+			}
+
+			lassign [getNodeLabelCoords $node_id] orig_lx orig_ly
+			if { $lx < 0 || $ly < 0 || $lx > $sizex || $ly > $sizey } {
+				set regular false
+			} elseif { "$orig_lx $orig_ly" != "$lx $ly" } {
+				setNodeLabelCoords $node_id "$lx $ly"
+
+				if { [isPseudoNode $node_id] } {
+					setNodeCoords $node_id "$lx $ly"
+				}
+
+				set view_dlx [expr { int(($lx - $orig_lx) / $zoom) }]
+				set view_dly [expr { int(($ly - $orig_ly) / $zoom) }]
+
+				$main_canvas_elem move "nodelabel && $node_id" $view_dlx $view_dly
+			}
+
+			# selects the node whose label was moved
 			selectNode [$main_canvas_elem find withtag "node && $node_id"]
-		}
+		} else {
+			foreach img [$main_canvas_elem find withtag "selected"] {
+				set node_id [lindex [$main_canvas_elem gettags $img] 1]
+				lappend selected $node_id
+				lassign [$main_canvas_elem coords $img] view_x view_y
+				set x [expr { $view_x / $zoom }]
+				set y [expr { $view_y / $zoom }]
 
-		set selected {}
-		foreach img [$main_canvas_elem find withtag "selected"] {
-			set node_id [lindex [$main_canvas_elem gettags $img] 1]
-			lappend selected $node_id
-			lassign [$main_canvas_elem coords $img] orig_x orig_y
-			set orig_x [expr { $orig_x / $zoom }]
-			set orig_y [expr { $orig_y / $zoom }]
+				# only nodes are snapped to grid, annotations are not
+				if {
+					$autorearrange_enabled == 0 &&
+					[$main_canvas_elem find withtag "node && $node_id"] != ""
+				} {
+					lassign [snapCoordsToGrid $x $y] x y
+					lassign [getNodeCoords $node_id] orig_x orig_y
+					if { $x < 0 || $y < 0 || $x > $sizex || $y > $sizey } {
+						set regular false
+					} elseif { "$orig_x $orig_y" != "$x $y" } {
+						set dx [expr { $x - $orig_x }]
+						set dy [expr { $y - $orig_y }]
 
-			# only nodes are snapped to grid, annotations are not
-			if {
-				$autorearrange_enabled == 0 &&
-				[$main_canvas_elem find withtag "node && $node_id"] != ""
-			} {
-				lassign [snapObjectToGrid $img] x y
-				set x [expr { $x / $zoom }]
-				set y [expr { $y / $zoom }]
+						lassign [getNodeLabelCoords $node_id] orig_lx orig_ly
+						set lx [expr { $orig_lx + $dx }]
+						set ly [expr { $orig_ly + $dy }]
 
-				set dx [expr { $x - $orig_x }]
-				set dy [expr { $y - $orig_y }]
+						if { $lx < 0 || $ly < 0 || $lx > $sizex || $ly > $sizey } {
+							set regular false
+						} elseif { "$orig_lx $orig_ly" != "$lx $ly" } {
+							#moving the nodelabel and selectbox assigned to the moving node
 
-				if { $x < 0 || $y < 0 || $x > $sizex || $y > $sizey } {
-					set regular false
-				} else {
-					setNodeCoords $node_id "$x $y"
+							set view_dx [expr { int($dx / $zoom) }]
+							set view_dy [expr { int($dy / $zoom) }]
+
+							setNodeCoords $node_id "$x $y"
+							$main_canvas_elem move "selectmark && $node_id" $view_dx $view_dy
+
+							setNodeLabelCoords $node_id "$lx $ly"
+							$main_canvas_elem move "nodelabel && $node_id" $view_dx $view_dy
+						}
+					}
 				}
 
-				#moving the nodelabel and selectbox assigned to the moving node
-				$main_canvas_elem move "nodelabel && $node_id" $dx $dy
-				$main_canvas_elem move "selectmark && $node_id" $dx $dy
+				if { [lindex [$main_canvas_elem gettags $node_id] 0] == "oval" } {
+					lassign [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]] x1 y1 x2 y2
+					set x1 [expr {$x1 / $zoom}]
+					set y1 [expr {$y1 / $zoom}]
+					set x2 [expr {$x2 / $zoom}]
+					set y2 [expr {$y2 / $zoom}]
 
-				lassign [$main_canvas_elem coords "nodelabel && $node_id"] x y
-				set x [expr { $x / $zoom }]
-				set y [expr { $y / $zoom }]
-				if { $x < 0 || $y < 0 || $x > $sizex || $y > $sizey } {
-					set regular false
-				} else {
-					setNodeLabelCoords $node_id "$x $y"
+					if { $x1 < 0 } {
+						set x2 [expr {$x2-$x1}]
+						set x1 0
+						set outofbounds 1
+					}
+					if { $y1 < 0 } {
+						set y2 [expr {$y2-$y1}]
+						set y1 0
+						set outofbounds 1
+					}
+					if { $x2 > $sizex } {
+						set x1 [expr {$x1-($x2-$sizex)}]
+						set x2 $sizex
+						set outofbounds 1
+					}
+					if { $y2 > $sizey } {
+						set y1 [expr {$y1-($y2-$sizey)}]
+						set y2 $sizey
+						set outofbounds 1
+					}
+
+					setAnnotationCoords $node_id "$x1 $y1 $x2 $y2"
 				}
+
+				if { [lindex [$main_canvas_elem gettags $node_id] 0] == "rectangle" } {
+					set coordinates [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]]
+					set x1 [expr {[lindex $coordinates 0] / $zoom}]
+					set y1 [expr {[lindex $coordinates 1] / $zoom}]
+					set x2 [expr {[lindex $coordinates 6] / $zoom}]
+					set y2 [expr {[lindex $coordinates 13] / $zoom}]
+
+					if { $x1 < 0 } {
+						set x2 [expr {$x2-$x1}]
+						set x1 0
+						set outofbounds 1
+					}
+					if { $y1 < 0 } {
+						set y2 [expr {$y2-$y1}]
+						set y1 0
+						set outofbounds 1
+					}
+					if { $x2 > $sizex } {
+						set x1 [expr {$x1-($x2-$sizex)}]
+						set x2 $sizex
+						set outofbounds 1
+					}
+					if { $y2 > $sizey } {
+						set y1 [expr {$y1-($y2-$sizey)}]
+						set y2 $sizey
+						set outofbounds 1
+					}
+
+					setAnnotationCoords $node_id "$x1 $y1 $x2 $y2"
+				}
+
+				if { [lindex [$main_canvas_elem gettags $node_id] 0] == "freeform" } {
+					lassign [$main_canvas_elem bbox "selectmark && $node_id"] x1 y1 x2 y2
+					set x1 [expr {$x1 / $zoom}]
+					set y1 [expr {$y1 / $zoom}]
+					set x2 [expr {$x2 / $zoom}]
+					set y2 [expr {$y2 / $zoom}]
+
+					set shiftx 0
+					set shifty 0
+
+					if { $x1 < 0 } {
+						set shiftx -$x1
+						set outofbounds 1
+					}
+					if { $y1 < 0 } {
+						set shifty -$y1
+						set outofbounds 1
+					}
+					if { $x2 > $sizex } {
+						set shiftx [expr $sizex-$x2]
+						set outofbounds 1
+					}
+					if { $y2 > $sizey } {
+						set shifty [expr $sizey-$y2]
+						set outofbounds 1
+					}
+
+					set coordinates [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]]
+					set l [expr {[llength $coordinates]-1}]
+					set newcoords {}
+					set i 0
+
+					while { $i <= $l } {
+						set f1 [expr {[lindex $coordinates $i] * $zoom}]
+						set g1 [expr {[lindex $coordinates $i+1] * $zoom}]
+						set xx1 [expr $f1+$shiftx]
+						set yy1 [expr $g1+$shifty]
+
+						lappend newcoords $xx1 $yy1
+						set i [expr {$i+2}]
+					}
+
+					setAnnotationCoords $node_id $newcoords
+				}
+
+				if { [lindex [$main_canvas_elem gettags $node_id] 0] == "text" } {
+					set bbox [$main_canvas_elem bbox "selectmark && $node_id"]
+					lassign [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]] x1 y1
+					set x1 [expr {$x1 / $zoom}]
+					set y1 [expr {$y1 / $zoom}]
+
+					set width [expr [lindex $bbox 2] - [lindex $bbox 0]]
+					set height [expr [lindex $bbox 3] - [lindex $bbox 1]]
+
+					if { [lindex $bbox 0] < 0 } {
+						set x1 5
+						set outofbounds 1
+					}
+					if { [lindex $bbox 1] < 0 } {
+						set y1 [expr $height/2]
+						set outofbounds 1
+					}
+					if { [lindex $bbox 2] > $sizex } {
+						set x1 [expr $sizex-$width+5]
+						set outofbounds 1
+					}
+					if { [lindex $bbox 3] > $sizey } {
+						set y1 [expr {$sizey-$height/2}]
+						set outofbounds 1
+					}
+
+					setAnnotationCoords $node_id "$x1 $y1"
+				}
+
+				$main_canvas_elem addtag need_redraw withtag "link && $node_id"
+				set changed 1
+			} ;# end of: foreach img selected
+
+			foreach img [$main_canvas_elem find withtag "point_selected"] {
+				lassign [$main_canvas_elem gettags $img] - point_id link_id
+
+				set coordinates [$main_canvas_elem coords $img]
+				set x [expr { [lindex $coordinates 0] / $zoom }]
+				set y [expr { [lindex $coordinates 1] / $zoom }]
+
+				set dx [expr { (int($x / $grid + 0.5) * $grid - $x) * $zoom }]
+				set dy [expr { (int($y / $grid + 0.5) * $grid - $y) * $zoom }]
+				$main_canvas_elem move $img $dx $dy
+
+				set coordinates [$main_canvas_elem coords $img]
+				set x [expr { [lindex $coordinates 0] / $zoom }]
+				set y [expr { [lindex $coordinates 1] / $zoom }]
+
+				if { $x < 0 } {
+					set x 0
+				}
+				if { $y < 0 } {
+					set y 0
+				}
+				if { $x > $sizex } {
+					set x $sizex
+				}
+				if { $y > $sizey } {
+					set y $sizey
+				}
+
+				setPoint_gui $point_id "$x $y"
+
+				redrawLink $link_id
+				updateLinkLabel $link_id
 			}
-
-			if { [lindex [$main_canvas_elem gettags $node_id] 0] == "oval" } {
-				lassign [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]] x1 y1 x2 y2
-				set x1 [expr {$x1 / $zoom}]
-				set y1 [expr {$y1 / $zoom}]
-				set x2 [expr {$x2 / $zoom}]
-				set y2 [expr {$y2 / $zoom}]
-
-				if { $x1 < 0 } {
-					set x2 [expr {$x2-$x1}]
-					set x1 0
-					set outofbounds 1
-				}
-				if { $y1 < 0 } {
-					set y2 [expr {$y2-$y1}]
-					set y1 0
-					set outofbounds 1
-				}
-				if { $x2 > $sizex } {
-					set x1 [expr {$x1-($x2-$sizex)}]
-					set x2 $sizex
-					set outofbounds 1
-				}
-				if { $y2 > $sizey } {
-					set y1 [expr {$y1-($y2-$sizey)}]
-					set y2 $sizey
-					set outofbounds 1
-				}
-
-				setAnnotationCoords $node_id "$x1 $y1 $x2 $y2"
-			}
-
-			if { [lindex [$main_canvas_elem gettags $node_id] 0] == "rectangle" } {
-				set coordinates [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]]
-				set x1 [expr {[lindex $coordinates 0] / $zoom}]
-				set y1 [expr {[lindex $coordinates 1] / $zoom}]
-				set x2 [expr {[lindex $coordinates 6] / $zoom}]
-				set y2 [expr {[lindex $coordinates 13] / $zoom}]
-
-				if { $x1 < 0 } {
-					set x2 [expr {$x2-$x1}]
-					set x1 0
-					set outofbounds 1
-				}
-				if { $y1 < 0 } {
-					set y2 [expr {$y2-$y1}]
-					set y1 0
-					set outofbounds 1
-				}
-				if { $x2 > $sizex } {
-					set x1 [expr {$x1-($x2-$sizex)}]
-					set x2 $sizex
-					set outofbounds 1
-				}
-				if { $y2 > $sizey } {
-					set y1 [expr {$y1-($y2-$sizey)}]
-					set y2 $sizey
-					set outofbounds 1
-				}
-
-				setAnnotationCoords $node_id "$x1 $y1 $x2 $y2"
-			}
-
-			if { [lindex [$main_canvas_elem gettags $node_id] 0] == "freeform" } {
-				lassign [$main_canvas_elem bbox "selectmark && $node_id"] x1 y1 x2 y2
-				set x1 [expr {$x1 / $zoom}]
-				set y1 [expr {$y1 / $zoom}]
-				set x2 [expr {$x2 / $zoom}]
-				set y2 [expr {$y2 / $zoom}]
-
-				set shiftx 0
-				set shifty 0
-
-				if { $x1 < 0 } {
-					set shiftx -$x1
-					set outofbounds 1
-				}
-				if { $y1 < 0 } {
-					set shifty -$y1
-					set outofbounds 1
-				}
-				if { $x2 > $sizex } {
-					set shiftx [expr $sizex-$x2]
-					set outofbounds 1
-				}
-				if { $y2 > $sizey } {
-					set shifty [expr $sizey-$y2]
-					set outofbounds 1
-				}
-
-				set coordinates [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]]
-				set l [expr {[llength $coordinates]-1}]
-				set newcoords {}
-				set i 0
-
-				while { $i <= $l } {
-					set f1 [expr {[lindex $coordinates $i] * $zoom}]
-					set g1 [expr {[lindex $coordinates $i+1] * $zoom}]
-					set xx1 [expr $f1+$shiftx]
-					set yy1 [expr $g1+$shifty]
-
-					lappend newcoords $xx1 $yy1
-					set i [expr {$i+2}]
-				}
-
-				setAnnotationCoords $node_id $newcoords
-			}
-
-			if { [lindex [$main_canvas_elem gettags $node_id] 0] == "text" } {
-				set bbox [$main_canvas_elem bbox "selectmark && $node_id"]
-				lassign [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]] x1 y1
-				set x1 [expr {$x1 / $zoom}]
-				set y1 [expr {$y1 / $zoom}]
-
-				set width [expr [lindex $bbox 2] - [lindex $bbox 0]]
-				set height [expr [lindex $bbox 3] - [lindex $bbox 1]]
-
-				if { [lindex $bbox 0] < 0 } {
-					set x1 5
-					set outofbounds 1
-				}
-				if { [lindex $bbox 1] < 0 } {
-					set y1 [expr $height/2]
-					set outofbounds 1
-				}
-				if { [lindex $bbox 2] > $sizex } {
-					set x1 [expr $sizex-$width+5]
-					set outofbounds 1
-				}
-				if { [lindex $bbox 3] > $sizey } {
-					set y1 [expr {$sizey-$height/2}]
-					set outofbounds 1
-				}
-
-				setAnnotationCoords $node_id "$x1 $y1"
-			}
-
-			$main_canvas_elem addtag need_redraw withtag "link && $node_id"
-			set changed 1
-		} ;# end of: foreach img selected
-
-		foreach img [$main_canvas_elem find withtag "point_selected"] {
-			lassign [$main_canvas_elem gettags $img] - point_id link_id
-
-			set coordinates [$main_canvas_elem coords $img]
-			set x [expr { [lindex $coordinates 0] / $zoom }]
-			set y [expr { [lindex $coordinates 1] / $zoom }]
-
-			set dx [expr { (int($x / $grid + 0.5) * $grid - $x) * $zoom }]
-			set dy [expr { (int($y / $grid + 0.5) * $grid - $y) * $zoom }]
-			$main_canvas_elem move $img $dx $dy
-
-			set coordinates [$main_canvas_elem coords $img]
-			set x [expr { [lindex $coordinates 0] / $zoom }]
-			set y [expr { [lindex $coordinates 1] / $zoom }]
-
-			if { $x < 0 } {
-				set x 0
-			}
-			if { $y < 0 } {
-				set y 0
-			}
-			if { $x > $sizex } {
-				set x $sizex
-			}
-			if { $y > $sizey } {
-				set y $sizey
-			}
-
-			setPoint_gui $point_id "$x $y"
-
-			redrawLink $link_id
-			updateLinkLabel $link_id
 		}
 
 		if { $outofbounds } {
