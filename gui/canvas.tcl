@@ -1206,3 +1206,53 @@ proc resizeCanvasApply { w } {
 	switchCanvas none
 	updateUndoLog
 }
+
+proc snapCanvasNodesToGrid {} {
+	global main_canvas_elem changed sizex sizey
+
+	set zoom [getActiveOption "zoom"]
+
+	set redraw_needed 0
+
+	foreach img [$main_canvas_elem find withtag "node"] {
+		set node_id [lindex [$main_canvas_elem gettags $img] 1]
+		lassign [$main_canvas_elem coords $img] view_x view_y
+		set orig_x [expr { $view_x / $zoom }]
+		set orig_y [expr { $view_y / $zoom }]
+
+		lassign [snapCoordsToGrid $orig_x $orig_y] x y
+		if { $x < 0 || $y < 0 || $x > $sizex || $y > $sizey } {
+			set regular false
+		} elseif { $orig_x != $x || $orig_y != $y } {
+			lassign [getNodeCoords $node_id] orig_x orig_y
+
+			set dx [expr { $x - $orig_x }]
+			set dy [expr { $y - $orig_y }]
+
+			lassign [getNodeLabelCoords $node_id] orig_lx orig_ly
+			set lx [expr { $orig_lx + $dx }]
+			set ly [expr { $orig_ly + $dy }]
+
+			if { $lx < 0 || $ly < 0 || $lx > $sizex || $ly > $sizey } {
+				set regular false
+			} elseif { "$orig_lx $orig_ly" != "$lx $ly" } {
+				#moving the nodelabel and selectbox assigned to the moving node
+
+				set view_dx [expr { int($dx / $zoom) }]
+				set view_dy [expr { int($dy / $zoom) }]
+
+				setNodeCoords $node_id "$x $y"
+				$main_canvas_elem move "selectmark && $node_id" $view_dx $view_dy
+
+				setNodeLabelCoords $node_id "$lx $ly"
+				$main_canvas_elem move "nodelabel && $node_id" $view_dx $view_dy
+
+				$main_canvas_elem addtag need_redraw withtag "link && $node_id"
+				set changed 1
+				set redraw_needed 1
+			}
+		}
+	}
+
+	return $redraw_needed
+}
