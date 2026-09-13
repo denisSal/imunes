@@ -1594,9 +1594,20 @@ proc selectZoomPopupMenu { x y } {
 
 	foreach z $zoom_stops {
 		set tmp_command {
+			global autorearrange_enabled
+
 			setGlobalOption "zoom" $sel_zoom
 
 			redrawAll
+
+			if { $autorearrange_enabled } {
+				set autorearrange_enabled 0
+				update
+			}
+
+			if { [snapCanvasNodesToGrid] } {
+				redrawAll
+			}
 		}
 		.button3menu add radiobutton -label [expr {int($z*100)}] \
 			-variable sel_zoom -value $z \
