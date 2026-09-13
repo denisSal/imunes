@@ -1639,7 +1639,11 @@ proc button1-release { x y } {
 		if { $selectbox == "" } {
 			set x1 $x
 			set y1 $y
-			set autorearrange_enabled 0
+			if { $autorearrange_enabled } {
+				set autorearrange_enabled 0
+				update
+				set redrawNeeded [snapCanvasNodesToGrid]
+			}
 		} else {
 			set coordinates [$main_canvas_elem coords $selectbox]
 
