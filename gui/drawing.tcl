@@ -2078,20 +2078,21 @@ proc drawGradientCircle { image_obj palette image_width image_height } {
 }
 
 proc snapCoordsToGrid { x y } {
-	global grid main_canvas_elem
+	global grid
 
 	set zoom [getActiveOption "zoom"]
 
-	set new_x [expr $x + {(int($x / $grid + 0.5) * $grid - $x) * $zoom}]
-	set new_y [expr $y + {(int($y / $grid + 0.5) * $grid - $y) * $zoom}]
+	set grid_x [expr { $x / $zoom }]
+	set grid_y [expr { $y / $zoom }]
 
-	return "[expr int(round($new_x))] [expr int(round($new_y))]"
+	set snapped_x [expr { round($grid_x / $grid) * $grid }]
+	set snapped_y [expr { round($grid_y / $grid) * $grid }]
+
+	return "[expr { round($snapped_x * $zoom) }] [expr { round($snapped_y * $zoom) }]"
 }
 
 proc snapObjectToGrid { image_obj } {
 	global grid main_canvas_elem
-
-	set zoom [getActiveOption "zoom"]
 
 	lassign [$main_canvas_elem coords $image_obj] x y
 	lassign [snapCoordsToGrid $x $y] x y
