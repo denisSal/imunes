@@ -419,7 +419,7 @@ lappend array_names "selecttool"
 
 set linktool_help_strings {
 	"<<SUBSUBSECTION>>Link tool" \
-"Tool for creating links between nodes on the canvas. Drag the line from one node to another to create a link."
+"Tool for creating links between nodes on the canvas. Drag the line from one node to another to create a link. Right clicking on the link gives options (explained in documentation section [Link Options]<<IHIDE:(#link-options)>>) for that link."
 }
 lappend array_names "linktool"
 
@@ -585,6 +585,15 @@ set annotation_help_strings {
 lappend array_names "annotation"
 
 set confignode_help_strings {
+	"<<SUBSECTION>>Node Options" \
+"Right-clicking on the node opens a popup menu with options pertaining to that node."
+
+	"<<LEVEL1>><<DHIDE:Node >>Configure" \
+"Opens a *Configuration* window for this node to change functional options such as routing options, IP addresses, custom configuration, advanced options etc. For more information, check documentation section [Node Configuration]<<IHIDE:(#node-configuration)>> and sections for specific options."
+
+	"<<SUBSECTION>>Node Configuration" \
+"Double-clicking on the node (<Control> + double clicking if the node is running), or choosing *Configuration* from the right-click menu opens a window with options to configure for that specific node."
+
 	"<<SUBSUBSECTION>>Node name" \
 "Name that will be displayed next to the node. If this is a virtualized node, this will be configured as the node hostname."
 
@@ -646,10 +655,38 @@ The external editor must quit, only then will IMUNES fetch the latest changes."
 lappend array_names "confignode"
 
 set configlink_help_strings {
+	"<<SUBSECTION>>Link Options" \
+"Right-clicking on the link opens a popup menu with options pertaining to that link.<<FAKENEWLINE>>"
+
+	"<<LEVEL1>><<DHIDE:Link >><<*>>Configure<<*>>" \
+"<<BULLET_EXP>>Opens a *Configuration* window for this link to change functional and visual options such as bandwidth, delay, color, width, etc. For more information, check documentation section [Link Configuration]<<IHIDE:(#link-configuration)>> and sections for specific options."
+
+	"<<LEVEL1>><<*>>Clear all settings<<*>>" \
+"<<BULLET_EXP>>Remove all link emulation settings (bandwidth, delay, BER, loss, duplication) from the link. This change will immediately trigger link reconfiguration."
+
+	"<<LEVEL1>><<*>>Direct link<<*>>" \
+"<<BULLET_EXP>>Toggle between `normal` and `direct` link mode of operation: `normal` links use an intermediate bridge/switch and `direct` links connect endpoints directly without any intermediate elements. For `External interface` and `External connection` node types, the behaviour of the `direct` link changes depending on its peer. For more information about `direct` links, check documentation section [IMUNES Architecture]<<IHIDE:(#imunes-architecture)>>."
+
+	"<<LEVEL1>><<*>>Delete<<DHIDE: link>><<*>>" \
+"<<BULLET_EXP>>Remove the link, including the interfaces on both endpoints."
+
+	"<<LEVEL1>><<*>>Delete<<DHIDE: link>> (keep interfaces)<<*>>" \
+"<<BULLET_EXP>>Remove the link, but keep the interfaces on both endpoints. Due to the nature of `direct` links on Linux, interfaces will be first removed and then recreated."
+
+	"<<LEVEL1>><<*>>Split<<DHIDE: link>><<*>>" \
+"<<BULLET_EXP>>Visually splits the link and connects each endpoint to its peer's mirror `pseudo-node`. Each `pseudo-node` can be moved independently. When nodes are on different canvases, the links between them are automatically split. Splitting a segmented link temporarily removes its segmentation - the segmentation is restored when the link is merged. Split links cannot be segmented."
+
+	"<<LEVEL1>><<*>>Merge<<DHIDE: link>><<*>>" \
+"<<BULLET_EXP>>Reconnects a previously split link and deletes its `pseudo-nodes`. If the link was segmented before it was split, its previous segmentation is restored."
+
+	"<<LEVEL1>><<*>>Segment<<DHIDE: link>><<*>>" \
+"<<BULLET_EXP>>Adds a point to the middle of a link or an existing segment. The point can then be moved with the *Select tool* to change the appearance of the link. To delete a point, right-click it. Segmented links can be split - splitting temporarily removes the segmentation, which is restored when the link is merged."
+
+	"<<SUBSECTION>>Link Configuration" \
+"Double-clicking on the link, or choosing *Configuration* from the right-click menu opens a window with options to configure for that specific link."
+
 	"<<SUBSUBSECTION>>Link from" \
-"Defines the two endpoints connected by the link:<<FAKENEWLINE>>
-<<LEVEL1>>`Normal` links use an intermediate bridge/switch segment when required by the platform.
-<<LEVEL1>>`Direct` links connect endpoints directly without an intermediate bridge."
+"Defines the two endpoints connected by the link."
 
 	"<<SUBSUBSECTION>>Link bandwidth" \
 "Maximum link bandwidth in bits per second. Set this to 0 to leave bandwidth unlimited (or rather: limited by your hardware)."
@@ -676,14 +713,14 @@ Percentage of packets dropped on this link. Set this to 0 for no artificial pack
 	"<<SUBSUBSECTION>>Link color" \
 "Color of the link line on the canvas. This changes only the visual representation of the link."
 
-	"<<SUBSUBSECTION>>Jitter mode" \
-"Select how configured jitter values are applied. `sequential` uses the values in order; `random` selects values randomly."
+	"<<NOSECTION>>Jitter mode" \
+"<<DHIDE:Select how configured jitter values are applied. `sequential` uses the values in order; `random` selects values randomly.>>"
 
-	"<<SUBSUBSECTION>>Jitter hold" \
-"Time in milliseconds for which a selected jitter value remains active before the next value is used."
+	"<<NOSECTION>>Jitter hold" \
+"<<DHIDE:Time in milliseconds for which a selected jitter value remains active before the next value is used.>>"
 
-	"<<SUBSUBSECTION>>Jitter values" \
-"List of jitter values in milliseconds, one value per line. Values are configured separately for each link direction."
+	"<<NOSECTION>>Jitter values" \
+"<<DHIDE:ist of jitter values in milliseconds, one value per line. Values are configured separately for each link direction.>>"
 }
 lappend array_names "configlink"
 
@@ -712,31 +749,31 @@ set advancedopts_help_strings {
 <<LEVEL2>>`#hook:filename` - to make `filename` executed when hook is reached during deployCfg/undeployCfg.
 
 Valid hooks are:<<FAKENEWLINE>>
-<<LEVEL2>>`pre-init_config` - before the initial node configuration
-<<LEVEL2>>`post-init_config` - after initial node configuration
-<<LEVEL2>>`pre-pifaces_create` - before creating physical interfaces
-<<LEVEL2>>`post-pifaces_create` - after creating physical interfaces
-<<LEVEL2>>`pre-pifaces_dcreate` - before creating physical interfaces (direct links)
-<<LEVEL2>>`post-pifaces_dcreate` - after creating physical interfaces (direct links)
-<<LEVEL2>>`pre-lifaces_create` - before creating logical interfaces
-<<LEVEL2>>`post-lifaces_create` - after creating logical interfaces
-<<LEVEL2>>`pre-ifaces_config` - before configuring all interfaces
-<<LEVEL2>>`post-ifaces_config` - after configuring all interfaces
-<<LEVEL2>>`pre-node_config` - before configuring the node
-<<LEVEL2>>`post-node_config` - after configuring the node
-<<LEVEL2>>`pre-node_unconfig` - before unconfiguring the node
-<<LEVEL2>>`post-node_unconfig` - after unconfiguring the node
-<<LEVEL2>>`pre-node_shutdown` - before shutting down all processes on the node
-<<LEVEL2>>`post-node_shutdown` - after shutting down all processes on the node
-<<LEVEL2>>`pre-ifaces_unconfig` - before unconfiguring all interfaces
-<<LEVEL2>>`post-ifaces_unconfig` - after unconfiguring all interfaces
-<<LEVEL2>>`pre-lifaces_destroy` - before destroying logical interfaces
-<<LEVEL2>>`post-lifaces_destroy` - after destroying logical interfaces
-<<LEVEL2>>`pre-pifaces_destroy` - before destroying physical interfaces
-<<LEVEL2>>`post-pifaces_destroy` - after destroying physical interfaces
-<<LEVEL2>>`pre-pifaces_ddestroy` - before destroying physical interfaces (direct links)
-<<LEVEL2>>`post-pifaces_ddestroy` - after destroying physical interfaces (direct links)
-<<LEVEL2>>`pre-node_destroy` - before destroying the node"
+<<LEVEL2>>pre-init_config - before the initial node configuration
+<<LEVEL2>>post-init_config - after initial node configuration
+<<LEVEL2>>pre-pifaces_create - before creating physical interfaces
+<<LEVEL2>>post-pifaces_create - after creating physical interfaces
+<<LEVEL2>>pre-pifaces_dcreate - before creating physical interfaces (direct links)
+<<LEVEL2>>post-pifaces_dcreate - after creating physical interfaces (direct links)
+<<LEVEL2>>pre-lifaces_create - before creating logical interfaces
+<<LEVEL2>>post-lifaces_create - after creating logical interfaces
+<<LEVEL2>>pre-ifaces_config - before configuring all interfaces
+<<LEVEL2>>post-ifaces_config - after configuring all interfaces
+<<LEVEL2>>pre-node_config - before configuring the node
+<<LEVEL2>>post-node_config - after configuring the node
+<<LEVEL2>>pre-node_unconfig - before unconfiguring the node
+<<LEVEL2>>post-node_unconfig - after unconfiguring the node
+<<LEVEL2>>pre-node_shutdown - before shutting down all processes on the node
+<<LEVEL2>>post-node_shutdown - after shutting down all processes on the node
+<<LEVEL2>>pre-ifaces_unconfig - before unconfiguring all interfaces
+<<LEVEL2>>post-ifaces_unconfig - after unconfiguring all interfaces
+<<LEVEL2>>pre-lifaces_destroy - before destroying logical interfaces
+<<LEVEL2>>post-lifaces_destroy - after destroying logical interfaces
+<<LEVEL2>>pre-pifaces_destroy - before destroying physical interfaces
+<<LEVEL2>>post-pifaces_destroy - after destroying physical interfaces
+<<LEVEL2>>pre-pifaces_ddestroy - before destroying physical interfaces (direct links)
+<<LEVEL2>>post-pifaces_ddestroy - after destroying physical interfaces (direct links)
+<<LEVEL2>>pre-node_destroy - before destroying the node"
 
 	"<<LEVEL1>><<*>>Imported file mode<<*>>" \
 "<<BULLET_EXP>>File permissions specified as a numeric mode, for example 644. An environment variable (a value starting with $) is also accepted."
@@ -770,31 +807,31 @@ Valid hooks are:<<FAKENEWLINE>>
 <<LEVEL2>>`#hook:dirname` - to save `dirname` in the `hook` folder.
 
 Valid hooks are:<<FAKENEWLINE>>
-<<LEVEL2>>`pre-init_config` - before the initial node configuration
-<<LEVEL2>>`post-init_config` - after initial node configuration
-<<LEVEL2>>`pre-pifaces_create` - before creating physical interfaces
-<<LEVEL2>>`post-pifaces_create` - after creating physical interfaces
-<<LEVEL2>>`pre-pifaces_dcreate` - before creating physical interfaces (direct links)
-<<LEVEL2>>`post-pifaces_dcreate` - after creating physical interfaces (direct links)
-<<LEVEL2>>`pre-lifaces_create` - before creating logical interfaces
-<<LEVEL2>>`post-lifaces_create` - after creating logical interfaces
-<<LEVEL2>>`pre-ifaces_config` - before configuring all interfaces
-<<LEVEL2>>`post-ifaces_config` - after configuring all interfaces
-<<LEVEL2>>`pre-node_config` - before configuring the node
-<<LEVEL2>>`post-node_config` - after configuring the node
-<<LEVEL2>>`pre-node_unconfig` - before unconfiguring the node
-<<LEVEL2>>`post-node_unconfig` - after unconfiguring the node
-<<LEVEL2>>`pre-node_shutdown` - before shutting down all processes on the node
-<<LEVEL2>>`post-node_shutdown` - after shutting down all processes on the node
-<<LEVEL2>>`pre-ifaces_unconfig` - before unconfiguring all interfaces
-<<LEVEL2>>`post-ifaces_unconfig` - after unconfiguring all interfaces
-<<LEVEL2>>`pre-lifaces_destroy` - before destroying logical interfaces
-<<LEVEL2>>`post-lifaces_destroy` - after destroying logical interfaces
-<<LEVEL2>>`pre-pifaces_destroy` - before destroying physical interfaces
-<<LEVEL2>>`post-pifaces_destroy` - after destroying physical interfaces
-<<LEVEL2>>`pre-pifaces_ddestroy` - before destroying physical interfaces (direct links)
-<<LEVEL2>>`post-pifaces_ddestroy` - after destroying physical interfaces (direct links)
-<<LEVEL2>>`pre-node_destroy` - before destroying the node"
+<<LEVEL2>>pre-init_config - before the initial node configuration
+<<LEVEL2>>post-init_config - after initial node configuration
+<<LEVEL2>>pre-pifaces_create - before creating physical interfaces
+<<LEVEL2>>post-pifaces_create - after creating physical interfaces
+<<LEVEL2>>pre-pifaces_dcreate - before creating physical interfaces (direct links)
+<<LEVEL2>>post-pifaces_dcreate - after creating physical interfaces (direct links)
+<<LEVEL2>>pre-lifaces_create - before creating logical interfaces
+<<LEVEL2>>post-lifaces_create - after creating logical interfaces
+<<LEVEL2>>pre-ifaces_config - before configuring all interfaces
+<<LEVEL2>>post-ifaces_config - after configuring all interfaces
+<<LEVEL2>>pre-node_config - before configuring the node
+<<LEVEL2>>post-node_config - after configuring the node
+<<LEVEL2>>pre-node_unconfig - before unconfiguring the node
+<<LEVEL2>>post-node_unconfig - after unconfiguring the node
+<<LEVEL2>>pre-node_shutdown - before shutting down all processes on the node
+<<LEVEL2>>post-node_shutdown - after shutting down all processes on the node
+<<LEVEL2>>pre-ifaces_unconfig - before unconfiguring all interfaces
+<<LEVEL2>>post-ifaces_unconfig - after unconfiguring all interfaces
+<<LEVEL2>>pre-lifaces_destroy - before destroying logical interfaces
+<<LEVEL2>>post-lifaces_destroy - after destroying logical interfaces
+<<LEVEL2>>pre-pifaces_destroy - before destroying physical interfaces
+<<LEVEL2>>post-pifaces_destroy - after destroying physical interfaces
+<<LEVEL2>>pre-pifaces_ddestroy - before destroying physical interfaces (direct links)
+<<LEVEL2>>post-pifaces_ddestroy - after destroying physical interfaces (direct links)
+<<LEVEL2>>pre-node_destroy - before destroying the node"
 
 	"<<LEVEL1>><<*>>Imported dir import<<*>>" \
 "<<BULLET_EXP>>Select a local directory and import its contents. The directory contents are stored as a base64-encoded tar archive in the IMUNES configuration."
