@@ -210,7 +210,7 @@ proc setWmTitle { fname } {
 
 	set modified ""
 	if { [getFromRunning "modified"] } {
-		set modified " *"
+		set modified "*"
 	}
 
 	set remote_str ""
@@ -225,7 +225,7 @@ proc setWmTitle { fname } {
 
 		set remote_str "remote $os host '$remote' - "
 	}
-	wm title . "$baseTitle - $remote_str$fname$modified"
+	wm title . "$modified$baseTitle - $remote_str$fname"
 }
 
 #****f* filemgmt.tcl/openFile
