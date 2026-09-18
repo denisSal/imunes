@@ -592,11 +592,6 @@ proc drawPseudoLink { link_id } {
 #   * y2 -- Y coordinate of point2
 #****
 proc calcAnglePoints { x1 y1 x2 y2 } {
-	set zoom [getActiveOption "zoom"]
-	set x1 [expr $x1*$zoom]
-	set y1 [expr $y1*$zoom]
-	set x2 [expr $x2*$zoom]
-	set y2 [expr $y2*$zoom]
 	if { [expr $x2 - $x1] == 0 } {
 		set arad 0
 	} else {
@@ -923,6 +918,8 @@ proc redrawLink { link_id } {
 		set link_color [getLinkColor $link_id]
 		set link_width [getLinkWidth $link_id]
 
+		set zoom [getActiveOption "zoom"]
+
 		set prev_point $node1_id
 		set center [expr [llength $points] / 2]
 		if { [expr [llength $points] % 2] == 0 } {
@@ -930,13 +927,14 @@ proc redrawLink { link_id } {
 			set point2_id [lindex $points $center]
 			lassign [getPoint_gui $point1_id] x1 y1
 			lassign [getPoint_gui $point2_id] x2 y2
-			set lx [expr {int(0.5 * ($x1 + $x2))}]
-			set ly [expr {int(0.5 * ($y1 + $y2))}]
+			set lx [expr { int(0.5 * ($x1 + $x2) * $zoom) }]
+			set ly [expr { int(0.5 * ($y1 + $y2) * $zoom) }]
 		} else {
 			lassign [getPoint_gui [lindex $points $center]] lx ly
+			set lx [expr { int($lx * $zoom) }]
+			set ly [expr { int($ly * $zoom) }]
 		}
 
-		set zoom [getActiveOption "zoom"]
 		lassign [$main_canvas_elem coords "node && $node1_id"] x1 y1
 		for {set idx 0} {$idx < [llength $points]} {incr idx} {
 			set point [lindex $points $idx]
@@ -974,10 +972,19 @@ proc redrawLink { link_id } {
 		lassign [$main_canvas_elem coords "node && $node2_id"] x2 y2
 
 		lassign [getLinkPeersIfaces $link_id] iface1_id iface2_id
-		updateIfcLabelParams $link_id $node1_id $iface1_id $x1 $y1 {*}[getPoint_gui [lindex $points 0]]
+
+		set zoom [getActiveOption "zoom"]
+
+		lassign [getPoint_gui [lindex $points 0]] px py
+		set px [expr { $px * $zoom }]
+		set py [expr { $py * $zoom }]
+		updateIfcLabelParams $link_id $node1_id $iface1_id $x1 $y1 $px $py
 		updateIfcLabel $link_id $node1_id $iface1_id
 
-		updateIfcLabelParams $link_id $node2_id $iface2_id $x2 $y2 {*}[getPoint_gui [lindex $points end]]
+		lassign [getPoint_gui [lindex $points end]] px py
+		set px [expr { $px * $zoom }]
+		set py [expr { $py * $zoom }]
+		updateIfcLabelParams $link_id $node2_id $iface2_id $x2 $y2 $px $py
 		updateIfcLabel $link_id $node2_id $iface2_id
 	} else {
 		lassign [$main_canvas_elem gettags $limage1] {} link_id node1_id node2_id -

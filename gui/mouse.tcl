@@ -753,19 +753,18 @@ proc segmentLinkGUI { link_id x y } {
 		lassign [getPoint_gui $point1_id] x1 y1
 	} else {
 		set new_point_idx 0
-		lassign [$main_canvas_elem coords "node && $point1_id"] x1 y1
+		lassign [getNodeCoords $point1_id] x1 y1
 	}
 
 	if { [string index $point2_id 0] == "p" } {
 		lassign [getPoint_gui $point2_id] x2 y2
 	} else {
-		lassign [$main_canvas_elem coords "node && $point2_id"] x2 y2
+		lassign [getNodeCoords $point2_id] x2 y2
 	}
 
 	set new_point_id [newObjectId [cfgGet "gui" "points"] "p"]
 	setLinkPoints_gui $link_id [linsert $points $new_point_idx $new_point_id]
 
-	# TODO: check what's with x/y coordinates from Tk
 	set x [expr { int(0.5 * ($x1 + $x2)) }]
 	set y [expr { int(0.5 * ($y1 + $y2)) }]
 	lassign [snapCoordsToGrid $x $y] x y
