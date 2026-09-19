@@ -57,7 +57,7 @@ namespace eval ${MODULE}::gui {
 	#   * descr -- string describing the toolbar icon
 	#****
 	proc toolbarIconDescr {} {
-		return "Add new Hub"
+		return "Hub"
 	}
 
 	#****f* hub.tcl/hub.icon
