@@ -686,6 +686,9 @@ proc moveToCanvas { canvas_id } {
 		}
 	}
 
+	# destroy annotation configuration dialog
+	catch { destroy .popup }
+
 	updateUndoLog
 	redrawAll
 }
@@ -889,7 +892,6 @@ proc button3node { x y } {
 proc button1 { x y button } {
 	global newlink curobj changed
 	global router pc host lanswitch frswitch rj45 hub
-	global oval rectangle text freeform newtext
 	global lastX lastY
 	global background selectbox
 	global resizemode resizeobj main_canvas_elem
@@ -1043,6 +1045,8 @@ proc button1 { x y button } {
 			set lastX $x
 			set lastY $y
 		} elseif { $active_tool == "text" } {
+			global newtext
+
 			$main_canvas_elem config -cursor xterm
 			set lastX $x
 			set lastY $y
@@ -1186,7 +1190,8 @@ proc button1-motion { x y } {
 				-width 1 \
 				-tags "newoval"]
 
-			$main_canvas_elem raise $newoval "background || link || linklabel || interface"
+			$main_canvas_elem raise $newoval \
+				"background || link || linklabel || interface || [join $all_annotation_types " || "]"
 		} else {
 			$main_canvas_elem coords $newoval \
 				$lastX $lastY $x $y
@@ -1204,7 +1209,8 @@ proc button1-motion { x y } {
 				-width 1 \
 				-tags "newrectangle"]
 
-			$main_canvas_elem raise $newrectangle "oval || background || link || linklabel || interface"
+			$main_canvas_elem raise $newrectangle \
+				"background || link || linklabel || interface || [join $all_annotation_types " || "]"
 		} else {
 			$main_canvas_elem coords $newrectangle $lastX $lastY $x $y
 		}
@@ -1220,7 +1226,8 @@ proc button1-motion { x y } {
 				-width 2 \
 				-tags "newfreeform"]
 
-			$main_canvas_elem raise $newfreeform "oval || rectangle || background || link || linklabel || interface"
+			$main_canvas_elem raise $newfreeform \
+				"background || link || linklabel || interface || [join $all_annotation_types " || "]"
 		} else {
 			xpos $newfreeform $x $y 2 blue
 		}
@@ -1368,12 +1375,7 @@ proc button1-release { x y } {
 			}
 		}
 	} elseif { $active_tool in $all_annotation_types } {
-		#popup.*Dialog and destroy all other temporary annotations
-		popup[string totitle $active_tool]Dialog 0 "false"
-
-		foreach annotation_type [removeFromList $all_annotation_types $active_tool] {
-			destroyNew[string totitle $annotation_type]
-		}
+		popupAnnotationDialog "new" $active_tool "false"
 	}
 
 	if { $changed == 1 } {
