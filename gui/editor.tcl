@@ -1134,6 +1134,8 @@ proc setActiveToolGroup { group } {
 	$mf.left.$active_tool_group state selected
 
 	if { [llength $tools] > 1 } {
+		global arrow_image
+
 		if { $visible_count == 0 || $tool ni $visible_tools } {
 			if { $group == "link_layer" } {
 				set image [image create photo -file $ROOTDIR/$LIBDIR/icons/tiny/l2.gif]
@@ -1143,10 +1145,11 @@ proc setActiveToolGroup { group } {
 		} else {
 			set image [image create photo -file [invokeTypeProc $tool "gui::icon" "toolbar"]]
 		}
-		# TODO: Create an arrow image programatically
-		set arrow_source "$ROOTDIR/$LIBDIR/icons/tiny/l2.gif"
-		set arrow_image [image create photo -file $arrow_source]
-		$image copy $arrow_image -from 29 30 40 40 -to 29 30 40 40 -compositingrule overlay
+
+		set w [$arrow_image cget -width]
+		set h [$arrow_image cget -height]
+
+		$image copy $arrow_image -to 32 32 [expr { 32 + $w }] [expr { 32 + $h }] -compositingrule overlay
 		$mf.left.$group configure -image $image
 	}
 

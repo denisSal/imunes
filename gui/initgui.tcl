@@ -1106,7 +1106,18 @@ foreach node_type $all_modules_list {
 	addTool [invokeTypeProc $node_type "gui::toolbarLocation"] $node_type
 }
 
+global arrow_image
+set arrow_image [image create photo -width 7 -height 7]
+set y 0
+foreach width "2 4 6 7 6 4 2" {
+	$arrow_image put black -to 0 $y $width [incr y]
+}
+
+set w [$arrow_image cget -width]
+set h [$arrow_image cget -height]
+
 set image [image create photo -file $ROOTDIR/$LIBDIR/icons/tiny/l2.gif]
+$image copy $arrow_image -to 32 32 [expr { 32 + $w }] [expr { 32 + $h }] -compositingrule overlay
 ttk::menubutton $mf.left.link_layer -image $image -style Toolbutton \
 	-menu $mf.left.link_nodes -direction right
 bind $mf.left.link_layer <Any-Enter> ".bottom.textbox config -text {Add new link layer node} -foreground black"
@@ -1114,6 +1125,7 @@ bind $mf.left.link_layer <Any-Leave> ".bottom.textbox config -text {}"
 pack $mf.left.link_layer
 
 set image [image create photo -file $ROOTDIR/$LIBDIR/icons/tiny/l3.gif]
+$image copy $arrow_image -to 32 32 [expr { 32 + $w }] [expr { 32 + $h }] -compositingrule overlay
 ttk::menubutton $mf.left.net_layer -image $image -style Toolbutton \
 	-menu $mf.left.net_nodes -direction right
 bind $mf.left.net_layer <Any-Enter> ".bottom.textbox config -text {Add new network layer node} -foreground black"
