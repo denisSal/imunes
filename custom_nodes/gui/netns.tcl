@@ -30,7 +30,7 @@ namespace eval ${MODULE}::gui {
 	namespace export *
 
 	proc toolbarIconDescr {} {
-		return "Add new netns"
+		return "Netns"
 	}
 
 	proc icon { size } {

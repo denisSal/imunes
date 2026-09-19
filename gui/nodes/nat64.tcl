@@ -33,7 +33,7 @@ namespace eval ${MODULE}::gui {
 	namespace export *
 
 	proc toolbarIconDescr {} {
-		return "Add new NAT64"
+		return "NAT64"
 	}
 
 	proc icon { size } {

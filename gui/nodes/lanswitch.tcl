@@ -57,7 +57,7 @@ namespace eval ${MODULE}::gui {
 	#   * descr -- string describing the toolbar icon
 	#****
 	proc toolbarIconDescr {} {
-		return "Add new LAN switch"
+		return "LAN switch"
 	}
 
 	proc _confNewIfc { node_cfg iface_id } {

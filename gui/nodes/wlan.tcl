@@ -30,7 +30,7 @@ namespace eval ${MODULE}::gui {
 	namespace export *
 
 	proc toolbarIconDescr {} {
-		return "Add new WLAN domain"
+		return "WLAN domain"
 	}
 
 	proc icon { size } {

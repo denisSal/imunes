@@ -54,7 +54,7 @@ namespace eval ${MODULE}::gui {
 	#   * descr -- string describing the toolbar icon
 	#****
 	proc toolbarIconDescr {} {
-		return "Add new External connection"
+		return "External connection"
 	}
 
 	proc _confNewIfc { node_cfg iface_id } {

@@ -59,7 +59,7 @@ namespace eval ${MODULE}::gui {
 	#   * descr -- string describing the toolbar icon
 	#****
 	proc toolbarIconDescr {} {
-		return "Add new Router"
+		return "Router"
 	}
 
 	#****f* genericrouter.tcl/router.icon

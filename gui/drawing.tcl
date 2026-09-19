@@ -48,7 +48,7 @@ proc refreshToolBarNodes {} {
 		}
 
 		$mf.left.${tool}_nodes add command -image $image -hidemargin 1 \
-			-compound left -label [string range [invokeTypeProc $node_type "gui::toolbarIconDescr"] 8 end] \
+			-compound left -label [invokeTypeProc $node_type "gui::toolbarIconDescr"] \
 			-command "setActiveTool ${tool}_layer $node_type" {*}$background_color
 	}
 }

@@ -30,7 +30,7 @@ namespace eval genericL2::gui {
 	namespace export *
 
 	proc toolbarIconDescr {} {
-		return "Add new L2 node"
+		return "L2 node"
 	}
 
 	proc toolbarLocation {} {

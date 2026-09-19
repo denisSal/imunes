@@ -27,7 +27,7 @@ namespace eval genericL3::gui {
 	namespace export *
 
 	proc toolbarIconDescr {} {
-		return "Add new L3 node"
+		return "L3 node"
 	}
 
 	proc toolbarLocation {} {

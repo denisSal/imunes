@@ -44,7 +44,7 @@ namespace eval ${MODULE}::gui {
 	namespace export *
 
 	proc toolbarIconDescr {} {
-		return "Add new Packet generator"
+		return "Packet generator"
 	}
 
 	proc icon { size } {
