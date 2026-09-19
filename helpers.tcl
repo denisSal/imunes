@@ -116,6 +116,7 @@ proc parseCmdArgs { options usage } {
 	if { $params(convert) } {
 		set execMode batch
 		set convert_json true
+		set gui 0
 
 		return
 	}

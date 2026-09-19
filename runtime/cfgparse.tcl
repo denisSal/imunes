@@ -67,6 +67,9 @@ proc loadCfgLegacy { cfg } {
 	set dict_run_gui [dict create]
 	set execute_vars [dict create]
 
+	setToRunning "undolevel" 0
+	setToRunning "redolevel" 0
+
 	# Cleanup first
 	set node_list {}
 	set link_list {}
