@@ -63,15 +63,37 @@ proc copySelection {} {
 		return
 	}
 
+	# clean up old clipboard - remove no longer needed images
+	foreach image_id [getFromRunning_gui "image_list"] {
+		set references [getImageReferences $image_id]
+		foreach reference_id $references {
+			if { [string range $reference_id 0 9] == "clipboard_" } {
+				removeImageReference $image_id $reference_id
+				set references [removeFromList $references $reference_id]
+			}
+		}
+
+		if { $references == "" } {
+			setToRunning_gui "image_list" [removeFromList [getFromRunning_gui "image_list"] $image_id]
+			cfgUnset "gui" "images" $image_id
+		}
+	}
+
 	catch { namespace delete ::cf::clipboard }
 	namespace eval ::cf::clipboard {}
 	upvar 0 ::cf::clipboard::dict_cfg dict_cfg
 	set dict_cfg [dict create]
 
 	clipboardSet "annotation_list" {}
+
+	set curcanvas [getFromRunning_gui "curcanvas"]
 	foreach annotation_id $selected_annotations {
 		clipboardLappend "annotation_list" $annotation_id
 		clipboardSet "gui" "annotations" $annotation_id [cfgGet "gui" "annotations" $annotation_id]
+		if { [getAnnotationType $annotation_id] == "image" } {
+			# don't lose image if we still reference it in the clipboard
+			setImageReference [getAnnotationBkgImage $annotation_id] "clipboard_$annotation_id"
+		}
 	}
 
 	# Copy selected nodes and interconnecting links to the clipboard
@@ -126,16 +148,23 @@ proc paste {} {
 	}
 
 	set new_annotations {}
+
 	set curcanvas [getFromRunning_gui "curcanvas"]
 	set annotation_order [getCanvasAnnotationOrder $curcanvas]
 	set new_order $annotation_order
+
 	# Paste annotations from the clipboard and rename them on the fly
-	foreach {annotation_orig annotation_orig_cfg} $clipboard_annotations {
+	foreach {annotation_orig_id annotation_orig_cfg} $clipboard_annotations {
 		set new_annotation_id [newObjectId [getFromRunning_gui "annotation_list"] "a"]
 
 		cfgSet "gui" "annotations" $new_annotation_id $annotation_orig_cfg
 		lappendToRunning_gui "annotation_list" $new_annotation_id
 		lappend new_annotations $new_annotation_id
+		set image_id [_getAnnotationBkgImage $annotation_orig_cfg]
+		if { $image_id != "" } {
+			setImageReference $image_id $new_annotation_id
+			removeImageReference $image_id "clipboard_$annotation_orig_id"
+		}
 
 		setAnnotationCanvas $new_annotation_id $curcanvas
 
