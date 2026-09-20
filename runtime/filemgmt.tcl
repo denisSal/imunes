@@ -421,6 +421,7 @@ proc openFile { { no_recent "" } } {
 				set annotation_coords [getAnnotationCoords $annotation_id]
 				set newcoords {}
 				switch -exact -- $annotation_type {
+					"image" -
 					"rectangle" -
 					"oval" {
 						lassign $annotation_coords x1 y1 x2 y2
