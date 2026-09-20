@@ -102,3 +102,11 @@ proc _getAnnotationCoords { annotation_cfg } {
 proc _setAnnotationCoords { annotation_cfg coords } {
 	return [_cfgSet $annotation_cfg "iconcoords" $coords]
 }
+
+proc _getAnnotationBkgImage { annotation_cfg } {
+	return [_cfgGet $annotation_cfg "bkg_image"]
+}
+
+proc _setAnnotationBkgImage { annotation_cfg bkg_image } {
+	return [_cfgSet $annotation_cfg "bkg_image" $bkg_image]
+}

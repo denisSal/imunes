@@ -53,6 +53,15 @@ proc addAnnotation { annotation_id type } {
 #   * annotation_id -- existing annotation
 #****
 proc deleteAnnotation { annotation_id } {
+	set image_id [getAnnotationBkgImage $annotation_id]
+	if { $image_id != "" } {
+		removeImageReference $image_id $annotation_id
+		if { [getImageReferences $image_id] == {} } {
+			setToRunning_gui "image_list" [removeFromList [getFromRunning_gui "image_list"] $image_id]
+			cfgUnset "gui" "images" $image_id
+		}
+	}
+
 	setToRunning_gui "annotation_list" [removeFromList [getFromRunning_gui "annotation_list"] $annotation_id]
 	cfgUnset "gui" "annotations" $annotation_id
 
@@ -98,6 +107,10 @@ addCase "updateAnnotationGUI" "font" {
 
 addCase "updateAnnotationGUI" "iconcoords" {
 	setAnnotationCoords $annotation_id $new_value
+}
+
+addCase "updateAnnotationGUI" "bkg_image" {
+	setAnnotationBkgImage $annotation_id $new_value
 }
 
 proc updateAnnotationGUI { annotation_id old_annotation_cfg_gui new_annotation_cfg_gui } {

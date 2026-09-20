@@ -136,6 +136,10 @@ proc paste {} {
 		cfgSet "gui" "annotations" $new_annotation_id $annotation_orig_cfg
 		lappendToRunning_gui "annotation_list" $new_annotation_id
 		lappend new_annotations $new_annotation_id
+		set image_id [_getAnnotationBkgImage $annotation_orig_cfg]
+		if { $image_id != "" } {
+			setImageReference $image_id $new_annotation_id
+		}
 
 		setAnnotationCanvas $new_annotation_id $curcanvas
 

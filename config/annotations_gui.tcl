@@ -341,3 +341,11 @@ proc setAnnotationCoords { annotation_id coords } {
 
 	cfgSet "gui" "annotations" $annotation_id "iconcoords" $roundcoords
 }
+
+proc getAnnotationBkgImage { annotation_id } {
+	return [cfgGet "gui" "annotations" $annotation_id "bkg_image"]
+}
+
+proc setAnnotationBkgImage { annotation_id bkg_image } {
+	cfgSet "gui" "annotations" $annotation_id "bkg_image" $bkg_image
+}
