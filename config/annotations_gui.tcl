@@ -341,3 +341,19 @@ proc setAnnotationCoords { annotation_id coords } {
 
 	cfgSet "gui" "annotations" $annotation_id "iconcoords" $roundcoords
 }
+
+proc getAnnotationBkgImage { annotation_id } {
+	return [cfgGet "gui" "annotations" $annotation_id "bkg_image"]
+}
+
+proc setAnnotationBkgImage { annotation_id bkg_image } {
+	cfgSet "gui" "annotations" $annotation_id "bkg_image" $bkg_image
+}
+
+proc getAnnotationDrawType { annotation_id } {
+	return [cfgGet "gui" "annotations" $annotation_id "draw_type"]
+}
+
+proc setAnnotationDrawType { annotation_id draw_type } {
+	cfgSet "gui" "annotations" $annotation_id "draw_type" $draw_type
+}
