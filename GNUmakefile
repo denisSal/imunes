@@ -45,7 +45,7 @@ NORMAL_ICONS = $(NODE_ICONS)
 SMALL_ICONS = $(NODE_ICONS)
 
 TINY_ICONS = $(NODE_ICONS) link.gif select.gif l2.gif l3.gif freeform.gif \
-		oval.gif rectangle.gif text.gif
+		oval.gif rectangle.gif text.gif image.gif
 
 ICONS = $(wildcard icons/imunes_*)
 

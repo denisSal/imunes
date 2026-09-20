@@ -281,15 +281,151 @@ proc popupAnnotationDialog { target new_type modify } {
 			pack $font_button_elem -side left -pady 2 -padx 10
 			pack $design_frame -side top -fill x
 		}
+
+		"image" {
+			set main_frame "$top_window.main_frame"
+			ttk::frame $main_frame
+
+			set panwin "$main_frame.panwin"
+			ttk::panedwindow $panwin -orient horizontal
+			pack $panwin -fill both
+
+			#left and right pane
+			set left_frame "$panwin.left"
+			ttk::frame $left_frame -relief groove -borderwidth 3
+			$panwin add $left_frame
+
+			set right_frame "$panwin.right"
+			ttk::frame $right_frame -relief groove -borderwidth 3
+			$panwin add $right_frame
+
+			#right pane definition
+			set preview_elem "$right_frame.preview"
+			set preview_canvas [canvas $preview_elem \
+				-bd 0 -relief sunken -highlightthickness 0 -width 150 -height 150]
+			pack $preview_canvas
+
+			#left pane definition
+			#upper left frame with label
+			set file_chooser_label_frame "$left_frame.file_chooser_label_frame"
+			ttk::frame $file_chooser_label_frame
+			pack $file_chooser_label_frame -anchor w
+
+			set file_chooser_label "$file_chooser_label_frame.label"
+			ttk::label $file_chooser_label -text "Choose file:"
+			pack $file_chooser_label
+
+			#center left frame with entry and button
+			set file_chooser_entrybutton_frame "$left_frame.file_chooser_entrybutton_frame"
+			ttk::frame $file_chooser_entrybutton_frame
+			pack $file_chooser_entrybutton_frame -fill both -padx 10
+
+			set file_chooser_entry_frame "$file_chooser_entrybutton_frame.entry_frame"
+			ttk::frame $file_chooser_entry_frame
+			set file_chooser_button_frame "$file_chooser_entrybutton_frame.button_frame"
+			ttk::frame $file_chooser_button_frame
+			pack $file_chooser_entry_frame $file_chooser_button_frame -side left -anchor n -padx 2
+
+			set file_chooser_filename_elem "$file_chooser_entry_frame.entry"
+			ttk::entry $file_chooser_filename_elem -width 35
+			set image_id [_getAnnotationBkgImage $node_cfg_gui]
+			if { $image_id != "" } {
+				$file_chooser_filename_elem insert 0 [getImageFile $image_id]
+				updateImagePreview $preview_elem $image_id
+			}
+			pack $file_chooser_filename_elem
+
+			set tmp_command [list apply {
+				{ parent_widget filename_elem preview_elem } {
+					global node_cfg_gui
+
+					set image_types {
+						{{All Images} {.gif} {}}
+						{{All Images} {.png} {}}
+						{{Gif Images} {.gif} {}}
+						{{PNG Images} {.png} {}}
+					}
+
+					set file_path [tk_getOpenFile -parent $parent_widget -filetypes $image_types]
+					if { $file_path == "" } {
+						return
+					}
+
+					set image_id [_cfgGet $node_cfg_gui "tmp_image_id"]
+					if { $image_id != "" } {
+						setToRunning_gui "image_list" [removeFromList [getFromRunning_gui "image_list"] $image_id]
+						cfgUnset "gui" "images" $image_id
+					}
+
+					set image_id [loadImage $file_path "" "image_annotation" $file_path]
+					set node_cfg_gui [_cfgSet $node_cfg_gui "tmp_image_id" $image_id]
+
+					updateImagePreview $preview_elem $image_id
+
+					$filename_elem delete 0 end
+					$filename_elem insert 0 "$file_path"
+				}
+			} \
+				$top_window \
+				$file_chooser_filename_elem \
+				$preview_elem
+			]
+
+			set file_chooser_button_elem "$file_chooser_button_frame.button"
+			ttk::button $file_chooser_button_elem -text "Browse" -width 8 \
+				-command $tmp_command
+			pack $file_chooser_button_elem
+
+			# left pane, image options
+			set options_frame "$left_frame.options_frame"
+			ttk::frame $options_frame
+			pack $options_frame -anchor w
+
+			# radiobutton uses selectedButton as the default -variable:
+			global selectedButton
+			set selectedButton [_getAnnotationDrawType $node_cfg_gui]
+			if { $selectedButton == "" } {
+				set selectedButton "adjust_i2a"
+			}
+
+			set options_button_1 "$options_frame.original_image"
+			ttk::radiobutton $options_button_1 \
+				-text "Use original/cropped image" \
+				-value "original"
+
+			set options_button_2 "$options_frame.resize_image"
+			ttk::radiobutton $options_button_2 \
+				-text "Resize image to fit annotation (keep ratio)" \
+				-value "resize"
+
+			set options_button_3 "$options_frame.adjust_a2i"
+			ttk::radiobutton $options_button_3 \
+				-text "Adjust annotation to image" \
+				-value "adjust_a2i"
+
+			set options_button_4 "$options_frame.adjust_i2a"
+			ttk::radiobutton $options_button_4 \
+				-text "Adjust image to annotation" \
+				-value "adjust_i2a"
+			dict lappend callback_elems "draw_type" "selectedButton"
+
+			pack $options_button_1 -anchor w
+			pack $options_button_2 -anchor w
+			pack $options_button_3 -anchor w
+			pack $options_button_4 -anchor w
+
+			pack $main_frame -fill both
+		}
 	}
 
 	set apply_cmd "popupAnnotationApply $target [list $callback_elems]"
+	set cancel_cmd "popupAnnotationCancel $target $top_window"
 	# Modify existing annotation or add a new one?
 	if { $modify == "true" } {
-		set cancel_cmd "destroy $top_window"
+		#set cancel_cmd "destroy $top_window"
 		set apply_text "Modify $annotation_type"
 	} else {
-		set cancel_cmd "destroy $top_window; destroyNewAnnotation $annotation_type"
+		#set cancel_cmd "destroy $top_window; destroyNewAnnotation $annotation_type"
 		set apply_text "Add $annotation_type"
 	}
 
@@ -317,6 +453,23 @@ proc popupAnnotationDialog { target new_type modify } {
 	return
 }
 
+proc popupAnnotationCancel { annotation_id top_window } {
+	global node_cfg_gui
+
+	set tmp_image_id [_cfgGet $node_cfg_gui "tmp_image_id"]
+	if { $tmp_image_id != "" } {
+		setToRunning_gui "image_list" [removeFromList [getFromRunning_gui "image_list"] $tmp_image_id]
+		cfgUnset "gui" "images" $tmp_image_id
+	}
+
+	if { $annotation_id == "new" } {
+		set annotation_type [_getAnnotationType $node_cfg_gui]
+		destroyNewAnnotation $annotation_type
+	}
+
+	destroy $top_window
+}
+
 #****f* annotations.tcl/popupAnnotationApply
 # NAME
 #   popupAnnotationApply -- popup oval apply
@@ -333,6 +486,7 @@ proc popupAnnotationApply { target callback_elems } {
 	global node_cfg_gui
 
 	set annotation_type [_getAnnotationType $node_cfg_gui]
+	show node_cfg_gui
 	global new$annotation_type
 
 	set curcanvas [getFromRunning_gui "curcanvas"]
@@ -388,6 +542,27 @@ proc popupAnnotationApply { target callback_elems } {
 		return
 	}
 
+	set tmp_image_id [_cfgGet $node_cfg_gui "tmp_image_id"]
+	set image_id [_getAnnotationBkgImage $node_cfg_gui]
+	if { $annotation_type == "image" && $tmp_image_id == "" && $image_id == "" } {
+		destroyNewAnnotation $annotation_type
+
+		redrawAll
+		destroy [dict get $callback_elems "parent_widget"]
+
+		return
+	}
+
+	set image_draw_type_var [dictGet $callback_elems "draw_type"]
+	if { $image_draw_type_var != "" } {
+		global $image_draw_type_var
+
+		set image_draw_type [set $image_draw_type_var]
+		if { $image_draw_type == "adjust_i2a" } {
+			set image_draw_type ""
+		}
+	}
+
 	if { $target == "new" } {
 		# Create a new annotation object
 		set target [newObjectId [getFromRunning_gui "annotation_list"] "a"]
@@ -404,7 +579,8 @@ proc popupAnnotationApply { target callback_elems } {
 
 		switch -exact -- $annotation_type {
 			"oval" -
-			"rectangle" {
+			"rectangle" -
+			"image" {
 				if { [lindex $annotation_coords 0] < 0 } {
 					set annotation_coords [lreplace $annotation_coords 0 0 5]
 				}
@@ -458,14 +634,35 @@ proc popupAnnotationApply { target callback_elems } {
 			set node_cfg_gui [_setAnnotationLabelColor $node_cfg_gui $label_color]
 			set node_cfg_gui [_setAnnotationFont $node_cfg_gui $label_font]
 		}
+
+		"image" {
+			if { $tmp_image_id != "" } {
+				set node_cfg_gui [_cfgUnset $node_cfg_gui "tmp_image_id"]
+
+				if { $image_id != "" } {
+					removeImageReference $image_id $target
+					if { [getImageReferences $image_id] == {} } {
+						setToRunning_gui "image_list" [removeFromList [getFromRunning_gui "image_list"] $image_id]
+						cfgUnset "gui" "images" $image_id
+					}
+				}
+
+				set image_id $tmp_image_id
+			}
+
+			set node_cfg_gui [_setAnnotationBkgImage $node_cfg_gui $image_id]
+			setImageReference $image_id $target
+
+			set node_cfg_gui [_setAnnotationDrawType $node_cfg_gui $image_draw_type]
+		}
 	}
 
 	set node_cfg_gui [_setAnnotationCanvas $node_cfg_gui $curcanvas]
 
-	destroyNewAnnotation $annotation_type
-
 	updateAnnotationGUI $target "*" $node_cfg_gui
 	set node_cfg_gui [cfgGet "gui" "annotations" $target]
+
+	destroyNewAnnotation $annotation_type
 
 	redrawAll
 	destroy [dict get $callback_elems "parent_widget"]
@@ -564,6 +761,66 @@ proc drawAnnotation { annotation_id } {
 				-font $label_font \
 				-fill $label_color]
 		}
+
+		"image" {
+			set rect_w [expr { int($x2 - $x1) }]
+			set rect_h [expr { int($y2 - $y1) }]
+
+			if { $rect_w <= 0 || $rect_h <= 0 } {
+				return
+			}
+
+			set image_id [getAnnotationBkgImage $annotation_id]
+			set img_data [getImageData $image_id]
+			set orig_image [image create photo -data $img_data]
+
+			set img_w [image width $orig_image]
+			set img_h [image height $orig_image]
+
+			switch -exact -- [getAnnotationDrawType $annotation_id] {
+				"original" {
+					# keep original size, but crop it to the annotation bounds
+					set crop_w [expr { min($rect_w, $img_w) }]
+					set crop_h [expr { min($rect_h, $img_h) }]
+
+					set new_image [image create photo -width $crop_w -height $crop_h]
+					$new_image copy $orig_image -from 0 0 $crop_w $crop_h -to 0 0
+				}
+
+				"resize" {
+					# resize so the entire image fits inside the annotation
+					# rectangle
+					set scale_x [expr { double($rect_w) / $img_w }]
+					set scale_y [expr { double($rect_h) / $img_h }]
+					set total_scale [expr { min($scale_x, $scale_y) }]
+
+					set new_w [expr { max(1, int(round($img_w * $total_scale))) }]
+					set new_h [expr { max(1, int(round($img_h * $total_scale))) }]
+
+					set new_image [imageResize $orig_image $new_w $new_h]
+				}
+
+				"adjust_a2i" {
+					# annotation adjusts to image size
+					set rect_w $img_w
+					set rect_h $img_h
+
+					set x2 [expr { $x1 + $rect_w }]
+					set y2 [expr { $y1 + $rect_h }]
+
+					set new_image $orig_image
+				}
+
+				"" -
+				"adjust_i2a" {
+					# image adjusts to annotation size
+					set new_image [imageResize $orig_image $rect_w $rect_h]
+				}
+			}
+
+			set new_annotation [$main_canvas_elem create image $x1 $y1 -anchor nw \
+				-image $new_image]
+		}
 	}
 
 	$main_canvas_elem itemconfigure $new_annotation -tags "$annotation_type $annotation_id"
@@ -581,6 +838,7 @@ proc drawAnnotation { annotation_id } {
 proc destroyNewAnnotation { annotation_type } {
 	global main_canvas_elem
 	global new$annotation_type
+	global node_cfg_gui
 
 	$main_canvas_elem delete -withtags "new$annotation_type"
 	set new$annotation_type ""
@@ -907,7 +1165,7 @@ proc selectmarkEnter { x y } {
 	set obj [lindex [$main_canvas_elem gettags current] 1]
 	set type [getAnnotationType $obj]
 
-	if { $type ni "oval rectangle" } {
+	if { $type ni "oval rectangle image" } {
 		return
 	}
 
@@ -1155,4 +1413,91 @@ proc xpos { tempfree x y width color } {
 
 	$main_canvas_elem coords $tempfree [concat $all_dots $x $y]
 	$main_canvas_elem itemconfigure $tempfree -fill $color -width $width -capstyle round
+}
+
+proc imageResize { image_obj width height } {
+	global hasIM winOS
+
+	if { $hasIM } {
+		if { $winOS } {
+			# TODO: test
+			set magick "C:/Program Files/ImageMagick-7.1.1-Q16-HDRI/magick.exe"
+		} else {
+			set magick "magick"
+		}
+
+		# open pipe to ImageMagick
+		set pipe [open [list |$magick - -resize ${width}x${height}! png:-] r+]
+		fconfigure $pipe -translation binary -encoding binary
+
+		# write PNG data to ImageMagick stdin
+		puts -nonewline $pipe [$image_obj data -format "png"]
+
+		# close stdin so ImageMagick knows the input is complete
+		chan close $pipe write
+
+		# read resized PNG from stdout
+		set data [read $pipe]
+		close $pipe
+
+		return [image create photo -data $data]
+	}
+
+	set src_w [image width $image_obj]
+	set src_h [image height $image_obj]
+
+	set resized_image_obj [image create photo \
+		-width $width \
+		-height $height]
+
+	for {set y 0} {$y < $height} {incr y} {
+		set sy [expr { int($y * $src_h / $height) }]
+
+		for {set x 0} {$x < $width} {incr x} {
+			set sx [expr {int($x * $src_w / $width)}]
+
+			lassign [$image_obj get $sx $sy] r g b
+
+			if { [$image_obj transparency get $sx $sy] } {
+				# Transparent pixel
+				$resized_image_obj transparency set $x $y 1
+			} else {
+				# Opaque pixel
+				set color [format "#%02x%02x%02x" $r $g $b]
+				$resized_image_obj put $color -to $x $y
+			}
+		}
+	}
+
+	return $resized_image_obj
+}
+
+proc updateImagePreview { preview_elem image_id } {
+	if { $image_id == "" } {
+		return
+	}
+
+	set rect_w 150
+	set rect_h 150
+
+	set img_data [getImageData $image_id]
+	set orig_image [image create photo -data $img_data]
+
+	set img_w [image width $orig_image]
+	set img_h [image height $orig_image]
+
+	# resize so the entire image fits inside the preview
+	# rectangle
+	set scale_x [expr { double($rect_w) / $img_w }]
+	set scale_y [expr { double($rect_h) / $img_h }]
+	set total_scale [expr { min($scale_x, $scale_y) }]
+
+	set new_w [expr { max(1, int(round($img_w * $total_scale))) }]
+	set new_h [expr { max(1, int(round($img_h * $total_scale))) }]
+
+	set new_image [imageResize $orig_image $new_w $new_h]
+
+	$preview_elem delete "all"
+	$preview_elem create image \
+		[expr { int($rect_w/2) }] [expr { int($rect_h/2) }] -image $new_image
 }

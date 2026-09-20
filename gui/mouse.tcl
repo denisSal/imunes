@@ -938,7 +938,7 @@ proc button1 { x y button } {
 		$main_canvas_elem addtag "point_selected" withtag "point && $point_id"
 	} elseif { $active_tool == "select" && $curtype == "selectmark" } {
 		set o1 [lindex [$main_canvas_elem gettags current] 1]
-		if { [getAnnotationType $o1] in "oval rectangle" } {
+		if { [getAnnotationType $o1] in "oval rectangle image" } {
 			set resizeobj $o1
 			set bbox1 [$main_canvas_elem bbox $o1]
 			set x1 [lindex $bbox1 0]
@@ -1040,7 +1040,7 @@ proc button1 { x y button } {
 				$main_canvas_elem delete $selectbox
 				set selectbox ""
 			}
-		} elseif { $active_tool in "oval rectangle" } {
+		} elseif { $active_tool in "oval rectangle image" } {
 			$main_canvas_elem config -cursor cross
 			set lastX $x
 			set lastY $y
@@ -1230,6 +1230,24 @@ proc button1-motion { x y } {
 				"background || link || linklabel || interface || [join $all_annotation_types " || "]"
 		} else {
 			xpos $newfreeform $x $y 2 blue
+		}
+	} elseif {
+		$active_tool == "image" &&
+		($curobj in "$newimage $background" ||
+		$curtype in "background grid $all_annotation_types")
+	} {
+		# Draw a new image outline
+		if { $newimage == "" } {
+			set newimage [$main_canvas_elem create rectangle $lastX $lastY $x $y \
+				-outline blue \
+				-dash {10 4} \
+				-width 1 \
+				-tags "newimage"]
+
+			$main_canvas_elem raise $newimage \
+				"background || link || linklabel || interface || [join $all_annotation_types " || "]"
+		} else {
+			$main_canvas_elem coords $newimage $lastX $lastY $x $y
 		}
 	} elseif { $active_tool == "select" && $curtype == "selectmark" } {
 		# resize annotation
@@ -1588,6 +1606,42 @@ proc button1-release { x y } {
 					}
 
 					setAnnotationCoords $node_id "$x1 $y1"
+				}
+
+				if { [lindex [$main_canvas_elem gettags $node_id] 0] == "image" } {
+					lassign [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]] x1 y1
+					set x1 [expr {$x1 / $zoom}]
+					set y1 [expr {$y1 / $zoom}]
+
+					lassign [getAnnotationCoords $node_id] ox1 oy1 ox2 oy2
+					set dx [expr {$ox2 - $ox1}]
+					set dy [expr {$oy2 - $oy1}]
+
+					set x2 [expr {$x1 + $dx}]
+					set y2 [expr {$y1 + $dy}]
+
+					if { $x1 < 0 } {
+						set x2 [expr {$x2-$x1}]
+						set x1 0
+						set outofbounds 1
+					}
+					if { $y1 < 0 } {
+						set y2 [expr {$y2-$y1}]
+						set y1 0
+						set outofbounds 1
+					}
+					if { $x2 > $sizex } {
+						set x1 [expr {$x1-($x2-$sizex)}]
+						set x2 $sizex
+						set outofbounds 1
+					}
+					if { $y2 > $sizey } {
+						set y1 [expr {$y1-($y2-$sizey)}]
+						set y2 $sizey
+						set outofbounds 1
+					}
+
+					setAnnotationCoords $node_id "$x1 $y1 $x2 $y2"
 				}
 
 				$main_canvas_elem addtag need_redraw withtag "link && $node_id"
