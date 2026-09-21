@@ -1994,7 +1994,7 @@ proc animate {} {
 #   * dir -- zoom direction (up or down)
 #****
 proc zoomCanvas { dir { view_position {} } } {
-	global zoom_stops main_canvas_elem sizex sizey
+	global zoom_stops main_canvas_elem
 
 	set zoom [getActiveOption "zoom"]
 	set minzoom [lindex $zoom_stops 0]
@@ -2040,29 +2040,16 @@ proc zoomCanvas { dir { view_position {} } } {
 	setGlobalOption "zoom" $newzoom
 
 	if { $view_position == {} } {
-		set wx [winfo width $main_canvas_elem]
-		set wy [winfo height $main_canvas_elem]
-		set view_position "[expr $wx/2] [expr $wy/2]"
+		lassign [getViewPan] oldx oldy
+	} else {
+		lassign [viewToCanvasCoords $view_position] oldx oldy
 	}
 
-	lassign [viewToCanvasCoords $view_position] oldx oldy
+	set dx [expr { round($oldx * (1.0 - $newzoom / $zoom)) }]
+	set dy [expr { round($oldy * (1.0 - $newzoom / $zoom)) }]
 
-	# update scrollregion without redrawing
-	set border 28
-	set e_sizex [expr { int($sizex * $newzoom) }]
-	set e_sizey [expr { int($sizey * $newzoom) }]
-
-	$main_canvas_elem configure -scrollregion \
-		"-$border -$border [expr { $e_sizex + $border }] \
-		[expr { $e_sizey + $border }]"
-
-	lassign [viewToCanvasCoords $view_position] newx newy
-	set dx [expr { int($oldx * $newzoom / $zoom - $newx) }]
-	set dy [expr { int($oldy * $newzoom / $zoom - $newy) }]
-
-	lassign [$main_canvas_elem cget -scrollregion] x0 y0 x1 y1
-	$main_canvas_elem xview moveto [expr { [lindex [$main_canvas_elem xview] 0] + $dx / double($x1 - $x0) }]
-	$main_canvas_elem yview moveto [expr { [lindex [$main_canvas_elem yview] 0] + $dy / double($y1 - $y0) }]
+	$main_canvas_elem scan mark 0 0
+	$main_canvas_elem scan dragto $dx $dy 1
 
 	redrawAll
 }
@@ -2075,6 +2062,15 @@ proc viewToCanvasCoords { view_position } {
 	set y [expr { int([$main_canvas_elem canvasy $vy]) }]
 
 	return "$x $y"
+}
+
+proc getViewPan {} {
+	global main_canvas_elem
+
+	set wx [winfo width $main_canvas_elem]
+	set wy [winfo height $main_canvas_elem]
+
+	return [viewToCanvasCoords "[expr $wx/2] [expr $wy/2]"]
 }
 
 #****f* drawing.tcl/drawGradientCircle

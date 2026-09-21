@@ -892,7 +892,7 @@ proc button1 { x y button } {
 	global newlink curobj changed
 	global router pc host lanswitch frswitch rj45 hub
 	global lastX lastY
-	global background selectbox
+	global selectbox
 	global resizemode resizeobj main_canvas_elem
 	global all_annotation_types
 
@@ -988,10 +988,17 @@ proc button1 { x y button } {
 
 	#determine whether we can create nodes on the current object
 	set object_drawable 0
-	foreach type "background grid $all_annotation_types" {
-		if { $type in [$main_canvas_elem gettags $curobj] } {
-			set object_drawable 1
-			break
+	set cur_tags [$main_canvas_elem gettags $curobj]
+	if { $cur_tags == {} } {
+		# clicked on the background
+		set object_drawable 1
+	} else {
+		# clicked on some element
+		foreach type "grid $all_annotation_types" {
+			if { $type in $cur_tags } {
+				set object_drawable 1
+				break
+			}
 		}
 	}
 
@@ -1093,7 +1100,7 @@ proc button1 { x y button } {
 #****
 proc button1-motion { x y } {
 	global newlink changed
-	global lastX lastY sizex sizey selectbox background
+	global lastX lastY selectbox
 	global resizemode main_canvas_elem
 	global all_annotation_types
 
@@ -1141,15 +1148,10 @@ proc button1-motion { x y } {
 		setPoint_gui $point_id "$x $y"
 	} elseif {
 		$active_tool == "select" &&
-		$curobj == "" &&
-		$curtype == ""
-	} {
-		return
-	} elseif {
-		$active_tool == "select" &&
 		$curtype != "node_running" &&
 		($curobj == $selectbox ||
-		$curtype in "background grid" ||
+		$curobj == "" ||
+		$curtype == "" ||
 		($curobj ni [$main_canvas_elem find withtag "selected"] &&
 		$curtype != "selectmark") &&
 		! [isPseudoNode [lindex [$main_canvas_elem gettags $curobj] 1]])
@@ -1178,8 +1180,8 @@ proc button1-motion { x y } {
 		# actually we should check if curobj == bkgImage
 	} elseif {
 		$active_tool == "oval" &&
-		($curobj in "$newoval $background" ||
-		$curtype in "background grid $all_annotation_types")
+		($curobj in "$newoval" ||
+		$curtype in "\"\" grid $all_annotation_types")
 	} {
 		# Draw a new oval
 		if { $newoval == "" } {
@@ -1190,15 +1192,15 @@ proc button1-motion { x y } {
 				-tags "newoval"]
 
 			$main_canvas_elem raise $newoval \
-				"background || link || linklabel || interface || [join $all_annotation_types " || "]"
+				"link || linklabel || interface || [join $all_annotation_types " || "]"
 		} else {
 			$main_canvas_elem coords $newoval \
 				$lastX $lastY $x $y
 		}
 	} elseif {
 		$active_tool == "rectangle" &&
-		($curobj in "$newrectangle $background" ||
-		$curtype in "background grid $all_annotation_types")
+		($curobj in "$newrectangle" ||
+		$curtype in "\"\" grid $all_annotation_types")
 	} {
 		# Draw a new rectangle
 		if { $newrectangle == "" } {
@@ -1209,14 +1211,14 @@ proc button1-motion { x y } {
 				-tags "newrectangle"]
 
 			$main_canvas_elem raise $newrectangle \
-				"background || link || linklabel || interface || [join $all_annotation_types " || "]"
+				"link || linklabel || interface || [join $all_annotation_types " || "]"
 		} else {
 			$main_canvas_elem coords $newrectangle $lastX $lastY $x $y
 		}
 	} elseif {
 		$active_tool == "freeform" &&
-		($curobj in "$newfreeform $background" ||
-		$curtype in "background grid $all_annotation_types")
+		($curobj in "$newfreeform" ||
+		$curtype in "\"\" grid $all_annotation_types")
 	} {
 		# Draw a new freeform
 		if { $newfreeform == "" } {
@@ -1226,7 +1228,7 @@ proc button1-motion { x y } {
 				-tags "newfreeform"]
 
 			$main_canvas_elem raise $newfreeform \
-				"background || link || linklabel || interface || [join $all_annotation_types " || "]"
+				"link || linklabel || interface || [join $all_annotation_types " || "]"
 		} else {
 			xpos $newfreeform $x $y 2 blue
 		}
@@ -1807,99 +1809,6 @@ proc button3background { x y } {
 
 	set canvas_list [getFromRunning_gui "canvas_list"]
 	set curcanvas [getFromRunning_gui "curcanvas"]
-
-	.button3menu delete 0 end
-
-	#
-	# Show canvas background
-	#
-	set toggle_bkg_command {
-		setGlobalOption "show_background_image" - "toggle"
-
-		redrawAll
-	}
-	.button3menu add checkbutton -label "Show background" \
-		-underline 5 -variable show_background_image \
-		-command $toggle_bkg_command
-
-	.button3menu add separator
-	#
-	# Change canvas background
-	#
-	.button3menu add command -label "Change background" \
-		-command "changeBkgPopup"
-
-	#
-	# Remove canvas background
-	#
-	set tmp_command [list apply {
-		{ curcanvas canvas_bkg } {
-			global changed
-
-			removeCanvasBkg $curcanvas
-			if { $canvas_bkg != "" } {
-				removeImageReference $canvas_bkg $curcanvas
-			}
-
-			set changed 1
-			updateUndoLog
-			redrawAll
-		}
-	} \
-		$curcanvas \
-		[getCanvasBkg $curcanvas]
-	]
-	.button3menu add command \
-		-label "Remove background" \
-		-command $tmp_command
-
-	.button3menu.canvases delete 0 end
-
-	set m .button3menu.canvases
-
-	set mode normal
-	if { [llength $canvas_list] == 1 } {
-		set mode disabled
-	}
-
-	.button3menu add cascade \
-		-label "Set background from:" \
-		-menu $m \
-		-underline 0 \
-		-state $mode
-
-	foreach cnv $canvas_list {
-		set canv_name [getCanvasName $cnv]
-		set canvas_bkg [getCanvasBkg $cnv]
-		set curcanvas_size [getCanvasSize $curcanvas]
-		set othercanvsize [getCanvasSize $cnv]
-		if { $curcanvas != $cnv && $curcanvas_size == $othercanvsize } {
-
-			set tmp_command [list apply {
-				{ curcanvas canvas_bkg } {
-					setCanvasBkg $curcanvas $canvas_bkg
-					setImageReference $canvas_bkg $curcanvas
-
-					set changed 1
-					updateUndoLog
-					redrawAll
-				}
-			} \
-				$curcanvas \
-				$canvas_bkg
-			]
-			$m add command \
-				-label "$canv_name" \
-				-command $tmp_command
-		}
-	}
-
-	#
-	# Finally post the popup menu on current pointer position
-	#
-	set x [winfo pointerx .]
-	set y [winfo pointery .]
-	tk_popup .button3menu $x $y
 }
 
 #****f* editor.tcl/setDefaultIcon
