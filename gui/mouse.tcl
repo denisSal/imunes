@@ -897,7 +897,7 @@ proc button1 { x y button } {
 	global newlink curobj changed
 	global router pc host lanswitch frswitch rj45 hub
 	global lastX lastY
-	global background selectbox
+	global selectbox
 	global resizemode resizeobj main_canvas_elem
 	global all_annotation_types
 
@@ -1013,10 +1013,17 @@ proc button1 { x y button } {
 
 	#determine whether we can create nodes on the current object
 	set object_drawable 0
-	foreach type "background grid $all_annotation_types" {
-		if { $type in [$main_canvas_elem gettags $curobj] } {
-			set object_drawable 1
-			break
+	set cur_tags [$main_canvas_elem gettags $curobj]
+	if { $cur_tags == {} } {
+		# clicked on the background
+		set object_drawable 1
+	} else {
+		# clicked on some element
+		foreach type "grid $all_annotation_types" {
+			if { $type in $cur_tags } {
+				set object_drawable 1
+				break
+			}
 		}
 	}
 
@@ -1118,7 +1125,7 @@ proc button1 { x y button } {
 #****
 proc button1-motion { x y } {
 	global newlink changed curobj
-	global lastX lastY sizex sizey selectbox background
+	global lastX lastY selectbox
 	global resizemode main_canvas_elem
 	global all_annotation_types
 
@@ -1173,15 +1180,10 @@ proc button1-motion { x y } {
 		setPoint_gui $point_id "$x $y"
 	} elseif {
 		$active_tool == "select" &&
-		$curobj == "" &&
-		$curtype == ""
-	} {
-		return
-	} elseif {
-		$active_tool == "select" &&
 		$curtype != "node_running" &&
 		($curobj == $selectbox ||
-		$curtype in "background grid" ||
+		$curobj == "" ||
+		$curtype == "" ||
 		($curobj ni [$main_canvas_elem find withtag "selected"] &&
 		$curtype != "selectmark") &&
 		! [isPseudoNode [lindex [$main_canvas_elem gettags $curobj] 1]])
@@ -1210,8 +1212,8 @@ proc button1-motion { x y } {
 		# actually we should check if curobj == bkgImage
 	} elseif {
 		$active_tool == "oval" &&
-		($curobj in "$newoval $background" ||
-		$curtype in "background grid $all_annotation_types")
+		($curobj in "$newoval" ||
+		$curtype in "\"\" grid $all_annotation_types")
 	} {
 		# Draw a new oval
 		if { $newoval == "" } {
@@ -1222,15 +1224,15 @@ proc button1-motion { x y } {
 				-tags "newoval"]
 
 			$main_canvas_elem raise $newoval \
-				"background || link || linklabel || interface || [join $all_annotation_types " || "]"
+				"link || linklabel || interface || [join $all_annotation_types " || "]"
 		} else {
 			$main_canvas_elem coords $newoval \
 				$lastX $lastY $x $y
 		}
 	} elseif {
 		$active_tool == "rectangle" &&
-		($curobj in "$newrectangle $background" ||
-		$curtype in "background grid $all_annotation_types")
+		($curobj in "$newrectangle" ||
+		$curtype in "\"\" grid $all_annotation_types")
 	} {
 		# Draw a new rectangle
 		if { $newrectangle == "" } {
@@ -1241,14 +1243,14 @@ proc button1-motion { x y } {
 				-tags "newrectangle"]
 
 			$main_canvas_elem raise $newrectangle \
-				"background || link || linklabel || interface || [join $all_annotation_types " || "]"
+				"link || linklabel || interface || [join $all_annotation_types " || "]"
 		} else {
 			$main_canvas_elem coords $newrectangle $lastX $lastY $x $y
 		}
 	} elseif {
 		$active_tool == "freeform" &&
-		($curobj in "$newfreeform $background" ||
-		$curtype in "background grid $all_annotation_types")
+		($curobj in "$newfreeform" ||
+		$curtype in "\"\" grid $all_annotation_types")
 	} {
 		# Draw a new freeform
 		if { $newfreeform == "" } {
@@ -1258,7 +1260,7 @@ proc button1-motion { x y } {
 				-tags "newfreeform"]
 
 			$main_canvas_elem raise $newfreeform \
-				"background || link || linklabel || interface || [join $all_annotation_types " || "]"
+				"link || linklabel || interface || [join $all_annotation_types " || "]"
 		} else {
 			xpos $newfreeform $x $y 2 blue
 		}
