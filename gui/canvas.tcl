@@ -1158,12 +1158,14 @@ proc renameCanvasApply { w } {
 
 	set newname [$w.renameframe.e1 get]
 	destroy $w
-	if { $newname != [getCanvasName $curcanvas] } {
-		set changed 1
+	if { $newname == [getCanvasName $curcanvas] } {
+		return
 	}
 
 	setCanvasName $curcanvas $newname
 	switchCanvas none
+
+	set changed 1
 	updateUndoLog
 }
 
@@ -1206,12 +1208,14 @@ proc resizeCanvasApply { w } {
 	}
 
 	destroy $w
-	if { "$x $y" != [getCanvasSize $curcanvas] } {
-		set changed 1
+	if { "$x $y" == [getCanvasSize $curcanvas] } {
+		return
 	}
 
 	setCanvasSize $curcanvas $x $y
 	switchCanvas none
+
+	set changed 1
 	updateUndoLog
 }
 
