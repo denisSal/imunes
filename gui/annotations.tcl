@@ -322,6 +322,10 @@ proc popupAnnotationDialog { target new_type modify } {
 
 			set file_chooser_filename_elem "$file_chooser_entry_frame.entry"
 			ttk::entry $file_chooser_filename_elem -width 35
+			set image_id [_getAnnotationBkgImage $node_cfg_gui]
+			if { $image_id != "" } {
+				$file_chooser_filename_elem insert 0 [getImageFile $image_id]
+			}
 			pack $file_chooser_filename_elem
 
 			set tmp_command [list apply {
@@ -374,6 +378,44 @@ proc popupAnnotationDialog { target new_type modify } {
 			ttk::button $file_chooser_button_elem -text "Browse" -width 8 \
 				-command $tmp_command
 			pack $file_chooser_button_elem
+
+			# left pane, image options
+			set options_frame "$left_frame.options_frame"
+			ttk::frame $options_frame
+			pack $options_frame -anchor w
+
+			# radiobutton uses selectedButton as the default -variable:
+			global selectedButton
+			set selectedButton [_getAnnotationDrawType $node_cfg_gui]
+			if { $selectedButton == "" } {
+				set selectedButton "adjust_i2a"
+			}
+
+			set options_button_1 "$options_frame.original_image"
+			ttk::radiobutton $options_button_1 \
+				-text "Use original/cropped image" \
+				-value "original"
+
+			set options_button_2 "$options_frame.resize_image"
+			ttk::radiobutton $options_button_2 \
+				-text "Resize image to fit annotation" \
+				-value "resize"
+
+			set options_button_3 "$options_frame.adjust_a2i"
+			ttk::radiobutton $options_button_3 \
+				-text "Adjust annotation to image" \
+				-value "adjust_a2i"
+
+			set options_button_4 "$options_frame.adjust_i2a"
+			ttk::radiobutton $options_button_4 \
+				-text "Adjust image to annotation" \
+				-value "adjust_i2a"
+			dict lappend callback_elems "draw_type" "selectedButton"
+
+			pack $options_button_1 -anchor w
+			pack $options_button_2 -anchor w
+			pack $options_button_3 -anchor w
+			pack $options_button_4 -anchor w
 
 			pack $main_frame -fill both
 		}
@@ -495,6 +537,16 @@ proc popupAnnotationApply { target callback_elems } {
 		return
 	}
 
+	set image_draw_type_var [dictGet $callback_elems "draw_type"]
+	if { $image_draw_type_var != "" } {
+		global $image_draw_type_var
+
+		set image_draw_type [set $image_draw_type_var]
+		if { $image_draw_type == "adjust_i2a" } {
+			set image_draw_type ""
+		}
+	}
+
 	if { $target == "new" } {
 		# Create a new annotation object
 		set target [newObjectId [getFromRunning_gui "annotation_list"] "a"]
@@ -569,6 +621,7 @@ proc popupAnnotationApply { target callback_elems } {
 
 		"image" {
 			setImageReference $image_id $target
+			set node_cfg_gui [_setAnnotationDrawType $node_cfg_gui $image_draw_type]
 		}
 	}
 
@@ -687,12 +740,54 @@ proc drawAnnotation { annotation_id } {
 
 			set image_id [getAnnotationBkgImage $annotation_id]
 			set img_data [getImageData $image_id]
-			set image_id [getAnnotationBkgImage $annotation_id]
 			set orig_image [image create photo -data $img_data]
-			set resized_image [imageResize $orig_image $rect_w $rect_h]
+
+			set img_w [image width $orig_image]
+			set img_h [image height $orig_image]
+
+			switch -exact -- [getAnnotationDrawType $annotation_id] {
+				"original" {
+					# keep original size, but crop it to the annotation bounds
+					set crop_w [expr { min($rect_w, $img_w) }]
+					set crop_h [expr { min($rect_h, $img_h) }]
+
+					set new_image [image create photo -width $crop_w -height $crop_h]
+					$new_image copy $orig_image -from 0 0 $crop_w $crop_h -to 0 0
+				}
+
+				"resize" {
+					# resize so the entire image fits inside the annotation
+					# rectangle
+					set scale_x [expr { double($rect_w) / $img_w }]
+					set scale_y [expr { double($rect_h) / $img_h }]
+					set total_scale [expr { min($scale_x, $scale_y) }]
+
+					set new_w [expr { max(1, int(round($img_w * $total_scale))) }]
+					set new_h [expr { max(1, int(round($img_h * $total_scale))) }]
+
+					set new_image [imageResize $orig_image $new_w $new_h]
+				}
+
+				"adjust_a2i" {
+					# annotation adjusts to image size
+					set rect_w $img_w
+					set rect_h $img_h
+
+					set x2 [expr { $x1 + $rect_w }]
+					set y2 [expr { $y1 + $rect_h }]
+
+					set new_image $orig_image
+				}
+
+				"" -
+				"adjust_i2a" {
+					# image adjusts to annotation size
+					set new_image [imageResize $orig_image $rect_w $rect_h]
+				}
+			}
 
 			set new_annotation [$main_canvas_elem create image $x1 $y1 -anchor nw \
-				-image $resized_image]
+				-image $new_image]
 		}
 	}
 

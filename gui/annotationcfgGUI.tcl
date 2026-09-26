@@ -110,3 +110,11 @@ proc _getAnnotationBkgImage { annotation_cfg } {
 proc _setAnnotationBkgImage { annotation_cfg bkg_image } {
 	return [_cfgSet $annotation_cfg "bkg_image" $bkg_image]
 }
+
+proc _getAnnotationDrawType { annotation_cfg } {
+	return [_cfgGet $annotation_cfg "draw_type"]
+}
+
+proc _setAnnotationDrawType { annotation_cfg draw_type } {
+	return [_cfgSet $annotation_cfg "draw_type" $draw_type]
+}
