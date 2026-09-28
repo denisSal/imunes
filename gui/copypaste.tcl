@@ -129,6 +129,8 @@ proc paste {} {
 	set curcanvas [getFromRunning_gui "curcanvas"]
 	set annotation_order [getCanvasAnnotationOrder $curcanvas]
 	set new_order $annotation_order
+	set below_grid [getCanvasBelowGrid $curcanvas]
+	set new_below_grid $below_grid
 	# Paste annotations from the clipboard and rename them on the fly
 	foreach {annotation_orig annotation_orig_cfg} $clipboard_annotations {
 		set new_annotation_id [newObjectId [getFromRunning_gui "annotation_list"] "a"]
@@ -142,10 +144,17 @@ proc paste {} {
 		# pop this annotation to the top
 		set new_order [removeFromList $new_order $new_annotation_id]
 		lappend new_order $new_annotation_id
+
+		set new_below_grid [removeFromList $new_below_grid $new_annotation_id]
+		lappend new_below_grid $new_annotation_id
 	}
 
 	if { $annotation_order != $new_order } {
 		setCanvasAnnotationOrder $curcanvas $new_order
+	}
+
+	if { $below_grid != $new_below_grid } {
+		setCanvasBelowGrid $curcanvas $new_below_grid
 	}
 
 	set naming_list {}

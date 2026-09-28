@@ -201,6 +201,14 @@ proc setCanvasAnnotationOrder { canvas_id new_order } {
 	return [cfgSet "gui" "canvases" $canvas_id "annotation_order" $new_order]
 }
 
+proc getCanvasBelowGrid { canvas_id } {
+	return [cfgGet "gui" "canvases" $canvas_id "below_grid"]
+}
+
+proc setCanvasBelowGrid { canvas_id below_grid } {
+	return [cfgSet "gui" "canvases" $canvas_id "below_grid" $below_grid]
+}
+
 #****f* canvas.tcl/setImageReference
 # NAME
 #   setImageReference -- set image reference

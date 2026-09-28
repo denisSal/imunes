@@ -1230,16 +1230,48 @@ proc newLinkWithIfacesGUI { node1_id iface1_id node2_id iface2_id } {
 proc raiseAll {} {
 	global main_canvas_elem all_annotation_types
 
+	set curcanvas [getFromRunning_gui "curcanvas"]
+	set annotation_order [getCanvasAnnotationOrder $curcanvas]
+
+	# raise annotations according to $annotation_order
+	foreach annotation_id $annotation_order {
+		$main_canvas_elem raise \
+			[$main_canvas_elem find withtag "[getAnnotationType $annotation_id] && $annotation_id"]
+	}
+
+	if { [getActiveOption "show_grid"] } {
+		set below_grid [getCanvasBelowGrid $curcanvas]
+		set above_grid [removeFromList $annotation_order $below_grid]
+
+		# correctly ordered lists
+		set below_grid [removeFromList $annotation_order $above_grid]
+		set above_grid [lreverse $above_grid]
+
+		# move annotations from 'below_grid' list underneath the grid
+		foreach annotation_id $below_grid {
+			$main_canvas_elem lower \
+				[$main_canvas_elem find withtag "[getAnnotationType $annotation_id] && $annotation_id"] grid
+		}
+
+		# move the rest of the annotations right above the grid
+		foreach annotation_id $above_grid {
+			$main_canvas_elem raise \
+				[$main_canvas_elem find withtag "[getAnnotationType $annotation_id] && $annotation_id"] grid
+		}
+	}
+
+	# all objects ABOVE annotations
 	foreach object_type "link route linklabel interface point node nodelabel" {
 		$main_canvas_elem raise $object_type
 	}
 
-	set tags [join "background grid $all_annotation_types" " || "]
-	foreach annotation_id [getCanvasAnnotationOrder [getFromRunning_gui "curcanvas"]] {
-		set annotation_type [getAnnotationType $annotation_id]
-		set type_tags $tags
-		$main_canvas_elem raise "$annotation_type && $annotation_id" $type_tags
+	# 'new' annotation boxes are drawn above everything
+	foreach object_type "$all_annotation_types" {
+		$main_canvas_elem raise new$object_type
 	}
+
+	# marqueue selectbox is drawn above everything
+	$main_canvas_elem raise selectmark
 }
 
 #****f* editor.tcl/changeIconPopup

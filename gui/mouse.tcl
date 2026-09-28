@@ -639,6 +639,11 @@ proc moveToCanvas { canvas_id } {
 		lappend new_order $node_id
 		setCanvasAnnotationOrder $canvas_id $new_order
 
+		setCanvasBelowGrid $curcanvas [removeFromList [getCanvasBelowGrid $curcanvas] $node_id]
+		set below_grid [removeFromList [getCanvasBelowGrid $canvas_id] $node_id]
+		lappend below_grid $node_id
+		setCanvasBelowGrid $canvas_id $below_grid
+
 		set changed 1
 	}
 

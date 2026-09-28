@@ -1034,6 +1034,37 @@ proc button3annotation { type x y } {
 			-state disabled
 	}
 
+	global below_grid
+	if { $annotation_id in [getCanvasBelowGrid $curcanvas] } {
+		set below_grid 1
+	} else {
+		set below_grid 0
+	}
+
+	set tmp_command [list apply {
+		{ curcanvas type annotation_id } {
+			global changed below_grid main_canvas_elem
+
+			set new_below_grid [removeFromList [getCanvasBelowGrid $curcanvas] $annotation_id]
+			if { $below_grid } {
+				lappend new_below_grid $annotation_id
+			}
+
+			setCanvasBelowGrid $curcanvas $new_below_grid
+
+			set changed 1
+			updateUndoLog
+			raiseAll
+		}
+	} \
+		$curcanvas \
+		$type \
+		$annotation_id
+	]
+	.button3menu add checkbutton -label "Below grid" \
+		-variable below_grid \
+		-command $tmp_command
+
 	.button3menu add separator
 
 	#
