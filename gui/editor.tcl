@@ -508,15 +508,21 @@ proc routerDefaultsApply { wi } {
 
 	foreach node_id $selected_node_list {
 		if { [getNodeType $node_id] == "router" } {
-			setNodeModel $node_id [getActiveOption "routerDefaultsModel"]
+			if { [getNodeModel $node_id] != $newmodel } {
+				setNodeModel $node_id $newmodel
+				set changed 1
+			}
 
 			foreach item $router_protocols {
 				set protocol [lindex $item 0]
 				set var_name "router[string totitle $protocol 0 0]Enable"
 
-				setNodeProtocol $node_id $protocol [getActiveOption $var_name]
+				set protocol_value [getActiveOption $var_name]
+				if { [getNodeProtocol $node_id $protocol] != $protocol_value } {
+					setNodeProtocol $node_id $protocol $protocol_value
+					set changed 1
+				}
 			}
-			set changed 1
 		}
 	}
 

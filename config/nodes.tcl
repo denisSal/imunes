@@ -664,10 +664,8 @@ proc getNodeProtocol { node_id protocol } {
 proc setNodeProtocol { node_id protocol state } {
 	cfgSet "nodes" $node_id "router_config" $protocol $state
 
-	# TODO: move [startRoutingDaemons] proc from [router.nodeInitConfigure]
-	# and replace this with [trigger_nodeFullReconfig]
 	if { [getNodeModel $node_id] != "static" } {
-		trigger_nodeRecreate $node_id
+		trigger_nodeFullReconfig $node_id
 	}
 }
 

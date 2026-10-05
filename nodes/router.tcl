@@ -294,12 +294,33 @@ namespace eval $MODULE {
 		}
 		set cmds [join $cmd "; "]
 
+		# these need to be unset when starting the node for the first time
+		foreach protocol { rip ripng ospf ospf6 ldp bfd bgp isis } {
+			unsetRunning "${node_id}_old_$protocol"
+		}
+
+		if { $isOSlinux } {
+			set run_dir "/run/frr"
+			set cmds "$cmds; mkdir -p $run_dir ; chown frr:frr $run_dir"
+			set cmds "$cmds; touch etc/frr/vtysh.conf"
+			set cmds "$cmds; /usr/lib/frr/frrinit.sh start"
+		}
+
+		if { $isOSfreebsd } {
+			set cmds "$cmds; zebra -dP0"
+			set cmds "$cmds; staticd -dP0"
+		}
+
 		set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-d"]
 		pipesExec "$os_cmd sh -c '$cmds'" "hold"
 
+		return [invokeTypeProc "genericL3" "nodeInitConfigure" $eid $node_id]
+	}
+
+	proc nodeIfacesConfigure { eid node_id ifaces } {
 		startRoutingDaemons $node_id
 
-		return [invokeTypeProc "genericL3" "nodeInitConfigure" $eid $node_id]
+		return [invokeTypeProc "genericL3" "nodeIfacesConfigure" $eid $node_id $ifaces]
 	}
 
 	################################################################################

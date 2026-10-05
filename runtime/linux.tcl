@@ -1083,45 +1083,31 @@ proc unconfigureTunIface { tayga4pool tayga6prefix } {
 # /XXX nat64 procedures
 
 proc startRoutingDaemons { node_id } {
-	set run_dir "/run/frr"
-	set cmds "mkdir -p $run_dir ; chown frr:frr $run_dir"
-
 	set conf_dir "/etc/frr"
 
-	foreach protocol { rip ripng ospf ospf6 } {
-		if { [getNodeProtocol $node_id $protocol] != 1 } {
-			# TODO: startRoutingDaemons should be unconfigurable - additional execute/terminate step
-			#set cmds "$cmds; sed -i'' \"s/${protocol}d=yes/${protocol}d=no/\" $conf_dir/daemons"
+	set cmds ":"
+	set trigger_reload 0
+	foreach protocol { rip ripng ospf ospf6 ldp bfd bgp isis } {
+		if { [getFromRunning "${node_id}_old_$protocol"] != 1 && [getNodeProtocol $node_id $protocol] == 1 } {
+			set cmds "$cmds; sed -i'' \"s/${protocol}d=no/${protocol}d=yes/\" $conf_dir/daemons"
+			set trigger_reload 1
+
 			continue
 		}
 
-		set cmds "$cmds; sed -i'' \"s/${protocol}d=no/${protocol}d=yes/\" $conf_dir/daemons"
-	}
+		if { [getFromRunning "${node_id}_old_$protocol"] == 1 && [getNodeProtocol $node_id $protocol] != 1 } {
+			set cmds "$cmds; sed -i'' \"s/${protocol}d=yes/${protocol}d=no/\" $conf_dir/daemons"
+			set trigger_reload 1
 
-	foreach protocol { ldp bfd } {
-		if { [getNodeProtocol $node_id $protocol] != 1 } {
-			# TODO: startRoutingDaemons should be unconfigurable - additional execute/terminate step
-			#set cmds "$cmds; sed -i'' \"s/${protocol}d=yes/${protocol}d=no/\" $conf_dir/daemons"
 			continue
 		}
-
-		set cmds "$cmds; sed -i'' \"s/${protocol}d=no/${protocol}d=yes/\" $conf_dir/daemons"
 	}
 
-	foreach protocol { bgp isis } {
-		if { [getNodeProtocol $node_id $protocol] != 1 } {
-			# TODO: startRoutingDaemons should be unconfigurable - additional execute/terminate step
-			#set cmds "$cmds; sed -i'' \"s/${protocol}d=yes/${protocol}d=no/\" $conf_dir/daemons"
-			continue
-		}
+	if { $trigger_reload } {
+		set cmds "$cmds; /usr/lib/frr/frrinit.sh reload"
 
-		set cmds "$cmds; sed -i'' \"s/${protocol}d=no/${protocol}d=yes/\" $conf_dir/daemons"
+		pipesExec "docker exec [getFromRunning "eid"].$node_id sh -c '$cmds'" "hold"
 	}
-
-	set cmds "$cmds; touch $conf_dir/vtysh.conf"
-	set cmds "$cmds; /usr/lib/frr/frrinit.sh restart"
-
-	pipesExec "docker exec [getFromRunning "eid"].$node_id sh -c '$cmds'" "hold"
 }
 
 proc createNsLinkBridge { node_ns link } {

@@ -1369,32 +1369,25 @@ proc unconfigureTunIface { tayga4pool tayga6prefix } {
 # /XXX nat64 procedures
 
 proc startRoutingDaemons { node_id } {
-	set cmds "zebra -dP0"
-	set cmds "$cmds; staticd -dP0"
+	set cmds ":"
+	set trigger_reload 0
+	foreach protocol { rip ripng ospf ospf6 ldp bfd bgp isis } {
+		if { [getFromRunning "${node_id}_old_$protocol"] != 1 && [getNodeProtocol $node_id $protocol] == 1 } {
+			set cmds "$cmds; ${protocol}d -dP0"
+			set trigger_reload 1
 
-	foreach protocol { rip ripng ospf ospf6 } {
-		if { [getNodeProtocol $node_id $protocol] != 1 } {
 			continue
 		}
 
-		set cmds "$cmds; ${protocol}d -dP0"
-	}
+		if { [getFromRunning "${node_id}_old_$protocol"] == 1 && [getNodeProtocol $node_id $protocol] != 1 } {
+			set cmds "$cmds; pkill -f '${protocol}d.*'"
+			set trigger_reload 1
 
-	foreach protocol { ldp bfd } {
-		if { [getNodeProtocol $node_id $protocol] != 1 } {
 			continue
 		}
-
-		set cmds "$cmds; ${protocol}d -dP0"
 	}
 
-	foreach protocol { bgp isis } {
-		if { [getNodeProtocol $node_id $protocol] != 1 } {
-			continue
-		}
-
-		set cmds "$cmds; ${protocol}d -dP0"
+	if { $trigger_reload } {
+		pipesExec "jexec [getFromRunning "eid"].$node_id sh -c '$cmds'" "hold"
 	}
-
-	pipesExec "jexec [getFromRunning "eid"].$node_id sh -c '$cmds'" "hold"
 }
