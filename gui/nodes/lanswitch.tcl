@@ -165,6 +165,6 @@ namespace eval ${MODULE}::gui {
 
 		configGUI_ifcQueueConfig $wi $node_id $iface_id
 		configGUI_bridgeIfcVlanConfig $wi $node_id $iface_id
-		configGUI_ifcGap $wi $iface_id 30
+		configGUI_ifcOtherOptionsConfig $wi $node_id $iface_id
 	}
 }

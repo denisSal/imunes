@@ -341,6 +341,14 @@ proc _setIfcMTU { node_cfg iface mtu } {
 	return [_cfgSet $node_cfg "ifaces" $iface "mtu" $mtu]
 }
 
+proc _getIfcIsolated { node_cfg iface } {
+	return [_cfgGetWithDefault 0 $node_cfg "ifaces" $iface "isolated"]
+}
+
+proc _setIfcIsolated { node_cfg iface isolated } {
+	return [_cfgSet $node_cfg "ifaces" $iface "isolated" $isolated]
+}
+
 #****f* nodecfg.tcl/getIfcMACaddr
 # NAME
 #   getIfcMACaddr -- get interface MAC address.

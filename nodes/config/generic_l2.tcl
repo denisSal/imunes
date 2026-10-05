@@ -90,3 +90,7 @@ addCase "updateIface" "vlan_tag" {
 addCase "updateIface" "vlan_type" {
 	setIfcVlanType $node_id $iface_id $iface_prop_new_value
 }
+
+addCase "updateIface" "isolated" {
+	setIfcIsolated $node_id $iface_id $iface_prop_new_value
+}

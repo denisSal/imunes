@@ -617,6 +617,43 @@ namespace eval genericL2 {
 	}
 
 	proc nodeIfacesConfigure { eid node_id ifaces } {
+		global isOSlinux isOSfreebsd
+
+		addStateNode $node_id "ifaces_configuring"
+
+		foreach iface_id $ifaces {
+			if { [isRunningNodeIface $node_id $iface_id] } {
+				continue
+			}
+			set ifaces [removeFromList $ifaces $iface_id]
+
+			if { ! [isErrorNodeIface $node_id $iface_id] } {
+				continue
+			}
+
+			if { ! [isRunningNodeIface $node_id $iface_id] } {
+				addStateNodeIface $node_id $iface_id "error"
+				if { [getStateErrorMsgNodeIface $node_id $iface_id] == "" } {
+					setStateErrorMsgNodeIface $node_id $iface_id \
+						"Interface $iface_id '[getIfcName $node_id $iface_id]' not created, skip configuration."
+				}
+			}
+		}
+
+		if { $isOSlinux } {
+			foreach iface_id $ifaces {
+				set private_ns [invokeNodeProc $node_id "getPrivateNs" $eid $node_id]
+				lassign [invokeNodeProc $node_id "getHookData" $node_id $iface_id] iface_name - -
+
+				if { [getIfcIsolated $node_id $iface_id] } {
+					set state_str "on"
+				} else {
+					set state_str "off"
+				}
+
+				pipesExec "ip netns exec $private_ns ip link set $iface_name type bridge_slave isolated $state_str"
+			}
+		}
 	}
 
 	proc nodeIfacesConfigure_check { eid node_id ifaces } {

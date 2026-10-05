@@ -1744,6 +1744,28 @@ proc configGUI_bridgeIfcVlanConfig { wi node_id iface_id } {
 	pack $wi.if$iface_id.vlancfg -anchor w -padx 10
 }
 
+proc configGUI_ifcOtherOptionsConfig { wi node_id iface_id } {
+	global node_cfg
+
+	global guielements
+	lappend guielements "configGUI_ifcOtherOptionsConfig $iface_id"
+
+	ttk::frame $wi.if$iface_id.other_options -borderwidth 2
+
+	ttk::label $wi.if$iface_id.other_options.txt1 -text "Isolated" -anchor w
+	ttk::checkbutton $wi.if$iface_id.other_options.isolated
+	if { [_getIfcIsolated $node_cfg $iface_id] } {
+		$wi.if$iface_id.other_options.isolated state "selected"
+	} else {
+		$wi.if$iface_id.other_options.isolated state "!selected"
+	}
+
+	pack $wi.if$iface_id.other_options.isolated -side right -padx 6
+
+	pack $wi.if$iface_id.other_options.txt1 -side left -anchor w
+	pack $wi.if$iface_id.other_options -anchor w -padx 10
+}
+
 #****f* nodecfgGUI.tcl/configGUI_ifcMACAddress
 # NAME
 #   configGUI_ifcMACAddress -- configure GUI - interface MAC address
@@ -4652,6 +4674,24 @@ proc configGUI_ifcNATIfaceApply { wi node_id iface_id } {
 	set nat_iface [string trim [$wi.if$iface_id.nat_iface get]]
 	if { [_getNodeNATIface $node_cfg] != $nat_iface } {
 		set node_cfg [_setNodeNATIface $node_cfg $nat_iface]
+		set changed 1
+	}
+}
+
+proc configGUI_ifcOtherOptionsConfigApply { wi node_id iface_id } {
+	global changed apply node_cfg
+	#
+	#apply - indicates if this procedure needs to save changes (1)
+	#	or just to check if some interface parameters have been changed (0)
+	#
+
+	set isolated [expr { "selected" in [$wi.if$iface_id.other_options.isolated state] }]
+	set oldisolated [_getIfcIsolated $node_cfg $iface_id]
+	if { $isolated != $oldisolated } {
+		if { $apply == 1 } {
+			set node_cfg [_setIfcIsolated $node_cfg $iface_id $isolated]
+		}
+
 		set changed 1
 	}
 }

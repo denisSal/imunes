@@ -106,6 +106,7 @@ namespace eval genericL2::gui {
 		global guielements
 
 		configGUI_ifcQueueConfig $wi $node_id $iface_id
+		configGUI_ifcOtherOptionsConfig $wi $node_id $iface_id
 		configGUI_ifcGap $wi $iface_id 30
 	}
 
