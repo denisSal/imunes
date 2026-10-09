@@ -1,0 +1,19 @@
+[Unit]
+Description=IMUNES topology %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+# Start topology and store EID
+ExecStart=/usr/local/lib/imunes/scripts/imunes_service_linux.sh start %i
+
+# Stop topology using stored EID
+ExecStop=/usr/local/lib/imunes/scripts/imunes_service_linux.sh stop %i
+
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
