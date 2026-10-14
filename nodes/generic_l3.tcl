@@ -488,6 +488,7 @@ namespace eval genericL3 {
 				--name $private_ns --hostname=[getNodeName $node_id] \
 				--volume /tmp/.X11-unix:/tmp/.X11-unix \
 				--sysctl net.ipv6.conf.all.disable_ipv6=0 \
+				[getActiveOption "docker_run_opts"] \
 				$cpus_str $volumes_mounts_str $env_vars_str $port_forwards_str \
 				$custom_flags_str $ulimit_file_str $ulimit_proc_str $vroot"
 
