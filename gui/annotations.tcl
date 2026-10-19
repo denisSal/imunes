@@ -490,8 +490,6 @@ proc popupAnnotationApply { target callback_elems } {
 	global new$annotation_type
 
 	set curcanvas [getFromRunning_gui "curcanvas"]
-	# subtract 5 from each value and assign to variables sizex sizey
-	lassign [lmap n [getCanvasSize $curcanvas] {expr $n - 5}] sizex sizey
 
 	# default values
 	set annotation_color ""
@@ -580,31 +578,6 @@ proc popupAnnotationApply { target callback_elems } {
 		set annotation_coords [lmap n [$main_canvas_elem coords [set new$annotation_type]] {
 			expr int($n / [getActiveOption "zoom"])
 		}]
-
-		switch -exact -- $annotation_type {
-			"oval" -
-			"rectangle" -
-			"image" {
-				if { [lindex $annotation_coords 0] < 0 } {
-					set annotation_coords [lreplace $annotation_coords 0 0 5]
-				}
-				if { [lindex $annotation_coords 1] < 0 } {
-					set annotation_coords [lreplace $annotation_coords 1 1 5]
-				}
-				if { [lindex $annotation_coords 2] > $sizex } {
-					set annotation_coords [lreplace $annotation_coords 2 2 $sizex]
-				}
-				if { [lindex $annotation_coords 3] > $sizey } {
-					set annotation_coords [lreplace $annotation_coords 3 3 $sizey]
-				}
-			}
-
-			"freeform" {
-			}
-
-			"text" {
-			}
-		}
 	} else {
 		# if annotation has moved or deleted while being edited
 		set annotation_coords [getAnnotationCoords $target]

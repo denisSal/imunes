@@ -69,8 +69,6 @@ proc removeCanvas { canvas_id } {
 #   * canvas_id -- canvas id
 #****
 proc newCanvas { name } {
-	global sizex sizey
-
 	set canvas_id [newObjectId [getFromRunning_gui "canvas_list"] "c"]
 	lappendToRunning_gui "canvas_list" $canvas_id
 
@@ -79,8 +77,6 @@ proc newCanvas { name } {
 	} else {
 		setCanvasName $canvas_id "Canvas[string range $canvas_id 1 end]"
 	}
-
-	lassign [getCanvasSize $canvas_id] sizex sizey
 
 	return $canvas_id
 }
@@ -472,7 +468,10 @@ proc random { range start } {
 #   * w -- print dialog widget
 #****
 proc printCanvas { w } {
-	global sizex sizey main_canvas_elem
+	global main_canvas_elem
+
+	set sizex [winfo width $main_canvas_elem]
+	set sizey [winfo height $main_canvas_elem]
 
 	set prncmd [$w.printframe.e1 get]
 	destroy $w
@@ -543,8 +542,8 @@ proc printCanvasToFile { w entry } {
 			setToRunning_gui "curcanvas" $canvas_id
 			switchCanvas none
 
-			set sizex [expr {[lindex [getCanvasSize $canvas_id] 0]}]
-			set sizey [expr {[lindex [getCanvasSize $canvas_id] 1]}]
+			set sizex [winfo width $main_canvas_elem]
+			set sizey [winfo height $main_canvas_elem]
 
 			puts $file_id [$main_canvas_elem postscript -height $sizey -width $sizex -x 0 -y 0 -rotate yes -pageheight 390m -pagewidth 276m]
 		}
@@ -754,21 +753,8 @@ proc resizeCanvasApply { w } {
 
 		return
 	}
-
-	destroy $w
-	if { "$x $y" == [getCanvasSize $curcanvas] } {
-		return
-	}
-
-	setCanvasSize $curcanvas $x $y
-	switchCanvas none
-
-	set changed 1
-	updateUndoLog
-}
-
 proc snapCanvasNodesToGrid {} {
-	global main_canvas_elem changed sizex sizey
+	global main_canvas_elem changed
 
 	set zoom [getActiveOption "zoom"]
 
@@ -781,9 +767,7 @@ proc snapCanvasNodesToGrid {} {
 		set orig_y [expr { $view_y / $zoom }]
 
 		lassign [snapCoordsToGrid $orig_x $orig_y] x y
-		if { $x < 0 || $y < 0 || $x > $sizex || $y > $sizey } {
-			set regular false
-		} elseif { $orig_x != $x || $orig_y != $y } {
+		if { $orig_x != $x || $orig_y != $y } {
 			lassign [getNodeCoords $node_id] orig_x orig_y
 
 			set dx [expr { $x - $orig_x }]
@@ -793,9 +777,7 @@ proc snapCanvasNodesToGrid {} {
 			set lx [expr { $orig_lx + $dx }]
 			set ly [expr { $orig_ly + $dy }]
 
-			if { $lx < 0 || $ly < 0 || $lx > $sizex || $ly > $sizey } {
-				set regular false
-			} elseif { "$orig_lx $orig_ly" != "$lx $ly" } {
+			if { "$orig_lx $orig_ly" != "$lx $ly" } {
 				#moving the nodelabel and selectbox assigned to the moving node
 
 				set view_dx [expr { int($dx / $zoom) }]

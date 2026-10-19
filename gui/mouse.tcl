@@ -577,45 +577,21 @@ proc moveToCanvas { canvas_id } {
 
 	set curcanvas [getFromRunning_gui "curcanvas"]
 
-	lassign [getCanvasSize $canvas_id] max_x max_y
-
 	set selected_nodes [selectedNodes]
 	foreach node_id $selected_nodes {
 		set type [getNodeType $node_id]
 
 		lassign [getNodeCoords $node_id] node_x node_y
-		if { $node_x > $max_x } {
-			global ${type}_iconwidth
-
-			set new_x [expr $max_x - [set $type\_iconwidth]/2]
-		} else {
-			set new_x $node_x
-		}
-
-		if { $node_y > $max_y } {
-			global ${type}_iconheight
-
-			set new_y [expr $max_y - [set $type\_iconheight]/2]
-		} else {
-			set new_y $node_y
-		}
+		set new_x $node_x
+		set new_y $node_y
 
 		if { "$new_x $new_y" != "$node_x $node_y" } {
 			setNodeCoords $node_id [snapCoordsToGrid $new_x $new_y]
 		}
 
 		lassign [getNodeLabelCoords $node_id] lnode_x lnode_y
-		if { $lnode_x > $max_x } {
-			set lnew_x $max_x
-		} else {
-			set lnew_x $lnode_x
-		}
-
-		if { $lnode_y > $max_y } {
-			set lnew_y $max_y
-		} else {
-			set lnew_y $lnode_y
-		}
+		set lnew_x $lnode_x
+		set lnew_y $lnode_y
 
 		if { "$lnew_x $lnew_y" != "$lnode_x $lnode_y" } {
 			setNodeLabelCoords $node_id "$lnew_x $lnew_y"
@@ -1345,7 +1321,7 @@ proc button1-motion { x y } {
 proc button1-release { x y } {
 	global newlink curobj grid
 	global changed selectbox
-	global lastX lastY sizex sizey
+	global lastX lastY
 	global autorearrange_enabled
 	global resizemode resizeobj
 	global newnode main_canvas_elem
@@ -1407,9 +1383,7 @@ proc button1-release { x y } {
 			}
 
 			lassign [getNodeLabelCoords $node_id] orig_lx orig_ly
-			if { $lx < 0 || $ly < 0 || $lx > $sizex || $ly > $sizey } {
-				set regular false
-			} elseif { "$orig_lx $orig_ly" != "$lx $ly" } {
+			if { "$orig_lx $orig_ly" != "$lx $ly" } {
 				setNodeLabelCoords $node_id "$lx $ly"
 
 				if { [isPseudoNode $node_id] } {
@@ -1439,9 +1413,7 @@ proc button1-release { x y } {
 				} {
 					lassign [snapCoordsToGrid $x $y] x y
 					lassign [getNodeCoords $node_id] orig_x orig_y
-					if { $x < 0 || $y < 0 || $x > $sizex || $y > $sizey } {
-						set regular false
-					} elseif { "$orig_x $orig_y" != "$x $y" } {
+					if { "$orig_x $orig_y" != "$x $y" } {
 						set dx [expr { $x - $orig_x }]
 						set dy [expr { $y - $orig_y }]
 
@@ -1449,9 +1421,7 @@ proc button1-release { x y } {
 						set lx [expr { $orig_lx + $dx }]
 						set ly [expr { $orig_ly + $dy }]
 
-						if { $lx < 0 || $ly < 0 || $lx > $sizex || $ly > $sizey } {
-							set regular false
-						} elseif { "$orig_lx $orig_ly" != "$lx $ly" } {
+						if { "$orig_lx $orig_ly" != "$lx $ly" } {
 							#moving the nodelabel and selectbox assigned to the moving node
 
 							set view_dx [expr { int($dx / $zoom) }]
@@ -1473,27 +1443,6 @@ proc button1-release { x y } {
 					set x2 [expr {$x2 / $zoom}]
 					set y2 [expr {$y2 / $zoom}]
 
-					if { $x1 < 0 } {
-						set x2 [expr {$x2-$x1}]
-						set x1 0
-						set outofbounds 1
-					}
-					if { $y1 < 0 } {
-						set y2 [expr {$y2-$y1}]
-						set y1 0
-						set outofbounds 1
-					}
-					if { $x2 > $sizex } {
-						set x1 [expr {$x1-($x2-$sizex)}]
-						set x2 $sizex
-						set outofbounds 1
-					}
-					if { $y2 > $sizey } {
-						set y1 [expr {$y1-($y2-$sizey)}]
-						set y2 $sizey
-						set outofbounds 1
-					}
-
 					setAnnotationCoords $node_id "$x1 $y1 $x2 $y2"
 				}
 
@@ -1503,27 +1452,6 @@ proc button1-release { x y } {
 					set y1 [expr {[lindex $coordinates 1] / $zoom}]
 					set x2 [expr {[lindex $coordinates 6] / $zoom}]
 					set y2 [expr {[lindex $coordinates 13] / $zoom}]
-
-					if { $x1 < 0 } {
-						set x2 [expr {$x2-$x1}]
-						set x1 0
-						set outofbounds 1
-					}
-					if { $y1 < 0 } {
-						set y2 [expr {$y2-$y1}]
-						set y1 0
-						set outofbounds 1
-					}
-					if { $x2 > $sizex } {
-						set x1 [expr {$x1-($x2-$sizex)}]
-						set x2 $sizex
-						set outofbounds 1
-					}
-					if { $y2 > $sizey } {
-						set y1 [expr {$y1-($y2-$sizey)}]
-						set y2 $sizey
-						set outofbounds 1
-					}
 
 					setAnnotationCoords $node_id "$x1 $y1 $x2 $y2"
 				}
@@ -1537,23 +1465,6 @@ proc button1-release { x y } {
 
 					set shiftx 0
 					set shifty 0
-
-					if { $x1 < 0 } {
-						set shiftx -$x1
-						set outofbounds 1
-					}
-					if { $y1 < 0 } {
-						set shifty -$y1
-						set outofbounds 1
-					}
-					if { $x2 > $sizex } {
-						set shiftx [expr $sizex-$x2]
-						set outofbounds 1
-					}
-					if { $y2 > $sizey } {
-						set shifty [expr $sizey-$y2]
-						set outofbounds 1
-					}
 
 					set coordinates [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]]
 					set l [expr {[llength $coordinates]-1}]
@@ -1581,23 +1492,6 @@ proc button1-release { x y } {
 
 					set width [expr [lindex $bbox 2] - [lindex $bbox 0]]
 					set height [expr [lindex $bbox 3] - [lindex $bbox 1]]
-
-					if { [lindex $bbox 0] < 0 } {
-						set x1 5
-						set outofbounds 1
-					}
-					if { [lindex $bbox 1] < 0 } {
-						set y1 [expr $height/2]
-						set outofbounds 1
-					}
-					if { [lindex $bbox 2] > $sizex } {
-						set x1 [expr $sizex-$width+5]
-						set outofbounds 1
-					}
-					if { [lindex $bbox 3] > $sizey } {
-						set y1 [expr {$sizey-$height/2}]
-						set outofbounds 1
-					}
 
 					setAnnotationCoords $node_id "$x1 $y1"
 				}
@@ -1656,19 +1550,6 @@ proc button1-release { x y } {
 				set coordinates [$main_canvas_elem coords $img]
 				set x [expr { int([lindex $coordinates 0] / $zoom) }]
 				set y [expr { int([lindex $coordinates 1] / $zoom) }]
-
-				if { $x < 0 } {
-					set x 0
-				}
-				if { $y < 0 } {
-					set y 0
-				}
-				if { $x > $sizex } {
-					set x $sizex
-				}
-				if { $y > $sizey } {
-					set y $sizey
-				}
 
 				setPoint_gui $point_id "$x $y"
 
