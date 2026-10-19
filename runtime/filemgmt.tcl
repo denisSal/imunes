@@ -262,7 +262,7 @@ proc openFile { { no_recent "" } } {
 	applyOptionsToGUI
 
 	if { $gui } {
-		global all_annotation_types sizex sizey
+		global all_annotation_types
 
 		set gui_node_list [dict keys [cfgGet "gui" "nodes"]]
 		set annotation_list [getFromRunning_gui "annotation_list"]
@@ -308,15 +308,12 @@ proc openFile { { no_recent "" } } {
 			#lassign [cfgGet "gui" "canvases" $canvas_id "size"] w h
 			lassign [getCanvasSize $canvas_id] w h
 			if { $w == "" } {
-				set w $sizex
+				set w 1000
 			}
 
 			if { $h == "" } {
-				set h $sizey
+				set h 1000
 			}
-
-			#set w [expr { int($w / 2) }]
-			#set h [expr { int($h / 2) }]
 
 			setAnnotationCanvas $annotation_id $canvas_id
 			setAnnotationCoords $annotation_id "0 0 $w $h"

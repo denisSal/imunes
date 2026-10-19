@@ -62,7 +62,7 @@ proc refreshToolBarNodes {} {
 #   Redraws all the objects on the current canvas.
 #****
 proc redrawAll {} {
-	global background sizex sizey grid
+	global background
 	global bkgImage main_canvas_elem
 	global changed
 
@@ -70,12 +70,6 @@ proc redrawAll {} {
 	set curcanvas [getFromRunning_gui "curcanvas"]
 
 	.bottom.zoom config -text "zoom [expr {int($zoom * 100)}]%"
-	set e_sizex [expr {int($sizex * $zoom)}]
-	set e_sizey [expr {int($sizey * $zoom)}]
-	set border 28
-	$main_canvas_elem configure -scrollregion \
-		"-$border -$border [expr {$e_sizex + $border}] \
-		[expr {$e_sizey + $border}]"
 
 	$main_canvas_elem delete all
 
@@ -1624,8 +1618,7 @@ proc selectZoomPopupMenu { x y } {
 #****
 proc align2grid {} {
 	global main_canvas_elem
-
-	global sizex sizey grid changed
+	global grid changed
 
 	set node_objects [$main_canvas_elem find withtag node]
 	if { [llength $node_objects] == 0 } {
@@ -1634,8 +1627,8 @@ proc align2grid {} {
 
 	set step [expr {$grid * 4}]
 
-	for { set x $step } { $x <= [expr {$sizex - $step}] } { incr x $step } {
-		for { set y $step } { $y <= [expr {$sizey - $step}] } { incr y $step } {
+	for { set x $step } { $x <= [expr {1000 - $step}] } { incr x $step } {
+		for { set y $step } { $y <= [expr {1000 - $step}] } { incr y $step } {
 			if { [llength $node_objects] == 0 } {
 				set changed 1
 				updateUndoLog
@@ -1671,7 +1664,7 @@ proc align2grid {} {
 #   rearranged.
 #****
 proc rearrange { mode } {
-	global autorearrange_enabled sizex sizey main_canvas_elem
+	global autorearrange_enabled main_canvas_elem
 
 	set curcanvas [getFromRunning_gui "curcanvas"]
 	set zoom [getActiveOption "zoom"]
@@ -1709,29 +1702,8 @@ proc rearrange { mode } {
 			set x_t($node_id) $x
 			set y_t($node_id) $y
 
-			if { $x > 0 } {
-				set fx [expr {1000 / ($x * $x + 100)}]
-			} else {
-				set fx 10
-			}
-			set dx [expr {$sizex - $x}]
-			if { $dx > 0 } {
-				set fx [expr {$fx - 1000 / ($dx * $dx + 100)}]
-			} else {
-				set fx [expr {$fx - 10}]
-			}
-
-			if { $y > 0 } {
-				set fy [expr {1000 / ($y * $y + 100)}]
-			} else {
-				set fy 10
-			}
-			set dy [expr {$sizey - $y}]
-			if { $dy > 0 } {
-				set fy [expr {$fy - 1000 / ($dy * $dy + 100)}]
-			} else {
-				set fy [expr {$fy - 10}]
-			}
+			set fx [expr {1000 / ($x * $x + 100)}]
+			set fy [expr {1000 / ($y * $y + 100)}]
 			set fx_t($node_id) $fx
 			set fy_t($node_id) $fy
 		}
@@ -1867,7 +1839,6 @@ proc rearrange { mode } {
 #   previus, next -- next, first -- first, last -- last.
 #****
 proc switchCanvas { direction } {
-	global sizex sizey
 
 	set curcanvas [getFromRunning_gui "curcanvas"]
 	set canvas_list [getFromRunning_gui "canvas_list"]
@@ -1939,9 +1910,6 @@ proc switchCanvas { direction } {
 	if { $rborder > $rmargin } {
 		.panwin.f1.hframe.t xview moveto [expr {1.0 * ($rborder - $width + 10) / $x}]
 	}
-
-	set sizex [lindex [getCanvasSize $curcanvas] 0]
-	set sizey [lindex [getCanvasSize $curcanvas] 1]
 
 	redrawAll
 }
@@ -2274,4 +2242,11 @@ proc redrawGrid {} {
     }
 
 	raiseAll
+}
+
+proc printCoordinates { x y } {
+	set zoom [getActiveOption "zoom"]
+	lassign [lmap coord [viewToCanvasCoords "$x $y"] {expr { int($coord / $zoom) }}] x y
+
+	statusLineGUI "$x $y" "#777777" 1
 }

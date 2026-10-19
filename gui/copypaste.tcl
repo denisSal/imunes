@@ -133,7 +133,6 @@ proc copySelection {} {
 #   Pastes nodes from clipboard.
 #****
 proc paste {} {
-	global sizex sizey
 	global changed copypaste_list cutNodes copypaste_nodes
 
 	if { [getFromRunning "oper_mode"] == "exec" } {
@@ -261,16 +260,6 @@ proc paste {} {
 		setNodeLabel $new_node_id [getNodeName $new_node_id]
 
 		set nodecoords [getNodeCoords $new_node_id]
-		if { [lindex $nodecoords 0] >= $sizex || [lindex $nodecoords 1] >= $sizey } {
-			setNodeCoords $new_node_id "$curx $cury"
-			setNodeLabelCoords $new_node_id "$curx [expr $cury + $delta / 4]"
-
-			incr curx $delta
-			if { $curx > $sizex } {
-				incr cury $delta
-				set curx [expr $delta / 2]
-			}
-		}
 	}
 
 	# Paste links from the clipboard and rename them on the fly
