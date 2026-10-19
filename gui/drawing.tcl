@@ -1605,7 +1605,7 @@ proc selectZoomPopupMenu { x y } {
 proc align2grid {} {
 	global main_canvas_elem
 
-	global sizex sizey grid changed
+	global grid changed
 
 	set node_objects [$main_canvas_elem find withtag node]
 	if { [llength $node_objects] == 0 } {
@@ -1614,6 +1614,8 @@ proc align2grid {} {
 
 	set step [expr {$grid * 4}]
 
+	return
+	# TODO
 	for { set x $step } { $x <= [expr {$sizex - $step}] } { incr x $step } {
 		for { set y $step } { $y <= [expr {$sizey - $step}] } { incr y $step } {
 			if { [llength $node_objects] == 0 } {
