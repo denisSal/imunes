@@ -81,38 +81,6 @@ proc newCanvas { name } {
 	return $canvas_id
 }
 
-#****f* canvas.tcl/setCanvasSize
-# NAME
-#   setCanvasSize -- set canvas size
-# SYNOPSIS
-#   setCanvasSize $canvas_id $x $y
-# FUNCTION
-#   Sets the specified canvas size.
-# INPUTS
-#   * canvas_id -- canvas id
-#   * x -- width
-#   * y -- height
-#****
-proc setCanvasSize { canvas_id x y } {
-	cfgSet "gui" "canvases" $canvas_id "size" "$x $y"
-}
-
-#****f* canvas.tcl/getCanvasSize
-# NAME
-#   getCanvasSize -- get canvas size
-# SYNOPSIS
-#   getCanvasSize $canvas_id
-# FUNCTION
-#   Returns the specified canvas size.
-# INPUTS
-#   * canvas_id -- canvas id
-# RESULT
-#   * size -- canvas size in the form of {x y}
-#****
-proc getCanvasSize { canvas_id } {
-	return [cfgGetWithDefault {900 620} "gui" "canvases" $canvas_id "size"]
-}
-
 #****f* canvas.tcl/getCanvasName
 # NAME
 #   getCanvasName -- get canvas name
@@ -620,73 +588,6 @@ proc renameCanvasPopup {} {
 	pack $w.renameframe.e1 -side top -pady 5 -padx 10 -fill x
 }
 
-#****f* editor.tcl/resizeCanvasPopup
-# NAME
-#   resizeCanvasPopup -- resize canvas popup
-# SYNOPSIS
-#   resizeCanvasPopup
-# FUNCTION
-#   Creates a popup dialog box for resizing canvas.
-#****
-proc resizeCanvasPopup {} {
-	set w .entry1
-	catch { destroy $w }
-	toplevel $w -takefocus 1
-	wm transient $w .
-	wm resizable $w 0 0
-	wm title $w "Canvas resize"
-	wm iconname $w "Canvas resize"
-
-	set curcanvas [getFromRunning_gui "curcanvas"]
-
-	set minWidth [lindex [getMostDistantNodeCoordinates] 0]
-	set minHeight [lindex [getMostDistantNodeCoordinates] 1]
-
-	ttk::frame $w.resizeframe
-	pack $w.resizeframe -fill both -expand 1
-
-	ttk::label $w.resizeframe.msg -wraplength 5i -justify left -text "Canvas size:"
-	pack $w.resizeframe.msg -side top
-
-	ttk::frame $w.resizeframe.buttons
-	pack $w.resizeframe.buttons -side bottom -fill x -pady 2m
-
-	set fit_command [list apply {
-		{ w } {
-			global mf
-
-			set padx 56
-			set pady 56
-			$w.resizeframe.size.x set [expr [winfo width $mf.canvas_elem] - $padx]
-			$w.resizeframe.size.y set [expr [winfo height $mf.canvas_elem] - $pady]
-		}
-	} \
-		$w
-	]
-	ttk::button $w.resizeframe.buttons.fit -text "Fit window" -command $fit_command
-	ttk::button $w.resizeframe.buttons.print -text "Apply" -command "resizeCanvasApply $w"
-	ttk::button $w.resizeframe.buttons.cancel -text "Cancel" -command "destroy $w"
-	pack $w.resizeframe.buttons.fit $w.resizeframe.buttons.print $w.resizeframe.buttons.cancel -side left -expand 1 -padx 2
-	bind $w <Key-Escape> "destroy $w"
-	bind $w <Key-Return> "resizeCanvasApply $w"
-
-	ttk::frame $w.resizeframe.size
-	pack $w.resizeframe.size -side top -fill x -pady 2m
-	ttk::spinbox $w.resizeframe.size.x -width 4 \
-		-validate focus -invalidcommand "focusAndFlash %W"
-	$w.resizeframe.size.x insert 0 [lindex [getCanvasSize $curcanvas] 0]
-	$w.resizeframe.size.x configure -from $minWidth -to 4096 -increment 2 \
-		-validatecommand "checkIntRange %P $minWidth 4096"
-	ttk::label $w.resizeframe.size.label -text "*"
-	ttk::spinbox $w.resizeframe.size.y -width 4 \
-		-validate focus -invalidcommand "focusAndFlash %W"
-	$w.resizeframe.size.y insert 0 [lindex [getCanvasSize $curcanvas] 1]
-	$w.resizeframe.size.y configure -from $minHeight -to 4096 -increment 2 \
-		-validatecommand "checkIntRange %P $minHeight 4096"
-
-	pack $w.resizeframe.size.x $w.resizeframe.size.label $w.resizeframe.size.y -side left -expand 1 -pady 5 -padx 2 -fill y
-}
-
 #****f* editor.tcl/renameCanvasApply
 # NAME
 #   renameCanvasApply -- rename canvas apply
@@ -716,43 +617,6 @@ proc renameCanvasApply { w } {
 	updateUndoLog
 }
 
-#****f* editor.tcl/resizeCanvasApply
-# NAME
-#   resizeCanvasApply -- resize canvas apply
-# SYNOPSIS
-#   resizeCanvasApply $w
-# FUNCTION
-#   This procedure is called by clicking on apply button in resize
-#   canvas popup dialog box. It resizes the current canvas.
-# INPUTS
-#   * w -- tk widget (resize canvas popup dialog box)
-#****
-proc resizeCanvasApply { w } {
-	global changed
-
-	set curcanvas [getFromRunning_gui "curcanvas"]
-
-	if { [getCanvasBkg $curcanvas] != "" } {
-		after idle { .dialog1.msg configure -wraplength 4i }
-		tk_dialog .dialog1 "IMUNES error" \
-			"Cannot resize canvas with background image!" \
-			info 0 Dismiss
-
-		return
-	}
-
-	set x [$w.resizeframe.size.x get]
-	set y [$w.resizeframe.size.y get]
-	lassign [getMostDistantNodeCoordinates] ix iy
-
-	if { $ix > $x || $iy > $y } {
-		after idle { .dialog1.msg configure -wraplength 4i }
-		tk_dialog .dialog1 "IMUNES error" \
-			"Canvas not big enough for existing nodes!" \
-			info 0 Dismiss
-
-		return
-	}
 proc snapCanvasNodesToGrid {} {
 	global main_canvas_elem changed
 
