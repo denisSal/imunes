@@ -1634,49 +1634,6 @@ proc selectZoomPopupMenu { x y } {
 	tk_popup .button3menu $x $y
 }
 
-#****f* editor.tcl/align2grid
-# NAME
-#   align2grid -- align to grid
-# SYNOPSIS
-#   align2grid
-# FUNCTION
-#   Aligns all nodes to grid.
-#****
-proc align2grid {} {
-	global main_canvas_elem
-
-	global sizex sizey grid changed
-
-	set node_objects [$main_canvas_elem find withtag node]
-	if { [llength $node_objects] == 0 } {
-		return
-	}
-
-	set step [expr {$grid * 4}]
-
-	for { set x $step } { $x <= [expr {$sizex - $step}] } { incr x $step } {
-		for { set y $step } { $y <= [expr {$sizey - $step}] } { incr y $step } {
-			if { [llength $node_objects] == 0 } {
-				set changed 1
-				updateUndoLog
-				redrawAll
-
-				return
-			}
-
-			set node_id [lindex [$main_canvas_elem gettags [lindex $node_objects 0]] 1]
-			set node_objects [lreplace $node_objects 0 0]
-			setNodeCoords $node_id "$x $y"
-			set dy 32
-			if { [getNodeType $node_id] in "router hub lanswitch rj45" } {
-				set dy 24
-			}
-
-			setNodeLabelCoords $node_id "$x [expr {$y + $dy}]"
-		}
-	}
-}
-
 #****f* editor.tcl/rearrange
 # NAME
 #   rearrange -- rearrange

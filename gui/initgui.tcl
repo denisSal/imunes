@@ -453,9 +453,6 @@ menu .menubar.tools -tearoff 0
 .menubar.tools add command -label "Auto rearrange selected" -underline 15 \
 	-command { rearrange selected }
 .menubar.tools add separator
-.menubar.tools add command -label "Align to grid" -underline 9 \
-	-command { align2grid }
-.menubar.tools add separator
 .menubar.tools add checkbutton -label "IPv4 auto-assign addresses/routes" \
 	-variable IPv4autoAssign -command { setGlobalOption "IPv4autoAssign" - "toggle" }
 .menubar.tools add checkbutton -label "IPv6 auto-assign addresses/routes" \
