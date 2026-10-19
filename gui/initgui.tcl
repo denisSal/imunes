@@ -69,8 +69,6 @@
 #    * grid -- control variable representing grid distance. All new elements on
 #      the canvas are snaped to grid. Default value is 24.
 #    * grid_coord_visible -- list of reasons why the grid is visible
-#    * sizex -- X size of the canvas.
-#    * sizey -- Y size of the canvas.
 #    * curcanvas -- the value of the current canvas.
 #    * autorearrange_enabled -- control variable indicating is
 #      autorearrange enabled.
@@ -1185,9 +1183,7 @@ set main_canvas_elem [canvas $mf.canvas_elem \
 	-bd 0 \
 	-relief sunken \
 	-highlightthickness 0 \
-	-background gray \
-	-xscrollcommand "$mf.hframe.scroll set" \
-	-yscrollcommand "$mf.vframe.scroll set"]
+	-background white]
 
 canvas $mf.hframe.t \
 	-width 160 \
@@ -1234,26 +1230,9 @@ bind $mf.hframe.t <5> {
 	switchCanvas next
 }
 
-set tmp_command [list apply {
-	{ dir args } {
-		global main_canvas_elem
-
-		$main_canvas_elem $dir {*}$args
-		redrawGrid
-	}
-} \
-	""
-]
-
-ttk::scrollbar $mf.hframe.scroll -orient horiz \
-	-command [lreplace $tmp_command end end xview]
-ttk::scrollbar $mf.vframe.scroll \
-	-command [lreplace $tmp_command end end yview]
 ttk::scrollbar $mf.hframe.ts -orient horiz -command ".panwin.f1.hframe.t xview"
 pack $mf.hframe.ts -side left -padx 0 -pady 0
 pack $mf.hframe.t -side left -padx 0 -pady 0 -fill both -expand true
-pack $mf.hframe.scroll -side left -padx 0 -pady 0 -fill both -expand true
-pack $mf.vframe.scroll -side top -padx 0 -pady 0 -fill both -expand true
 pack $mf.grid -expand yes -fill both -padx 1 -pady 1
 grid rowconfig $mf.grid 0 -weight 1 -minsize 0
 grid columnconfig $mf.grid 0 -weight 1 -minsize 0
@@ -1353,7 +1332,7 @@ $main_canvas_elem bind "text_bg_rectangle" $rightClick "button3annotation text %
 $main_canvas_elem bind selectmark <Any-Enter> "selectmarkEnter %x %y"
 $main_canvas_elem bind selectmark <Any-Leave> "selectmarkLeave %x %y"
 
-$main_canvas_elem bind background $rightClick "button3background %x %y"
+bind $main_canvas_elem $rightClick "button3background %x %y"
 $main_canvas_elem bind grid $rightClick "button3grid %x %y"
 
 if { $isOSmac_gui } {
@@ -1369,13 +1348,15 @@ if { $isOSmac_gui } {
 	}
 $main_canvas_elem bind "text_bg_rectangle" $rightClick "button3annotation text %x %y \[lindex \[$main_canvas_elem gettags current] 1]"
 
-	$main_canvas_elem bind background <Control-Button-1> "button3background %x %y"
+	bind $main_canvas_elem <Control-Button-1> "button3background %x %y"
 	$main_canvas_elem bind grid <Control-Button-1> "button3grid %x %y"
 }
 
 $main_canvas_elem bind point <Any-Enter> "pointEnter"
 $main_canvas_elem bind point $rightClick "removePointGUI"
 $main_canvas_elem bind point <Any-Leave> "$main_canvas_elem config -cursor left_ptr"
+
+bind $main_canvas_elem <Motion> "printCoordinates %x %y"
 
 bind $main_canvas_elem <1> "button1 %x %y none"
 bind $main_canvas_elem <Control-Button-1> "button1 %x %y ctrl"
