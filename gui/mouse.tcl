@@ -582,45 +582,21 @@ proc moveToCanvas { canvas_id } {
 
 	set curcanvas [getFromRunning_gui "curcanvas"]
 
-	lassign [getCanvasSize $canvas_id] max_x max_y
-
 	set selected_nodes [selectedNodes]
 	foreach node_id $selected_nodes {
 		set type [getNodeType $node_id]
 
 		lassign [getNodeCoords $node_id] node_x node_y
-		if { $node_x > $max_x } {
-			global ${type}_iconwidth
-
-			set new_x [expr $max_x - [set $type\_iconwidth]/2]
-		} else {
-			set new_x $node_x
-		}
-
-		if { $node_y > $max_y } {
-			global ${type}_iconheight
-
-			set new_y [expr $max_y - [set $type\_iconheight]/2]
-		} else {
-			set new_y $node_y
-		}
+		set new_x $node_x
+		set new_y $node_y
 
 		if { "$new_x $new_y" != "$node_x $node_y" } {
 			setNodeCoords $node_id [snapCoordsToGrid $new_x $new_y]
 		}
 
 		lassign [getNodeLabelCoords $node_id] lnode_x lnode_y
-		if { $lnode_x > $max_x } {
-			set lnew_x $max_x
-		} else {
-			set lnew_x $lnode_x
-		}
-
-		if { $lnode_y > $max_y } {
-			set lnew_y $max_y
-		} else {
-			set lnew_y $lnode_y
-		}
+		set lnew_x $lnode_x
+		set lnew_y $lnode_y
 
 		if { "$lnew_x $lnew_y" != "$lnode_x $lnode_y" } {
 			setNodeLabelCoords $node_id "$lnew_x $lnew_y"
@@ -1402,7 +1378,7 @@ proc button1-motion { x y } {
 proc button1-release { x y } {
 	global newlink curobj grid
 	global changed selectbox
-	global lastX lastY sizex sizey
+	global lastX lastY
 	global autorearrange_enabled
 	global resizemode resizeobj
 	global newnode main_canvas_elem
@@ -1413,7 +1389,6 @@ proc button1-release { x y } {
 	set redolevel [getFromRunning "redolevel"]
 
 	set redrawNeeded 0
-	set outofbounds 0
 
 	set curobj_tags [$main_canvas_elem gettags $curobj]
 	set curtype [lindex $curobj_tags 0]
@@ -1466,9 +1441,7 @@ proc button1-release { x y } {
 			}
 
 			lassign [getNodeLabelCoords $node_id] orig_lx orig_ly
-			if { $lx < 0 || $ly < 0 || $lx > $sizex || $ly > $sizey } {
-				set regular false
-			} elseif { "$orig_lx $orig_ly" != "$lx $ly" } {
+			if { "$orig_lx $orig_ly" != "$lx $ly" } {
 				setNodeLabelCoords $node_id "$lx $ly"
 
 				if { [isPseudoNode $node_id] } {
@@ -1498,9 +1471,7 @@ proc button1-release { x y } {
 				} {
 					lassign [snapCoordsToGrid $x $y] x y
 					lassign [getNodeCoords $node_id] orig_x orig_y
-					if { $x < 0 || $y < 0 || $x > $sizex || $y > $sizey } {
-						set regular false
-					} elseif { "$orig_x $orig_y" != "$x $y" } {
+					if { "$orig_x $orig_y" != "$x $y" } {
 						set dx [expr { $x - $orig_x }]
 						set dy [expr { $y - $orig_y }]
 
@@ -1508,9 +1479,7 @@ proc button1-release { x y } {
 						set lx [expr { $orig_lx + $dx }]
 						set ly [expr { $orig_ly + $dy }]
 
-						if { $lx < 0 || $ly < 0 || $lx > $sizex || $ly > $sizey } {
-							set regular false
-						} elseif { "$orig_lx $orig_ly" != "$lx $ly" } {
+						if { "$orig_lx $orig_ly" != "$lx $ly" } {
 							#moving the nodelabel and selectbox assigned to the moving node
 
 							set view_dx [expr { int($dx / $zoom) }]
@@ -1525,185 +1494,31 @@ proc button1-release { x y } {
 					}
 				}
 
-				if { [lindex [$main_canvas_elem gettags $node_id] 0] == "oval" } {
-					lassign [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]] x1 y1 x2 y2
-					set x1 [expr {$x1 / $zoom}]
-					set y1 [expr {$y1 / $zoom}]
-					set x2 [expr {$x2 / $zoom}]
-					set y2 [expr {$y2 / $zoom}]
-
-					if { $x1 < 0 } {
-						set x2 [expr {$x2-$x1}]
-						set x1 0
-						set outofbounds 1
-					}
-					if { $y1 < 0 } {
-						set y2 [expr {$y2-$y1}]
-						set y1 0
-						set outofbounds 1
-					}
-					if { $x2 > $sizex } {
-						set x1 [expr {$x1-($x2-$sizex)}]
-						set x2 $sizex
-						set outofbounds 1
-					}
-					if { $y2 > $sizey } {
-						set y1 [expr {$y1-($y2-$sizey)}]
-						set y2 $sizey
-						set outofbounds 1
-					}
-
-					setAnnotationCoords $node_id "$x1 $y1 $x2 $y2"
-				}
-
-				if { [lindex [$main_canvas_elem gettags $node_id] 0] == "rectangle" } {
-					set coordinates [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]]
-					set x1 [expr {[lindex $coordinates 0] / $zoom}]
-					set y1 [expr {[lindex $coordinates 1] / $zoom}]
-					set x2 [expr {[lindex $coordinates 6] / $zoom}]
-					set y2 [expr {[lindex $coordinates 13] / $zoom}]
-
-					if { $x1 < 0 } {
-						set x2 [expr {$x2-$x1}]
-						set x1 0
-						set outofbounds 1
-					}
-					if { $y1 < 0 } {
-						set y2 [expr {$y2-$y1}]
-						set y1 0
-						set outofbounds 1
-					}
-					if { $x2 > $sizex } {
-						set x1 [expr {$x1-($x2-$sizex)}]
-						set x2 $sizex
-						set outofbounds 1
-					}
-					if { $y2 > $sizey } {
-						set y1 [expr {$y1-($y2-$sizey)}]
-						set y2 $sizey
-						set outofbounds 1
-					}
-
-					setAnnotationCoords $node_id "$x1 $y1 $x2 $y2"
-				}
-
-				if { [lindex [$main_canvas_elem gettags $node_id] 0] == "freeform" } {
-					lassign [$main_canvas_elem bbox "selectmark && $node_id"] x1 y1 x2 y2
-					set shiftx 0
-					set shifty 0
-
-					if { $x1 < 0 } {
-						set shiftx [expr -$x1]
-						set outofbounds 1
-					}
-					if { $y1 < 0 } {
-						set shifty [expr -$y1]
-						set outofbounds 1
-					}
-					if { $x2 > $sizex * $zoom } {
-						set shiftx [expr $sizex * $zoom - $x2]
-						set outofbounds 1
-					}
-					if { $y2 > $sizey * $zoom } {
-						set shifty [expr $sizey * $zoom - $y2]
-						set outofbounds 1
-					}
-
-					if { $shiftx == 0 && $shifty == 0 } {
-						set newcoords [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]]
-					} else {
-						set coordinates [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]]
-						set l [expr {[llength $coordinates]-1}]
-						set i 0
-
-						set newcoords {}
-						while { $i <= $l } {
-							set f1 [expr {[lindex $coordinates $i]}]
-							set g1 [expr {[lindex $coordinates $i+1]}]
-							set xx1 [expr $f1+$shiftx]
-							set yy1 [expr $g1+$shifty]
-
-							lappend newcoords $xx1 $yy1
-							set i [expr {$i+2}]
-						}
-
-						set newcoords [lmap n $newcoords {expr { int($n / $zoom) }}]
-					}
-
-					setAnnotationCoords $node_id $newcoords
-				}
-
-				if { [lindex [$main_canvas_elem gettags $node_id] 0] in "text text_bg_rectangle" } {
+				set coordinates [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]]
+				set img_type [lindex [$main_canvas_elem gettags $node_id] 0]
+				if { $img_type == "rectangle" } {
+					set coordinates \
+						"[lindex $coordinates 0] [lindex $coordinates 1] [lindex $coordinates 6] [lindex $coordinates 13]"
+				} elseif { $img_type in "text text_bg_rectangle" } {
 					lassign [$main_canvas_elem bbox "text && $node_id"] bx1 by1 bx2 by2
-					set bx1 [expr {$bx1 / $zoom}]
-					set by1 [expr {$by1 / $zoom}]
-					set bx2 [expr {$bx2 / $zoom}]
-					set by2 [expr {$by2 / $zoom}]
-					set width [expr { int($bx2 - $bx1) }]
-					set height [expr { int($by2 - $by1) }]
-
-					# background has 1px padding
-					set padding 1
-
-					set outofbounds 0
-					if { $bx1 - $padding < 0 } {
-						set bx1 $padding
-						set outofbounds 1
-					}
-					if { $by1 - $padding < 0 } {
-						set by1 $padding
-						set outofbounds 1
-					}
-					if { $bx2 + $padding > $sizex } {
-						set bx1 [expr { $sizex - $width - $padding + 1 }]
-						set outofbounds 1
-					}
-					if { $by2 + $padding > $sizey } {
-						set by1 [expr { $sizey - $height - $padding + 1 }]
-						set outofbounds 1
-					}
-
 					set x1 [expr { $bx1 + 1 }]
-					set y1 [expr { $by1 + $height / 2 }]
+					set y1 [expr { $by1 + ($by2 - $by1) / 2 }]
 
-					setAnnotationCoords $node_id "$x1 $y1"
-				}
-
-				if { [lindex [$main_canvas_elem gettags $node_id] 0] == "image" } {
-					lassign [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]] x1 y1
-					set x1 [expr {$x1 / $zoom}]
-					set y1 [expr {$y1 / $zoom}]
+					set coordinates "$x1 $y1"
+				} elseif { $img_type == "image" } {
+					lassign $coordinates x1 y1
 
 					lassign [getAnnotationCoords $node_id] ox1 oy1 ox2 oy2
-					set dx [expr {$ox2 - $ox1}]
-					set dy [expr {$oy2 - $oy1}]
+					set w [expr { int(($ox2 - $ox1) * $zoom) }]
+					set h [expr { int(($oy2 - $oy1) * $zoom) }]
 
-					set x2 [expr {$x1 + $dx}]
-					set y2 [expr {$y1 + $dy}]
+					set x2 [expr {$x1 + $w}]
+					set y2 [expr {$y1 + $h}]
 
-					if { $x1 < 0 } {
-						set x2 [expr {$x2-$x1}]
-						set x1 0
-						set outofbounds 1
-					}
-					if { $y1 < 0 } {
-						set y2 [expr {$y2-$y1}]
-						set y1 0
-						set outofbounds 1
-					}
-					if { $x2 > $sizex } {
-						set x1 [expr {$x1-($x2-$sizex)}]
-						set x2 $sizex
-						set outofbounds 1
-					}
-					if { $y2 > $sizey } {
-						set y1 [expr {$y1-($y2-$sizey)}]
-						set y2 $sizey
-						set outofbounds 1
-					}
-
-					setAnnotationCoords $node_id "$x1 $y1 $x2 $y2"
+					set coordinates "$x1 $y1 $x2 $y2"
 				}
+
+				setAnnotationCoords $node_id [lmap n $coordinates {expr { int($n / $zoom) }}]
 
 				$main_canvas_elem addtag need_redraw withtag "link && $node_id"
 				set changed 1
@@ -1724,19 +1539,6 @@ proc button1-release { x y } {
 				set x [expr { int([lindex $coordinates 0] / $zoom) }]
 				set y [expr { int([lindex $coordinates 1] / $zoom) }]
 
-				if { $x < 0 } {
-					set x 0
-				}
-				if { $y < 0 } {
-					set y 0
-				}
-				if { $x > $sizex } {
-					set x $sizex
-				}
-				if { $y > $sizey } {
-					set y $sizey
-				}
-
 				setPoint_gui $point_id "$x $y"
 
 				redrawLink $link_id
@@ -1744,13 +1546,11 @@ proc button1-release { x y } {
 			}
 		}
 
-		if { $outofbounds } {
-			updateUndoLog
-			redrawAll
+		updateUndoLog
+		redrawAll
 
-			if { $active_tool == "select" } {
-				selectNodes $selected
-			}
+		if { $active_tool == "select" } {
+			selectNodes $selected
 		}
 
 		if { $regular == "true" } {
@@ -1835,19 +1635,6 @@ proc button1-release { x y } {
 			set zy [expr { int($y / $zoom) }]
 			set zx1 [expr { int($x1 / $zoom) }]
 			set zy1 [expr { int($y1 / $zoom) }]
-
-			if { $zx < 0 } {
-				set zx 0
-			}
-			if { $zy < 0 } {
-				set zy 0
-			}
-			if { $zx1 > $sizex } {
-				set zx1 $sizex
-			}
-			if { $zy1 > $sizey } {
-				set zy1 $sizey
-			}
 
 			setAnnotationCoords $resizeobj "$zx $zy $zx1 $zy1"
 			set redrawNeeded 1
