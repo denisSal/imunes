@@ -424,8 +424,6 @@ set tmp_command {
 bind . <Control-w> $tmp_command
 .menubar.canvas add separator
 .menubar.canvas add command -label "Resize" -underline 2 -command resizeCanvasPopup
-.menubar.canvas add command -label "Background image" -underline 0 \
-	-command changeBkgPopup
 
 .menubar.canvas add separator
 .menubar.canvas add command -label "Previous" -accelerator "PgUp" \
@@ -854,9 +852,6 @@ set tmp_command {
 
 .menubar.view add separator
 
-.menubar.view add checkbutton -label "Show Background Image" \
-	-underline 5 -variable show_background_image \
-	-command { setGlobalOption "show_background_image" - "toggle" ; redrawAll }
 .menubar.view add checkbutton -label "Show Annotations" \
 	-underline 8 -variable show_annotations \
 	-command { setGlobalOption "show_annotations" - "toggle" ; redrawAll }
