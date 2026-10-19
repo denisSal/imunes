@@ -1627,6 +1627,8 @@ proc align2grid {} {
 
 	set step [expr {$grid * 4}]
 
+	return
+	# TODO
 	for { set x $step } { $x <= [expr {900 - $step}] } { incr x $step } {
 		for { set y $step } { $y <= [expr {620 - $step}] } { incr y $step } {
 			if { [llength $node_objects] == 0 } {
