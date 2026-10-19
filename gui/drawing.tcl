@@ -156,7 +156,7 @@ proc drawNode { node_id } {
 	if { $x == "" || $y == "" } {
 		global ${type}_iconheight
 
-		lassign [getCanvasSize [getFromRunning "curcanvas"]] cx cy
+		lassign {900 620} cx cy
 		set x [expr round(rand()*($cx - $cx/3) + $cx/6)]
 		set y [expr round(rand()*($cy - $cy/3) + $cy/6)]
 		setNodeCoords $node_id "$x $y"
