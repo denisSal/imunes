@@ -305,14 +305,13 @@ proc openFile { { no_recent "" } } {
 			set annotation_id [newObjectId $annotation_list "a"]
 			addAnnotation $annotation_id "image"
 
-			#lassign [cfgGet "gui" "canvases" $canvas_id "size"] w h
-			lassign [getCanvasSize $canvas_id] w h
+			lassign [cfgGet "gui" "canvases" $canvas_id "size"] w h
 			if { $w == "" } {
-				set w 1000
+				set w 900
 			}
 
 			if { $h == "" } {
-				set h 1000
+				set h 620
 			}
 
 			setAnnotationCanvas $annotation_id $canvas_id

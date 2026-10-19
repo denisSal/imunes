@@ -156,7 +156,7 @@ proc drawNode { node_id } {
 	if { $x == "" || $y == "" } {
 		global ${type}_iconheight
 
-		lassign [getCanvasSize [getFromRunning "curcanvas"]] cx cy
+		lassign {900 620} cx cy
 		set x [expr round(rand()*($cx - $cx/3) + $cx/6)]
 		set y [expr round(rand()*($cy - $cy/3) + $cy/6)]
 		setNodeCoords $node_id "$x $y"
@@ -1628,8 +1628,8 @@ proc align2grid {} {
 
 	set step [expr {$grid * 4}]
 
-	for { set x $step } { $x <= [expr {1000 - $step}] } { incr x $step } {
-		for { set y $step } { $y <= [expr {1000 - $step}] } { incr y $step } {
+	for { set x $step } { $x <= [expr {900 - $step}] } { incr x $step } {
+		for { set y $step } { $y <= [expr {620 - $step}] } { incr y $step } {
 			if { [llength $node_objects] == 0 } {
 				set changed 1
 				updateUndoLog
