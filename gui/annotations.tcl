@@ -523,8 +523,6 @@ proc popupAnnotationApply { target callback_elems } {
 	global new$annotation_type
 
 	set curcanvas [getFromRunning_gui "curcanvas"]
-	# subtract 5 from each value and assign to variables sizex sizey
-	lassign [lmap n [getCanvasSize $curcanvas] {expr $n - 5}] sizex sizey
 
 	# default values
 	set annotation_color ""
@@ -620,31 +618,6 @@ proc popupAnnotationApply { target callback_elems } {
 		set annotation_coords [lmap n [$main_canvas_elem coords [set new$annotation_type]] {
 			expr int($n / [getActiveOption "zoom"])
 		}]
-
-		switch -exact -- $annotation_type {
-			"oval" -
-			"rectangle" -
-			"image" {
-				if { [lindex $annotation_coords 0] < 0 } {
-					set annotation_coords [lreplace $annotation_coords 0 0 5]
-				}
-				if { [lindex $annotation_coords 1] < 0 } {
-					set annotation_coords [lreplace $annotation_coords 1 1 5]
-				}
-				if { [lindex $annotation_coords 2] > $sizex } {
-					set annotation_coords [lreplace $annotation_coords 2 2 $sizex]
-				}
-				if { [lindex $annotation_coords 3] > $sizey } {
-					set annotation_coords [lreplace $annotation_coords 3 3 $sizey]
-				}
-			}
-
-			"freeform" {
-			}
-
-			"text" {
-			}
-		}
 	} else {
 		# if annotation has moved or deleted while being edited
 		set annotation_coords [getAnnotationCoords $target]
@@ -725,7 +698,6 @@ proc popupAnnotationApply { target callback_elems } {
 #****
 proc drawAnnotation { annotation_id } {
 	global main_canvas_elem all_annotation_types
-	global sizex sizey
 
 	set annotation_type [getAnnotationType $annotation_id]
 	if { $annotation_type ni $all_annotation_types } {
@@ -823,46 +795,8 @@ proc drawAnnotation { annotation_id } {
 
 			# background has 1px padding
 			set padding 1
-
-			# re-position if rectangle is out of canvas after editing
-			set outofbounds 0
-			if { $bx1 - $padding < 0 } {
-				set bx1 $padding
-				set bx2 [expr $bx1 + $width]
-				set outofbounds 1
-			}
-			if { $by1 - $padding < 0 } {
-				set by1 $padding
-				set by2 [expr $by1 + $height]
-				set outofbounds 1
-			}
-			if { $bx2 + $padding > $sizex } {
-				set bx1 [expr { $sizex - $width - $padding + 1 }]
-				set bx2 [expr $bx1 + $width - 1]
-				set outofbounds 1
-			}
-			if { $by2 + $padding > $sizey } {
-				set by1 [expr { $sizey - $height - $padding + 1 }]
-				set by2 [expr $by1 + $height - 1]
-				set outofbounds 1
-			}
-
-			if { $outofbounds } {
-				set x1 [expr { $bx1 + 1 }]
-				set y1 [expr { $by1 + $height / 2 }]
-
-				$main_canvas_elem delete $new_annotation
-				$main_canvas_elem delete [$main_canvas_elem find withtag "text_bg_rectangle $annotation_id"]
-
-				set new_annotation [$main_canvas_elem create text \
-					[expr $x1 * $zoom] [expr $y1 * $zoom] \
-					-anchor w -justify left \
-					-text $label_text \
-					-font $label_font \
-					-fill $label_color]
-
-				setAnnotationCoords $annotation_id "$x1 $y1"
-			}
+			set x1 [expr { $bx1 + 1 }]
+			set y1 [expr { $by1 + $height / 2 }]
 
 			if { $bg_color != "" } {
 				set text_bg_rectangle [$main_canvas_elem create rectangle \
