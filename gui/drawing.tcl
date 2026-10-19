@@ -463,45 +463,45 @@ proc drawLink { link_id } {
 			set point [lindex $points $idx]
 
 			set newlink [$main_canvas_elem create line 0 0 0 0 \
+				-fill white -width [expr {$link_width + 4}] \
+				-tags "link $link_id $prev_point $point"]
+			$main_canvas_elem raise $newlink
+
+			set newlink [$main_canvas_elem create line 0 0 0 0 \
 				-fill $link_color \
 				-width $link_width \
 				-tags "link $link_id $prev_point $point"]
-
-			$main_canvas_elem raise $newlink background
-			set newlink [$main_canvas_elem create line 0 0 0 0 \
-				-fill white -width [expr {$link_width + 4}] \
-				-tags "link $link_id $prev_point $point"]
-			$main_canvas_elem raise $newlink background
+			$main_canvas_elem raise $newlink
 
 			set prev_point $point
 		}
 
 		set newlink [$main_canvas_elem create line 0 0 0 0 \
+			-fill white -width [expr {$link_width + 4}] \
+			-tags "link $link_id $prev_point $node2_id"]
+		$main_canvas_elem raise $newlink
+
+		set newlink [$main_canvas_elem create line 0 0 0 0 \
 			-fill $link_color \
 			-width $link_width \
 			-tags "link $link_id $prev_point $node2_id"]
+		$main_canvas_elem raise $newlink
 
-		$main_canvas_elem raise $newlink background
-		set newlink [$main_canvas_elem create line 0 0 0 0 \
-			-fill white -width [expr {$link_width + 4}] \
-			-tags "link $link_id $prev_point $node2_id"]
-		$main_canvas_elem raise $newlink background
-
-		$main_canvas_elem raise linklabel "link || background"
-		$main_canvas_elem raise interface "link || linklabel || background"
+		$main_canvas_elem raise linklabel "link"
+		$main_canvas_elem raise interface "link || linklabel"
 
 		set ang 0
 	} else {
 		set newlink [$main_canvas_elem create line 0 0 0 0 \
+			-fill white -width [expr {$link_width + 4}] \
+			-tags "link $link_id $node1_id $node2_id"]
+		$main_canvas_elem raise $newlink
+
+		set newlink [$main_canvas_elem create line 0 0 0 0 \
 			-fill [getLinkColor $link_id] \
 			-width $link_width \
 			-tags "link $link_id $node1_id $node2_id"]
-
-		$main_canvas_elem raise $newlink background
-		set newlink [$main_canvas_elem create line 0 0 0 0 \
-			-fill white -width [expr {$link_width + 4}] \
-			-tags "link $link_id $node1_id $node2_id"]
-		$main_canvas_elem raise $newlink background
+		$main_canvas_elem raise $newlink
 
 		set ang [calcAngle $link_id]
 	}
@@ -510,8 +510,8 @@ proc drawLink { link_id } {
 	$main_canvas_elem create text 0 0 -tags "interface $node1_id $link_id" -justify center -angle $ang
 	$main_canvas_elem create text 0 0 -tags "interface $node2_id $link_id" -justify center -angle $ang
 
-	$main_canvas_elem raise linklabel "link || background"
-	$main_canvas_elem raise interface "link || linklabel || background"
+	$main_canvas_elem raise linklabel "link"
+	$main_canvas_elem raise interface "link || linklabel"
 }
 
 proc drawPseudoLink { link_id } {
@@ -521,14 +521,14 @@ proc drawPseudoLink { link_id } {
 
 	set lwidth [getLinkWidth $link_id]
 	set newlink [$main_canvas_elem create line 0 0 0 0 \
-		-fill [getLinkColor $link_id] -width $lwidth \
-		-tags "link $link_id $node1_id $node2_id" -arrow both]
-
-	$main_canvas_elem raise $newlink background
-	set newlink [$main_canvas_elem create line 0 0 0 0 \
 		-fill white -width [expr {$lwidth + 4}] \
 		-tags "link $link_id $node1_id $node2_id"]
-	$main_canvas_elem raise $newlink background
+	$main_canvas_elem raise $newlink
+
+	set newlink [$main_canvas_elem create line 0 0 0 0 \
+		-fill [getLinkColor $link_id] -width $lwidth \
+		-tags "link $link_id $node1_id $node2_id" -arrow both]
+	$main_canvas_elem raise $newlink
 
 	set ang [calcAngle $link_id]
 
@@ -536,8 +536,8 @@ proc drawPseudoLink { link_id } {
 	$main_canvas_elem create text 0 0 -tags "interface $node1_id $link_id" -justify center -angle $ang
 	$main_canvas_elem create text 0 0 -tags "interface $node2_id $link_id" -justify center -angle $ang
 
-	$main_canvas_elem raise linklabel "link || background"
-	$main_canvas_elem raise interface "link || linklabel || background"
+	$main_canvas_elem raise linklabel "link"
+	$main_canvas_elem raise interface "link || linklabel"
 
 	# XXX Invisible pseudo-links
 	if { $invisible == 1 } {
