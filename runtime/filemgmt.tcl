@@ -740,6 +740,7 @@ proc updateRecentsMenu {} {
 		set recent_files [removeFromList $recent_files $file_to_add]
 		updateRecentsMenu
 	}
+	attachHelp ".#menubar.#menubar#file.#menubar#file#recent_files,Pin current to 'Recent files'" "Pin current to 'Recent files'"
 
 	$m add command -label "Remove current from 'Recent files'" -underline 0 -command {
 		global recent_files pinned_recent_files
@@ -755,6 +756,7 @@ proc updateRecentsMenu {} {
 		set recent_files [removeFromList $recent_files $file_to_remove]
 		updateRecentsMenu
 	}
+	attachHelp ".#menubar.#menubar#file.#menubar#file#recent_files,Remove current from 'Recent files'" "Remove current from 'Recent files'"
 
 	if { [llength $pinned_recent_files] > 0 } {
 		$m add separator
