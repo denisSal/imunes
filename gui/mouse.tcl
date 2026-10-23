@@ -447,12 +447,14 @@ proc button3link { x y } {
 	#
 	.button3menu add command -label "Configure" \
 		-command "linkConfigGUI $link_id"
+	attachHelp ".button3menu,Configure" "Link Configure"
 
 	#
 	# Clear link configuration
 	#
 	.button3menu add command -label "Clear all settings" \
 		-command "linkResetConfig [lindex [linkFromPseudoLink $link_id] 0] ; redrawAll"
+	attachHelp ".button3menu,Clear all settings" "Clear all settings"
 
 	global linkJitterConfiguration
 	if  { $linkJitterConfiguration } {
@@ -494,6 +496,7 @@ proc button3link { x y } {
 			-underline 5 -variable linkDirect_$real_link_id \
 			-state disabled
 	}
+	attachHelp ".button3menu,Direct link" "Direct link"
 
 	#
 	# Delete link
@@ -505,6 +508,7 @@ proc button3link { x y } {
 		.button3menu add command -label "Delete" \
 			-state disabled
 	}
+	attachHelp ".button3menu,Delete" "Delete link"
 
 	#
 	# Delete link (keep ifaces)
@@ -519,6 +523,7 @@ proc button3link { x y } {
 		.button3menu add command -label "Delete (keep interfaces)" \
 			-state disabled
 	}
+	attachHelp ".button3menu,Delete (keep interfaces)" "Delete link (keep interfaces)"
 
 	#
 	# Split link
@@ -529,6 +534,7 @@ proc button3link { x y } {
 	} else {
 		.button3menu add command -label "Split" -state disabled
 	}
+	attachHelp ".button3menu,Split" "Split link"
 
 	#
 	# Merge two pseudo nodes / links
@@ -545,6 +551,7 @@ proc button3link { x y } {
 	} else {
 		.button3menu add command -label "Merge" -state disabled
 	}
+	attachHelp ".button3menu,Merge" "Merge link"
 
 	#
 	# Segment link
@@ -555,6 +562,7 @@ proc button3link { x y } {
 	} else {
 		.button3menu add command -label "Segment" -state disabled
 	}
+	attachHelp ".button3menu,Segment" "Segment link"
 
 	set x [winfo pointerx .]
 	set y [winfo pointery .]

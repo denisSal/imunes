@@ -102,6 +102,7 @@ proc configGUI_addNotebook { wi node_id labels } {
 	foreach label $labels {
 		ttk::frame $wi.nbook.nf$label
 		$wi.nbook add $wi.nbook.nf$label -text $label
+		attachHelp "$wi.nbook,$label" "$label tab"
 	}
 
 	configGUI_addPanedWin [lindex [$wi.nbook tabs] 1]
@@ -211,6 +212,11 @@ proc configGUI_addTree { wi node_id } {
 	ttk::treeview $wi.panwin.f1.tree -height 5 -selectmode browse \
 		-xscrollcommand "$wi.panwin.f1.hscroll set"\
 		-yscrollcommand "$wi.panwin.f1.vscroll set"
+	if { [_invokeNodeProc $node_cfg "virtlayer"] == "VIRTUALIZED" } {
+		attachHelp "$wi.panwin.f1.tree" "Interfaces tree (L3)"
+	} else {
+		attachHelp "$wi.panwin.f1.tree" "Interfaces tree (L2)"
+	}
 	ttk::scrollbar $wi.panwin.f1.hscroll -orient horizontal -command "$wi.panwin.f1.tree xview"
 	ttk::scrollbar $wi.panwin.f1.vscroll -orient vertical -command "$wi.panwin.f1.tree yview"
 	focus $wi.panwin.f1.tree
@@ -238,6 +244,12 @@ proc configGUI_addTree { wi node_id } {
 
 		$wi.panwin.f1.tree heading [lindex $column 0] \
 			-text [join [lrange $column 1 end]]
+
+		if { [_invokeNodeProc $node_cfg "virtlayer"] == "VIRTUALIZED" } {
+			attachHelp "$wi.panwin.f1.tree,[lindex $column 0]" "Interfaces tree (L3)"
+		} else {
+			attachHelp "$wi.panwin.f1.tree,[lindex $column 0]" "Interfaces tree (L2)"
+		}
 	}
 
 	set tmp_command [list apply {
@@ -1478,9 +1490,11 @@ proc configGUI_nodeName { wi node_id label } {
 
 	ttk::frame $wi.name -borderwidth 6
 	ttk::label $wi.name.txt -text $label
+	attachHelp "$wi.name.txt" "Node name"
 
 	ttk::entry $wi.name.nodename -width 14 -validate focus
 	$wi.name.nodename insert 0 [lindex [split [_getNodeName $node_cfg] .] 0]
+	attachHelp "$wi.name.nodename" "Node name"
 
 	pack $wi.name.txt -side left -anchor e -expand 1 -padx 4 -pady 4
 	pack $wi.name.nodename -side left -anchor w -expand 1 -padx 4 -pady 4
@@ -1497,6 +1511,7 @@ proc configGUI_nodeRestart { wi node_id } {
 	set w $wi.node_force_options
 	ttk::frame $w -relief groove -borderwidth 2 -padding 2
 	ttk::label $w.label -text "Force node:"
+	attachHelp "$w.label" "Force node"
 	ttk::frame $w.options -padding 2
 
 	pack $w.label -side left -padx 2
@@ -1519,6 +1534,7 @@ proc configGUI_nodeRestart { wi node_id } {
 			$w.options.$element configure -state disabled
 		}
 
+		attachHelp "$w.options.$element" "Force node"
 		if { $node_type == "rj45" } {
 			break
 		}
@@ -1886,6 +1902,7 @@ proc configGUI_staticRoutes { wi node_id } {
 	set ifc_routes_enable $wi.ifc_routes_enable
 	ttk::checkbutton $ifc_routes_enable -text "Enable automatic default routes" \
 		-variable auto_default_routes -padding 4 -onvalue "enabled" -offvalue "disabled"
+	attachHelp "$ifc_routes_enable" "Automatic default routes"
 	pack $ifc_routes_enable -anchor w
 
 	set sroutes_nb $wi.sroutes
@@ -1896,6 +1913,7 @@ proc configGUI_staticRoutes { wi node_id } {
 	set user_routes $sroutes_nb.user
 	ttk::frame $user_routes
 	$sroutes_nb add $user_routes -text "Custom static routes"
+	attachHelp "$sroutes_nb,Custom static routes" "Custom static routes"
 	ttk::scrollbar $user_routes.vsb -orient vertical -command [list $user_routes.editor yview]
 	ttk::scrollbar $user_routes.hsb -orient horizontal -command [list $user_routes.editor xview]
 	text $user_routes.editor -width 42 -bg white -takefocus 0 -wrap none \
@@ -1911,6 +1929,7 @@ proc configGUI_staticRoutes { wi node_id } {
 	set auto_routes $sroutes_nb.auto
 	ttk::frame $auto_routes
 	$sroutes_nb add $auto_routes -text "Automatic default routes"
+	attachHelp "$sroutes_nb,Automatic default routes" "Automatic default routes"
 	ttk::scrollbar $auto_routes.vsb -orient vertical -command [list $auto_routes.editor yview]
 	ttk::scrollbar $auto_routes.hsb -orient horizontal -command [list $auto_routes.editor xview]
 	text $auto_routes.editor -width 42 -bg white -wrap none \
@@ -1950,6 +1969,7 @@ proc configGUI_addNotebookRj45 { wi node_id ifaces } {
 		ttk::label $wi.nbook.label \
 			-text "No connected nodes" \
 			-anchor center
+		attachHelp "$wi.nbook.label" "Configure External interface"
 		pack $wi.nbook.label \
 			-pady 5
 
@@ -1998,7 +2018,9 @@ proc configGUI_addRj45PanedWin { wi node_id } {
 
 	ttk::frame $wi.stolen -borderwidth 6
 	ttk::label $wi.stolen.label -text "Stolen interface:"
+	attachHelp "$wi.stolen.label" "Configure External interface"
 	ttk::combobox $wi.stolen.name -width 14 -textvariable extIfc$iface_id
+	attachHelp "$wi.stolen.name" "Configure External interface"
 	set ifcs [getHostIfcList]
 	$wi.stolen.name configure -values [concat UNASSIGNED $ifcs]
 	$wi.stolen.name set [_getIfcName $node_cfg $iface_id]
@@ -2093,10 +2115,12 @@ proc configGUI_customConfig { wi node_id } {
 
 	ttk::frame $wi.custcfg -borderwidth 2 -relief groove -padding 4
 	ttk::label $wi.custcfg.etxt -text "Enable custom startup config:"
+	attachHelp "$wi.custcfg.etxt" "Custom config"
 
 	set customEnabled [_getNodeCustomEnabled $node_cfg]
 	ttk::checkbutton $wi.custcfg.echeckOnOff -text "Enabled" \
 		-variable customEnabled -onvalue true -offvalue false
+	attachHelp "$wi.custcfg.echeckOnOff" "Custom config"
 
 	grid $wi.custcfg.etxt -in $wi.custcfg -sticky w -column 0 -row 0
 	grid $wi.custcfg.echeckOnOff -in $wi.custcfg -sticky w -column 1 \
@@ -2108,7 +2132,9 @@ proc configGUI_customConfig { wi node_id } {
 		ttk::frame $o
 
 		ttk::label $o.ld -text "$label_text" -width 32
+		attachHelp "$o.ld" [string range $label_text 0 end-1]
 		ttk::combobox $o.cb -height 10 -width 12 -state readonly
+		attachHelp "$o.cb" [string range $label_text 0 end-1]
 		$o.cb configure -values "DISABLED [_getNodeCustomConfigEntriesNames $node_cfg $hook]"
 		set defaultConfig [_getNodeCustomConfigSelected $node_cfg $hook]
 		if { $defaultConfig == "" } {
@@ -2148,6 +2174,7 @@ proc configGUI_customConfig { wi node_id } {
 			$hook
 		]
 		ttk::button $o.beditor -text "Editor" -command $tmp_command
+		attachHelp "$o.beditor" [string range $label_text 0 end-1]
 
 		set tmp_command [list apply {
 			{ gui_element node_id hook } {
@@ -2170,6 +2197,7 @@ proc configGUI_customConfig { wi node_id } {
 			$hook
 		]
 		ttk::button $o.external_editor -width 2 -text "⤴" -command $tmp_command
+		attachHelp "$o.external_editor" "Open in external editor"
 
 		grid $o.ld -sticky w -column 0 -row 0
 		grid $o.cb -row 0 -column 1 -sticky we -padx 10
@@ -2354,6 +2382,7 @@ proc configGUI_servicesConfig { wi node_id } {
 	set w $wi.services
 	ttk::frame $w -relief groove -borderwidth 2 -padding 2
 	ttk::label $w.label -text "Services:"
+	attachHelp "$w.label" "Services"
 	ttk::frame $w.list -padding 2
 
 	pack $w.label -side left -padx 2
@@ -2365,6 +2394,7 @@ proc configGUI_servicesConfig { wi node_id } {
 		set $srv\_enable 0
 		ttk::checkbutton $w.list.$srv -text "$srv" -variable $srv\_enable
 		pack $w.list.$srv -side left -padx 6
+		attachHelp "$w.list.$srv" "Services"
 	}
 
 	foreach srv [_getNodeServices $node_cfg] {
@@ -2394,6 +2424,7 @@ proc configGUI_advancedVirtOptions { wi node_id virt_types } {
 	set advanced_frame $wi.advanced
 	ttk::frame $advanced_frame -relief groove -borderwidth 2 -padding 2
 	ttk::label $advanced_frame.label -text "Advanced node options:"
+	attachHelp "$advanced_frame.label" "Advanced virt options"
 
 	pack $advanced_frame.label -side left -padx 2
 
@@ -2401,6 +2432,7 @@ proc configGUI_advancedVirtOptions { wi node_id virt_types } {
 		-width 10 \
 		-values $virt_types \
 		-state readonly
+	attachHelp "$advanced_frame.picker" "Advanced options types"
 	$advanced_frame.picker set [lindex $virt_types 0]
 	pack $advanced_frame.picker -side left -padx 7
 
@@ -2418,6 +2450,7 @@ proc configGUI_advancedVirtOptions { wi node_id virt_types } {
 	ttk::button $advanced_frame.btn \
 		-text "Advanced options" \
 		-command [lreplace $tmp_command end end $advanced_frame.picker]
+	attachHelp "$advanced_frame.btn" "Advanced virt options"
 	pack $advanced_frame.btn -side left -padx 7
 
 	if { [llength $virt_types] == 0 } {
@@ -2457,6 +2490,7 @@ proc genericOptionsGUI { node_id } {
 	set imported_files $notebook.imported_files
 	ttk::frame $imported_files
 	$notebook add $imported_files -text "Imported files"
+	attachHelp "$notebook,Imported files" "Imported files"
 
 	global genericoptions_imported_files
 	set genericoptions_imported_files {}
@@ -2471,6 +2505,7 @@ proc genericOptionsGUI { node_id } {
 
 	set importedfile_add_btn $imported_files.add_button
 	ttk::button $importedfile_add_btn -text "Add" -width 120
+	attachHelp "$importedfile_add_btn" "Imported files"
 	grid $importedfile_add_btn -row 0 -column 0 -columnspan 6 -in $imported_files -sticky "" -pady 4
 
 	set tmp_command [list apply {
@@ -2492,6 +2527,7 @@ proc genericOptionsGUI { node_id } {
 	set imported_dirs $notebook.imported_dirs
 	ttk::frame $imported_dirs
 	$notebook add $imported_dirs -text "Imported dirs"
+	attachHelp "$notebook,Imported dirs" "Imported dirs"
 
 	global genericoptions_imported_dirs
 	set genericoptions_imported_dirs {}
@@ -2506,6 +2542,7 @@ proc genericOptionsGUI { node_id } {
 
 	set importeddir_add_btn $imported_dirs.add_button
 	ttk::button $importeddir_add_btn -text "Add" -width 120
+	attachHelp "$importeddir_add_btn" "Imported dirs"
 	grid $importeddir_add_btn -row 0 -column 0 -columnspan 6 -in $imported_dirs -sticky "" -pady 4
 
 	set tmp_command [list apply {
@@ -2616,13 +2653,21 @@ proc genericOptionImportedfilesGUI_refresh { imported_files } {
 	set padx 0
 
 	ttk::label $content.h_enabled -text "Enabled"
+	attachHelp "$content.h_enabled" "Imported file enabled"
 	ttk::label $content.h_path -text "Internal Path"
+	attachHelp "$content.h_path" "Imported file internal path"
 	ttk::label $content.h_file_mode -text "Mode"
+	attachHelp "$content.h_file_mode" "Imported file mode"
 	ttk::label $content.h_edit -text "Edit"
+	attachHelp "$content.h_edit" "Imported file edit"
 	ttk::label $content.h_edit_ext -text "Edit (ext.)"
+	attachHelp "$content.h_edit_ext" "Imported file external edit"
 	ttk::label $content.h_import -text "Import"
+	attachHelp "$content.h_import" "Imported file import"
 	ttk::label $content.h_is_encoded -text "Encode"
+	attachHelp "$content.h_is_encoded" "Imported file encode"
 	ttk::label $content.h_del -text ""
+	attachHelp "$content.h_del" "Imported file delete"
 
 	grid $content.h_enabled -row 0 -column 0 -in $content -sticky "" -padx $padx
 	grid columnconfigure $content $content.h_enabled -weight 1
@@ -2678,12 +2723,15 @@ proc genericOptionImportedfilesGUI_refresh { imported_files } {
 		}
 
 		ttk::checkbutton $content.enabled$index -text "($index)"
+		attachHelp "$content.enabled$index" "Imported file enabled"
 		$content.enabled$index state [dict get $checkbutton_dict $enabled]
 
 		ttk::entry $content.path$index -width 48
+		attachHelp "$content.path$index" "Imported file internal path"
 		$content.path$index insert 0 $path
 
 		ttk::entry $content.file_mode$index -width 3
+		attachHelp "$content.file_mode$index" "Imported file mode"
 		$content.file_mode$index insert 0 $file_mode
 
 		set callback_proc [list apply {
@@ -2750,6 +2798,7 @@ proc genericOptionImportedfilesGUI_refresh { imported_files } {
 
 		ttk::button $content.edit$index -text "Edit" -width 4 \
 			-command $tmp_command
+		attachHelp "$content.edit$index" "Imported file edit"
 
 		set callback_proc [list apply {
 			{ index read_channel tmp_path } {
@@ -2818,6 +2867,7 @@ proc genericOptionImportedfilesGUI_refresh { imported_files } {
 
 		ttk::button $content.edit_ext$index -text "⤴" -width 4 \
 			-command $tmp_command
+		attachHelp "$content.edit_ext$index" "Imported file external edit"
 
 		set tmp_command [list apply {
 			{ index imported_files } {
@@ -2840,8 +2890,10 @@ proc genericOptionImportedfilesGUI_refresh { imported_files } {
 
 		ttk::button $content.import$index -text "Browse..." -width 8 \
 			-command $tmp_command
+		attachHelp "$content.import$index" "Imported file import"
 
 		ttk::checkbutton $content.is_encoded$index -text "($index)"
+		attachHelp "$content.is_encoded$index" "Imported file encode"
 		$content.is_encoded$index state [dict get $checkbutton_dict $is_encoded]
 
 		set tmp_command [list apply {
@@ -2857,6 +2909,7 @@ proc genericOptionImportedfilesGUI_refresh { imported_files } {
 
 		ttk::button $content.del$index -text "Delete ($index)" \
 			-command $tmp_command
+		attachHelp "$content.del$index" "Imported file delete"
 
 		grid $content.enabled$index -row $row -column 0 -in $content -sticky "" -padx $padx
 		grid $content.path$index -row $row -column 1 -in $content -sticky "" -padx $padx
@@ -3027,9 +3080,13 @@ proc genericOptionImporteddirsGUI_refresh { imported_dirs } {
 	set padx 0
 
 	ttk::label $content.h_enabled -text "Enabled"
+	attachHelp "$content.h_enabled" "Imported dir enabled"
 	ttk::label $content.h_path -text "Internal Path"
+	attachHelp "$content.h_path" "Imported dir internal path"
 	ttk::label $content.h_import -text "Import"
+	attachHelp "$content.h_import" "Imported dir import"
 	ttk::label $content.h_del -text ""
+	attachHelp "$content.h_del" "Imported dir delete"
 
 	grid $content.h_enabled -row 0 -column 0 -in $content -sticky "" -padx $padx
 	grid columnconfigure $content $content.h_enabled -weight 1
@@ -3069,9 +3126,11 @@ proc genericOptionImporteddirsGUI_refresh { imported_dirs } {
 		}
 
 		ttk::checkbutton $content.enabled$index -text "($index)"
+		attachHelp "$content.enabled$index" "Imported dir enabled"
 		$content.enabled$index state [dict get $checkbutton_dict $enabled]
 
 		ttk::entry $content.path$index -width 68
+		attachHelp "$content.path$index" "Imported dir internal path"
 		$content.path$index insert 0 $path
 
 		set tmp_command [list apply {
@@ -3114,6 +3173,7 @@ proc genericOptionImporteddirsGUI_refresh { imported_dirs } {
 
 		ttk::button $content.import$index -text "Browse..." -width 8 \
 			-command $tmp_command
+		attachHelp "$content.import$index" "Imported dir import"
 
 		set tmp_command [list apply {
 			{ index imported_dirs } {
@@ -3128,6 +3188,7 @@ proc genericOptionImporteddirsGUI_refresh { imported_dirs } {
 
 		ttk::button $content.del$index -text "Delete ($index)" \
 			-command $tmp_command
+		attachHelp "$content.del$index" "Imported dir delete"
 
 		grid $content.enabled$index -row $row -column 0 -in $content -sticky "" -padx $padx
 		grid $content.path$index -row $row -column 1 -in $content -sticky "" -padx $padx
@@ -3274,6 +3335,7 @@ proc jailOptionsGUI { node_id } {
 	set general $notebook.general
 	ttk::frame $general
 	$notebook add $general -text "General options"
+	attachHelp "$notebook,General options" "General jail options"
 
 	global jailoptions_general
 	set jailoptions_general {}
@@ -3286,12 +3348,14 @@ proc jailOptionsGUI { node_id } {
 	set custom_vroot_frame $general.custom_vroot_frame
 	ttk::frame $custom_vroot_frame -relief groove -borderwidth 2 -padding 2
 	ttk::label $custom_vroot_frame.label -text "Custom vroot:"
+	attachHelp "$custom_vroot_frame.label" "Custom vroot"
 
 	pack $custom_vroot_frame.label -side left -padx 2
 
 	ttk::entry $custom_vroot_frame.img -width 40
 	$custom_vroot_frame.img insert 0 $custom_vroot
 	pack $custom_vroot_frame.img -side left -padx 7
+	attachHelp "$custom_vroot_frame.img" "Custom vroot"
 
 	pack $custom_vroot_frame -fill both
 
@@ -3299,12 +3363,14 @@ proc jailOptionsGUI { node_id } {
 	set custom_flags_frame $general.custom_flags_frame
 	ttk::frame $custom_flags_frame -relief groove -borderwidth 2 -padding 2
 	ttk::label $custom_flags_frame.label -text "Custom flags:"
+	attachHelp "$custom_flags_frame.label" "Custom jail flags"
 
 	pack $custom_flags_frame.label -side left -padx 2
 
 	ttk::entry $custom_flags_frame.flags -width 40
 	$custom_flags_frame.flags insert 0 $custom_flags
 	pack $custom_flags_frame.flags -side left -padx 7
+	attachHelp "$custom_flags_frame.flags" "Custom jail flags"
 
 	pack $custom_flags_frame -fill both
 
@@ -3418,6 +3484,7 @@ proc dockerOptionsGUI { node_id } {
 	set general $notebook.general
 	ttk::frame $general
 	$notebook add $general -text "General options"
+	attachHelp "$notebook,General options" "General Docker options"
 
 	global dockeroptions_general
 	set dockeroptions_general {}
@@ -3430,12 +3497,14 @@ proc dockerOptionsGUI { node_id } {
 	set cpus_frame $general.cpus_frame
 	ttk::frame $cpus_frame -relief groove -borderwidth 2 -padding 2
 	ttk::label $cpus_frame.label -text "CPUs count"
+	attachHelp "$cpus_frame.label" "CPUs count"
 
 	pack $cpus_frame.label -side left -padx 2
 
 	ttk::entry $cpus_frame.cpus -width 10
 	$cpus_frame.cpus insert 0 $cpus_count
 	pack $cpus_frame.cpus -side left -padx 7
+	attachHelp "$cpus_frame.cpus" "CPUs count"
 
 	pack $cpus_frame -fill both
 
@@ -3443,12 +3512,14 @@ proc dockerOptionsGUI { node_id } {
 	set custom_image_frame $general.custom_image_frame
 	ttk::frame $custom_image_frame -relief groove -borderwidth 2 -padding 2
 	ttk::label $custom_image_frame.label -text "Custom image:"
+	attachHelp "$custom_image_frame.label" "Custom image"
 
 	pack $custom_image_frame.label -side left -padx 2
 
 	ttk::entry $custom_image_frame.img -width 40
 	$custom_image_frame.img insert 0 $custom_image
 	pack $custom_image_frame.img -side left -padx 7
+	attachHelp "$custom_image_frame.img" "Custom image"
 
 	pack $custom_image_frame -fill both
 
@@ -3456,6 +3527,7 @@ proc dockerOptionsGUI { node_id } {
 	set dext_frame $general.dext_frame
 	ttk::frame $dext_frame -relief groove -borderwidth 2 -padding 2
 	ttk::label $dext_frame.label -text "Attach external Docker interface:"
+	attachHelp "$dext_frame.label" "External Docker interface"
 
 	pack $dext_frame.label -side left -padx 2
 
@@ -3465,6 +3537,7 @@ proc dockerOptionsGUI { node_id } {
 	} else {
 		$dext_frame.dext_enable state "!selected"
 	}
+	attachHelp "$dext_frame.dext_enable" "External Docker interface"
 
 	pack $dext_frame.dext_enable -side left -padx 7
 
@@ -3474,12 +3547,14 @@ proc dockerOptionsGUI { node_id } {
 	set custom_flags_frame $general.custom_flags_frame
 	ttk::frame $custom_flags_frame -relief groove -borderwidth 2 -padding 2
 	ttk::label $custom_flags_frame.label -text "Custom flags:"
+	attachHelp "$custom_flags_frame.label" "Custom Docker flags"
 
 	pack $custom_flags_frame.label -side left -padx 2
 
 	ttk::entry $custom_flags_frame.flags -width 40
 	$custom_flags_frame.flags insert 0 $custom_flags
 	pack $custom_flags_frame.flags -side left -padx 7
+	attachHelp "$custom_flags_frame.label" "Custom Docker flags"
 
 	pack $custom_flags_frame -fill both
 
@@ -3487,6 +3562,7 @@ proc dockerOptionsGUI { node_id } {
 	set port_forwards $notebook.port_forwards
 	ttk::frame $port_forwards
 	$notebook add $port_forwards -text "Port forwardings"
+	attachHelp "$notebook,Port forwardings" "Docker port forwardings"
 
 	global dockeroptions_port_forwards
 	set dockeroptions_port_forwards {}
@@ -3501,6 +3577,7 @@ proc dockerOptionsGUI { node_id } {
 
 	set port_forward_add_btn $port_forwards.add_button
 	ttk::button $port_forward_add_btn -text "Add" -width 120
+	attachHelp "$port_forward_add_btn" "Docker port forwardings"
 	grid $port_forward_add_btn -row 0 -column 0 -columnspan 6 -in $port_forwards -sticky "" -pady 4
 
 	set tmp_command [list apply {
@@ -3522,6 +3599,7 @@ proc dockerOptionsGUI { node_id } {
 	set env_vars $notebook.env_vars
 	ttk::frame $env_vars
 	$notebook add $env_vars -text "Environment variables"
+	attachHelp "$notebook,Environment variables" "Docker environment variables"
 
 	global dockeroptions_env_vars
 	set dockeroptions_env_vars {}
@@ -3536,6 +3614,7 @@ proc dockerOptionsGUI { node_id } {
 
 	set env_var_add_btn $env_vars.add_button
 	ttk::button $env_var_add_btn -text "Add" -width 120
+	attachHelp "$env_var_add_btn" "Docker environment variables"
 	grid $env_var_add_btn -row 0 -column 0 -columnspan 6 -in $env_vars -sticky "" -pady 4
 
 	set tmp_command [list apply {
@@ -3557,6 +3636,7 @@ proc dockerOptionsGUI { node_id } {
 	set volumes $notebook.volumes
 	ttk::frame $volumes
 	$notebook add $volumes -text "Volumes"
+	attachHelp "$notebook,Volumes" "Docker volumes"
 
 	global dockeroptions_volumes
 	set dockeroptions_volumes {}
@@ -3571,6 +3651,7 @@ proc dockerOptionsGUI { node_id } {
 
 	set volume_add_btn $volumes.add_button
 	ttk::button $volume_add_btn -text "Add" -width 120
+	attachHelp "$volume_add_btn" "Docker volumes"
 	grid $volume_add_btn -row 0 -column 0 -columnspan 6 -in $volumes -sticky "" -pady 4
 
 	set tmp_command [list apply {
@@ -3735,11 +3816,17 @@ proc dockerOptionPortForwardsGUI_refresh { port_forwards } {
 	set padx 0
 
 	ttk::label $content.h_enabled -text "Enabled"
+	attachHelp "$content.h_enabled" "Port forwarding enabled"
 	ttk::label $content.h_host_ip -text "Host IP"
+	attachHelp "$content.h_host_ip" "Port forwarding host IP"
 	ttk::label $content.h_host_port -text "Host port"
+	attachHelp "$content.h_host_port" "Port forwarding host port"
 	ttk::label $content.h_node_port -text "Node port"
+	attachHelp "$content.h_node_port" "Port forwarding node port"
 	ttk::label $content.h_protocol -text "Protocol"
+	attachHelp "$content.h_protocol" "Port forwarding protocol"
 	ttk::label $content.h_del -text ""
+	attachHelp "$content.h_del" "Port forwarding delete"
 
 	grid $content.h_enabled -row 0 -column 0 -in $content -sticky "" -padx $padx
 	grid columnconfigure $content $content.h_enabled -weight 1
@@ -3766,18 +3853,23 @@ proc dockerOptionPortForwardsGUI_refresh { port_forwards } {
 		set protocol [dict get $port_forward "protocol"]
 
 		ttk::checkbutton $content.enabled$index -text "($index)"
+		attachHelp "$content.enabled$index" "Port forwarding enabled"
 		$content.enabled$index state [dict get $checkbutton_dict $enabled]
 
 		ttk::entry $content.host_ip$index -width 40
+		attachHelp "$content.host_ip$index" "Port forwarding host IP"
 		$content.host_ip$index insert 0 $host_ip
 
 		ttk::entry $content.host_port$index -width 10
+		attachHelp "$content.host_port$index" "Port forwarding host port"
 		$content.host_port$index insert 0 $host_port
 
 		ttk::entry $content.node_port$index -width 10
+		attachHelp "$content.node_port$index" "Port forwarding node port"
 		$content.node_port$index insert 0 $node_port
 
 		ttk::entry $content.protocol$index -width 5
+		attachHelp "$content.protocol$index" "Port forwarding protocol"
 		$content.protocol$index insert 0 $protocol
 
 		set tmp_command [list apply {
@@ -3793,6 +3885,7 @@ proc dockerOptionPortForwardsGUI_refresh { port_forwards } {
 
 		ttk::button $content.del$index -text "Delete ($index)" \
 			-command $tmp_command
+		attachHelp "$content.del$index" "Port forwarding delete"
 
 		grid $content.enabled$index -row $row -column 0 -in $content -sticky "" -padx $padx
 		grid $content.host_ip$index -row $row -column 1 -in $content -sticky "" -padx $padx
@@ -3921,9 +4014,13 @@ proc dockerOptionEnvVarsGUI_refresh { env_vars } {
 	set padx 0
 
 	ttk::label $content.h_enabled -text "Enabled"
+	attachHelp "$content.h_enabled" "Environment variable enabled"
 	ttk::label $content.h_env_name -text "Variable name"
+	attachHelp "$content.h_env_name" "Environment variable name"
 	ttk::label $content.h_env_value -text "Value"
+	attachHelp "$content.h_env_value" "Environment variable value"
 	ttk::label $content.h_del -text ""
+	attachHelp "$content.h_del" "Environment variable delete"
 
 	grid $content.h_enabled -row 0 -column 0 -in $content -sticky "" -padx $padx
 	grid columnconfigure $content $content.h_enabled -weight 1
@@ -3944,12 +4041,15 @@ proc dockerOptionEnvVarsGUI_refresh { env_vars } {
 		set env_value [dict get $env_var "env_value"]
 
 		ttk::checkbutton $content.enabled$index -text "($index)"
+		attachHelp "$content.enabled$index" "Environment variable enabled"
 		$content.enabled$index state [dict get $checkbutton_dict $enabled]
 
 		ttk::entry $content.env_name$index -width 40
+		attachHelp "$content.env_name$index" "Environment variable name"
 		$content.env_name$index insert 0 $env_name
 
 		ttk::entry $content.env_value$index -width 40
+		attachHelp "$content.env_value$index" "Environment variable value"
 		$content.env_value$index insert 0 $env_value
 
 		set tmp_command [list apply {
@@ -3965,6 +4065,7 @@ proc dockerOptionEnvVarsGUI_refresh { env_vars } {
 
 		ttk::button $content.del$index -text "Delete ($index)" \
 			-command $tmp_command
+		attachHelp "$content.del$index" "Environment variable delete"
 
 		grid $content.enabled$index -row $row -column 0 -in $content -sticky "" -padx $padx
 		grid $content.env_name$index -row $row -column 1 -in $content -sticky "" -padx $padx
@@ -4067,11 +4168,17 @@ proc dockerOptionVolumesGUI_refresh { volumes } {
 	set padx 0
 
 	ttk::label $content.h_enabled -text "Enabled"
+	attachHelp "$content.h_enabled" "Volume enabled"
 	ttk::label $content.h_type -text "Type"
+	attachHelp "$content.h_type" "Volume type"
 	ttk::label $content.h_src -text "Source"
+	attachHelp "$content.h_src" "Volume source"
 	ttk::label $content.h_dst -text "Destination"
+	attachHelp "$content.h_dst" "Volume destination"
 	ttk::label $content.h_readonly -text "Readonly"
+	attachHelp "$content.h_readonly" "Volume read only"
 	ttk::label $content.h_del -text ""
+	attachHelp "$content.h_del" "Volume delete"
 
 	grid $content.h_enabled -row 0 -column 0 -in $content -sticky "" -padx $padx
 	grid columnconfigure $content $content.h_enabled -weight 1
@@ -4100,19 +4207,24 @@ proc dockerOptionVolumesGUI_refresh { volumes } {
 		set readonly [dict get $volume "readonly"]
 
 		ttk::checkbutton $content.enabled$index -text "($index)"
+		attachHelp "$content.enabled$index" "Volume enabled"
 		$content.enabled$index state [dict get $checkbutton_dict $enabled]
 
 		ttk::combobox $content.type$index -width 8 -state readonly
+		attachHelp "$content.type$index" "Volume type"
 		$content.type$index configure -values $type_values
 		$content.type$index set $type
 
 		ttk::entry $content.src$index -width 34
+		attachHelp "$content.src$index" "Volume source"
 		$content.src$index insert 0 $src
 
 		ttk::entry $content.dst$index -width 34
+		attachHelp "$content.dst$index" "Volume destination"
 		$content.dst$index insert 0 $dst
 
 		ttk::checkbutton $content.readonly$index
+		attachHelp "$content.readonly$index" "Volume read only"
 		$content.readonly$index state [dict get $checkbutton_dict $readonly]
 
 		set tmp_command [list apply {
@@ -4128,6 +4240,7 @@ proc dockerOptionVolumesGUI_refresh { volumes } {
 
 		ttk::button $content.del$index -text "Delete ($index)" \
 			-command $tmp_command
+		attachHelp "$content.del$index" "Volume delete"
 
 		grid $content.enabled$index -row $row -column 0 -in $content -sticky "" -padx $padx
 		grid $content.type$index -row $row -column 1 -in $content -sticky "" -padx $padx
@@ -4322,11 +4435,13 @@ proc configGUI_bridgeVLANConfig { wi node_id } {
 	set w $wi.vlan_filtering
 	ttk::frame $w -relief groove -borderwidth 2 -padding 2
 	ttk::label $w.label -text "Enable VLAN filtering:"
+	attachHelp "$w.label" "Enable VLAN filtering"
 
 	pack $w.label -side left -padx 2
 
 	ttk::checkbutton $w.enabled
 	pack $w.enabled -side left -padx 6
+	attachHelp "$w.enabled" "Enable VLAN filtering"
 
 	set checkbutton_dict "0 !selected 1 selected"
 	$w.enabled state [dict get $checkbutton_dict [_getNodeVlanFiltering $node_cfg]]
@@ -5689,6 +5804,7 @@ proc createTab { node_id selected_hook cfg_id } {
 		-command "deleteConfig $wi $node_id"
 	ttk::button $w.external_editor -text "Open in editor" \
 		-command "customConfigOpenInExternal $wi $node_id"
+	attachHelp "$w.external_editor" "Open in external editor"
 
 	ttk::scrollbar $w.vsb -orient vertical -command [list $w.editor yview]
 	ttk::scrollbar $w.hsb -orient horizontal -command [list $w.editor xview]

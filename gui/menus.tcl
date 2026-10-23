@@ -78,6 +78,7 @@ proc menu_configureNode { node_id root_menu } {
 		"Configure" \
 		"nodeConfigGUI $node_id" \
 		"true"
+	attachHelp ".button3menu,Configure" "Node Configure"
 }
 
 proc menu_nodeIcons { node_id root_menu } {
