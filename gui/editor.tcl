@@ -601,6 +601,7 @@ proc topologyElementsTree {} {
 		ttk::scrollbar $f.vscroll -orient vertical -command "$f.tree yview"
 
 		focus $f.tree
+		attachHelp "$f.tree" "IMUNES Topology Tree"
 
 		pack $f.treegrid -side right -fill y
 		grid $f.tree $f.vscroll -in $f.treegrid -sticky nsew
@@ -1594,6 +1595,7 @@ proc editorPreferences_gui {} {
 	ttk::label $info_label \
 		-text "Preview of currently active options combining Custom, Topology and Default options - prioritized in that order" \
 		-foreground "red"
+	attachHelp "$info_label" "Editor Preferences"
 
 	# Buttons
 	set bottom $wi.bottom
