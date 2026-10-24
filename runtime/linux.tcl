@@ -1029,22 +1029,28 @@ proc configureTunIface { tayga4pool tayga6prefix } {
 
 	if { $tayga4pool != "" } {
 		lappend cfg "vtysh << __EOF__"
-		lappend cfg "conf term"
+		lappend cfg "conf term file-lock"
+		lappend cfg "XFRR_start_configuration"
 
 		lappend cfg "!"
 		lappend cfg "ip route $tayga4pool $tun_dev"
 
 		lappend cfg "!"
+		lappend cfg "XFRR_end_configuration"
+		lappend cfg "end"
 		lappend cfg "__EOF__"
 	}
 
 	if { $tayga6prefix != "" } {
 		lappend cfg "vtysh << __EOF__"
-		lappend cfg "conf term"
+		lappend cfg "conf term file-lock"
+		lappend cfg "XFRR_start_configuration"
 
 		lappend cfg "ipv6 route $tayga6prefix $tun_dev"
 
 		lappend cfg "!"
+		lappend cfg "XFRR_end_configuration"
+		lappend cfg "end"
 		lappend cfg "__EOF__"
 	}
 
@@ -1057,22 +1063,28 @@ proc unconfigureTunIface { tayga4pool tayga6prefix } {
 	set tun_dev "tun64"
 	if { $tayga4pool != "" } {
 		lappend cfg "vtysh << __EOF__"
-		lappend cfg "conf term"
+		lappend cfg "conf term file-lock"
+		lappend cfg "XFRR_start_configuration"
 
 		lappend cfg "!"
 		lappend cfg "no ip route $tayga4pool $tun_dev"
 
 		lappend cfg "!"
+		lappend cfg "XFRR_end_configuration"
+		lappend cfg "end"
 		lappend cfg "__EOF__"
 	}
 
 	if { $tayga6prefix != "" } {
 		lappend cfg "vtysh << __EOF__"
-		lappend cfg "conf term"
+		lappend cfg "conf term file-lock"
+		lappend cfg "XFRR_start_configuration"
 
 		lappend cfg "no ipv6 route $tayga6prefix $tun_dev"
 
 		lappend cfg "!"
+		lappend cfg "XFRR_end_configuration"
+		lappend cfg "end"
 		lappend cfg "__EOF__"
 	}
 
@@ -1084,6 +1096,7 @@ proc unconfigureTunIface { tayga4pool tayga6prefix } {
 
 proc startRoutingDaemons { node_id } {
 	set conf_dir "/etc/frr"
+	set prefix "/usr/lib/frr/"
 
 	set cmds ":"
 	set trigger_reload 0
@@ -1104,7 +1117,7 @@ proc startRoutingDaemons { node_id } {
 	}
 
 	if { $trigger_reload } {
-		set cmds "$cmds; /usr/lib/frr/frrinit.sh reload"
+		set cmds "$cmds; ${prefix}/frrinit.sh reload"
 
 		pipesExec "docker exec [getFromRunning "eid"].$node_id sh -c '$cmds'" "hold"
 	}

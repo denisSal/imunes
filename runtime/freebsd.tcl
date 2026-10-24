@@ -1315,22 +1315,28 @@ proc configureTunIface { tayga4pool tayga6prefix } {
 
 	if { $tayga4pool != "" } {
 		lappend cfg "vtysh << __EOF__"
-		lappend cfg "conf term"
+		lappend cfg "conf term file-lock"
+		lappend cfg "XFRR_start_configuration"
 
 		lappend cfg "!"
 		lappend cfg "ip route $tayga4pool \$ifid"
 
 		lappend cfg "!"
+		lappend cfg "XFRR_end_configuration"
+		lappend cfg "end"
 		lappend cfg "__EOF__"
 	}
 
 	if { $tayga6prefix != "" } {
 		lappend cfg "vtysh << __EOF__"
-		lappend cfg "conf term"
+		lappend cfg "conf term file-lock"
+		lappend cfg "XFRR_start_configuration"
 
 		lappend cfg "ipv6 route $tayga6prefix \$ifid"
 
 		lappend cfg "!"
+		lappend cfg "XFRR_end_configuration"
+		lappend cfg "end"
 		lappend cfg "__EOF__"
 	}
 
@@ -1343,22 +1349,28 @@ proc unconfigureTunIface { tayga4pool tayga6prefix } {
 	lappend cfg "ifid=\$(cat /usr/local/etc/tayga.conf | grep tun-device | awk '{print \$NF}')"
 	if { $tayga4pool != "" } {
 		lappend cfg "vtysh << __EOF__"
-		lappend cfg "conf term"
+		lappend cfg "conf term file-lock"
+		lappend cfg "XFRR_start_configuration"
 
 		lappend cfg "!"
 		lappend cfg "no ip route $tayga4pool \$ifid"
 
 		lappend cfg "!"
+		lappend cfg "XFRR_end_configuration"
+		lappend cfg "end"
 		lappend cfg "__EOF__"
 	}
 
 	if { $tayga6prefix != "" } {
 		lappend cfg "vtysh << __EOF__"
-		lappend cfg "conf term"
+		lappend cfg "conf term file-lock"
+		lappend cfg "XFRR_start_configuration"
 
 		lappend cfg "no ipv6 route $tayga6prefix \$ifid"
 
 		lappend cfg "!"
+		lappend cfg "XFRR_end_configuration"
+		lappend cfg "end"
 		lappend cfg "__EOF__"
 	}
 
@@ -1369,18 +1381,20 @@ proc unconfigureTunIface { tayga4pool tayga6prefix } {
 # /XXX nat64 procedures
 
 proc startRoutingDaemons { node_id } {
+	set prefix "/usr/local/lib/frr/"
+
 	set cmds ":"
 	set trigger_reload 0
 	foreach protocol { rip ripng ospf ospf6 ldp bfd bgp isis } {
 		if { [getFromRunning "${node_id}_old_$protocol"] != 1 && [getNodeProtocol $node_id $protocol] == 1 } {
-			set cmds "$cmds; ${protocol}d -dP0"
+			set cmds "$cmds; ${prefix}${protocol}d -dP0 || ${protocol}d -dP0"
 			set trigger_reload 1
 
 			continue
 		}
 
 		if { [getFromRunning "${node_id}_old_$protocol"] == 1 && [getNodeProtocol $node_id $protocol] != 1 } {
-			set cmds "$cmds; pkill -f '${protocol}d.*'"
+			set cmds "$cmds; pkill -f '${prefix}${protocol}d.*' || pkill -f '${protocol}d.*'"
 			set trigger_reload 1
 
 			continue

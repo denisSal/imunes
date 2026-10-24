@@ -661,7 +661,8 @@ proc routerCfggenIfc { node_id iface_id } {
 			}
 
 			lappend cfg "vtysh << __EOF__"
-			lappend cfg "conf term"
+			lappend cfg "conf term file-lock"
+			lappend cfg "XFRR_start_configuration"
 			lappend cfg "interface $iface_name"
 
 			set addrs4 [getIfcIPv4addrs $node_id $iface_id]
@@ -700,7 +701,10 @@ proc routerCfggenIfc { node_id iface_id } {
 				lappend cfg " no shutdown"
 			}
 
+			lappend cfg "exit"
 			lappend cfg "!"
+			lappend cfg "XFRR_end_configuration"
+			lappend cfg "end"
 			lappend cfg "__EOF__"
 
 			if { $addrs4 == "dhcp" } {
@@ -736,7 +740,8 @@ proc routerUncfggenIfc { node_id iface_id } {
 			}
 
 			lappend cfg "vtysh << __EOF__"
-			lappend cfg "conf term"
+			lappend cfg "conf term file-lock"
+			lappend cfg "XFRR_start_configuration"
 			lappend cfg "interface $iface_name"
 
 			set addrs4 [getFromRunning "${node_id}|${iface_id}_old_ipv4_addrs"]
@@ -770,6 +775,8 @@ proc routerUncfggenIfc { node_id iface_id } {
 			lappend cfg " shutdown"
 
 			lappend cfg "!"
+			lappend cfg "XFRR_end_configuration"
+			lappend cfg "end"
 			lappend cfg "__EOF__"
 
 			if { $addrs4 == "dhcp" } {
