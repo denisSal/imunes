@@ -413,75 +413,6 @@ proc popupAnnotationDialog { target new_type modify } {
 			pack $options_button_3 -anchor w
 			pack $options_button_4 -anchor w
 
-			# lower right alignment frame
-			set alignment_frame "$left_frame.alignment_frame"
-			ttk::frame $alignment_frame
-			pack $alignment_frame -pady 5 -anchor e
-
-			set alignment_label "$alignment_frame.label"
-			ttk::label $alignment_label -text "Image alignment:"
-			pack $alignment_label -anchor w
-
-			set alignment_grid_frame "$alignment_frame.grid_frame"
-			ttk::frame $alignment_grid_frame -relief groove -borderwidth 2
-			pack $alignment_grid_frame
-
-			global image_alignment
-			set image_alignment [_getAnnotationImageAlignment $node_cfg_gui]
-			if { $image_alignment == "" } {
-				set image_alignment "center"
-			}
-
-			# top align row
-			set alignment_grid_up_frame "$alignment_grid_frame.up_frame"
-			ttk::frame $alignment_grid_up_frame
-			set alignment_grid_up_b1 "$alignment_grid_up_frame.b1"
-			ttk::radiobutton $alignment_grid_up_b1 \
-				-variable image_alignment -value northwest -state enabled
-			set alignment_grid_up_b2 "$alignment_grid_up_frame.b2"
-			ttk::radiobutton $alignment_grid_up_b2 \
-				-variable image_alignment -value north -state enabled
-			set alignment_grid_up_b3 "$alignment_grid_up_frame.b3"
-			ttk::radiobutton $alignment_grid_up_b3 \
-				-variable image_alignment -value northeast -state enabled
-			pack $alignment_grid_up_b1 $alignment_grid_up_b2 \
-				$alignment_grid_up_b3 -padx 10 -side left
-			pack $alignment_grid_up_frame -pady 3
-
-			# center align row
-			set alignment_grid_center_frame "$alignment_grid_frame.center_frame"
-			ttk::frame $alignment_grid_center_frame
-			set alignment_grid_center_b1 "$alignment_grid_center_frame.b1"
-			ttk::radiobutton $alignment_grid_center_b1 \
-				-variable image_alignment -value west -state enabled
-			set alignment_grid_center_b2 "$alignment_grid_center_frame.b2"
-			ttk::radiobutton $alignment_grid_center_b2 \
-				-variable image_alignment -value center -state enabled
-			set alignment_grid_center_b3 "$alignment_grid_center_frame.b3"
-			ttk::radiobutton $alignment_grid_center_b3 \
-				-variable image_alignment -value east -state enabled
-			pack $alignment_grid_center_b1 $alignment_grid_center_b2 \
-				$alignment_grid_center_b3 -padx 10 -side left
-			pack $alignment_grid_center_frame -pady 3
-
-			# bottom align row
-			set alignment_grid_bottom_frame "$alignment_grid_frame.bottom_frame"
-			ttk::frame $alignment_grid_bottom_frame
-			set alignment_grid_bottom_b1 "$alignment_grid_bottom_frame.b1"
-			ttk::radiobutton $alignment_grid_bottom_b1 \
-				-variable image_alignment -value southwest -state enabled
-			set alignment_grid_bottom_b2 "$alignment_grid_bottom_frame.b2"
-			ttk::radiobutton $alignment_grid_bottom_b2 \
-				-variable image_alignment -value south -state enabled
-			set alignment_grid_bottom_b3 "$alignment_grid_bottom_frame.b3"
-			ttk::radiobutton $alignment_grid_bottom_b3 \
-				-variable image_alignment -value southeast -state enabled
-			pack $alignment_grid_bottom_b1 $alignment_grid_bottom_b2 \
-				$alignment_grid_bottom_b3 -padx 10 -side left
-			pack $alignment_grid_bottom_frame -pady 3
-
-			dict lappend callback_elems "image_alignment_elem" $alignment_grid_frame
-
 			pack $main_frame -fill both
 		}
 	}
@@ -628,14 +559,6 @@ proc popupAnnotationApply { target callback_elems } {
 		}
 	}
 
-	if { [dictGet $callback_elems "image_alignment_elem"] != "" } {
-		global image_alignment
-
-		if { $image_alignment == "center" } {
-			set image_alignment ""
-		}
-	}
-
 	if { $target == "new" } {
 		# Create a new annotation object
 		set target [newObjectId [getFromRunning_gui "annotation_list"] "a"]
@@ -731,7 +654,6 @@ proc popupAnnotationApply { target callback_elems } {
 			setImageReference $image_id $target
 
 			set node_cfg_gui [_setAnnotationDrawType $node_cfg_gui $image_draw_type]
-			set node_cfg_gui [_setAnnotationImageAlignment $node_cfg_gui $image_alignment]
 		}
 	}
 

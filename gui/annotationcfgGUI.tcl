@@ -118,11 +118,3 @@ proc _getAnnotationDrawType { annotation_cfg } {
 proc _setAnnotationDrawType { annotation_cfg draw_type } {
 	return [_cfgSet $annotation_cfg "draw_type" $draw_type]
 }
-
-proc _getAnnotationImageAlignment { annotation_cfg } {
-	return [_cfgGet $annotation_cfg "image_alignment"]
-}
-
-proc _setAnnotationImageAlignment { annotation_cfg image_alignment } {
-	return [_cfgSet $annotation_cfg "image_alignment" $image_alignment]
-}

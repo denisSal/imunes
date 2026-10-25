@@ -357,11 +357,3 @@ proc getAnnotationDrawType { annotation_id } {
 proc setAnnotationDrawType { annotation_id draw_type } {
 	cfgSet "gui" "annotations" $annotation_id "draw_type" $draw_type
 }
-
-proc getAnnotationImageAlignment { annotation_id } {
-	return [cfgGet "gui" "annotations" $annotation_id "image_alignment"]
-}
-
-proc setAnnotationImageAlignment { annotation_id image_alignment } {
-	cfgSet "gui" "annotations" $annotation_id "image_alignment" $image_alignment
-}
