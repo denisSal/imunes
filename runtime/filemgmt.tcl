@@ -262,7 +262,7 @@ proc openFile { { no_recent "" } } {
 	applyOptionsToGUI
 
 	if { $gui } {
-		global all_annotation_types
+		global all_annotation_types sizex sizey
 
 		set gui_node_list [dict keys [cfgGet "gui" "nodes"]]
 		set annotation_list [getFromRunning_gui "annotation_list"]
@@ -528,12 +528,57 @@ proc openFile { { no_recent "" } } {
 			set ${annotation_type}_list {}
 		}
 
+		foreach canvas_id $canvas_list {
+			# replace canvas backgrounds with image annotations
+			set canvas_bkg_image [getCanvasBkg $canvas_id]
+			if { $canvas_bkg_image == "" } {
+				continue
+			}
+
+			set annotation_id [newObjectId $annotation_list "a"]
+			addAnnotation $annotation_id "image"
+
+			#lassign [cfgGet "gui" "canvases" $canvas_id "size"] w h
+			lassign [getCanvasSize $canvas_id] w h
+			if { $w == "" } {
+				set w $sizex
+			}
+
+			if { $h == "" } {
+				set h $sizey
+			}
+
+			#set w [expr { int($w / 2) }]
+			#set h [expr { int($h / 2) }]
+
+			setAnnotationCanvas $annotation_id $canvas_id
+			setAnnotationCoords $annotation_id "0 0 $w $h"
+
+			set file_path [getImageFile $canvas_bkg_image]
+			if { [file exists $file_path] } {
+				setImageData $canvas_bkg_image $file_path
+			}
+
+			#setAnnotationDrawType $annotation_id "original"
+			setAnnotationBkgImage $annotation_id $canvas_bkg_image
+			setImageReference $canvas_bkg_image $annotation_id
+			removeImageReference $canvas_bkg_image $canvas_id
+			setImageType $canvas_bkg_image "image_annotation"
+
+			cfgUnset "gui" "canvases" $canvas_id "bkg_image"
+			cfgUnset "gui" "options" "show_background_image"
+
+			# background image goes below the grid
+			set annotation_order [linsert [getCanvasAnnotationOrder $canvas_id] 0 $annotation_id]
+			setCanvasAnnotationOrder $canvas_id [linsert $annotation_order 1 "grid"]
+		}
+
 		foreach annotation_id $annotation_list {
 			set annotation_type [getAnnotationType $annotation_id]
 			lappend ${annotation_type}_list $annotation_id
 		}
 
-		set annotation_list [concat $rectangle_list $oval_list $freeform_list $text_list]
+		set annotation_list [concat $image_list $rectangle_list $oval_list $freeform_list $text_list]
 
 		foreach canvas_id $canvas_list {
 			set annotation_order [getCanvasAnnotationOrder $canvas_id]
