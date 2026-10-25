@@ -460,6 +460,458 @@ proc random { range start } {
 	return [expr {int(rand()*$range+$start)}]
 }
 
+#****f* canvas.tcl/changeBkgPopup
+# NAME
+#   changeBkgPopup -- popup dialog to manipulate canvas background
+# SYNOPSIS
+#   changeBkgPopup
+# FUNCTION
+#   Select image file and configure the current canvas background.
+#****
+proc changeBkgPopup {} {
+	global wi canvasBkgMode chbgdialog cc alignCanvasBkg bgsrcfile winOS hasIM
+
+	set curcanvas [getFromRunning_gui "curcanvas"]
+	set cc $curcanvas
+	set chbgdialog .chbgDialog
+	catch { destroy $chbgdialog }
+
+	toplevel $chbgdialog
+	wm transient $chbgdialog .
+	wm resizable $chbgdialog 0 0
+	wm title $chbgdialog "Change canvas background"
+	wm iconname $chbgdialog "Change canvas background"
+
+	set wi [ttk::frame $chbgdialog.changebgframe]
+
+	ttk::panedwindow $wi.bgconf -orient horizontal
+	pack $wi.bgconf -fill both
+
+	#left and right pane
+	ttk::frame $wi.bgconf.left -relief groove -borderwidth 3
+	ttk::frame $wi.bgconf.right -relief groove -borderwidth 3
+
+	#right pane definition
+	set size [getCanvasSize $curcanvas]
+	set sizex [lrange $size 0 0]
+	set sizey [lrange $size 1 1]
+	ttk::label $wi.bgconf.right.l -text "Canvas: $sizex*$sizey"
+	pack $wi.bgconf.right.l
+
+	set prevcanvas [canvas $wi.bgconf.right.pc -bd 0 -relief sunken -highlightthickness 0 \
+		-width 150 -height 150]
+	pack $prevcanvas
+
+	ttk::label $wi.bgconf.right.l2 -text "Image:"
+	pack $wi.bgconf.right.l2
+
+	#left pane definition
+	#upper left frame with label
+	ttk::frame $wi.bgconf.left.up
+	pack $wi.bgconf.left.up -anchor w
+	ttk::label $wi.bgconf.left.up.l -text "Choose background file:"
+
+	#center left frame with entry and button
+	ttk::frame $wi.bgconf.left.center
+	ttk::frame $wi.bgconf.left.center.left
+	ttk::frame $wi.bgconf.left.center.right
+	pack $wi.bgconf.left.center -fill both -padx 10
+	pack $wi.bgconf.left.center.left $wi.bgconf.left.center.right -side left -anchor n -padx 2
+
+	ttk::entry $wi.bgconf.left.center.left.e -width 35 -textvariable bkgFile
+
+	set tmp_command {
+		set fType {
+			{{All Images} {.gif}  {}}
+			{{All Images} {.png}  {}}
+			{{Gif Images} {.gif}  {}}
+			{{PNG Images} {.png} {}}
+		}
+		#{{All Images} {.jpeg} {}}
+		#{{All Images} {.jpg}  {}}
+		#{{All Images} {.bmp}  {}}
+		#{{All Images} {.tiff} {}}
+		#{{Jpeg Images} {.jpg} {}}
+		#{{Jpeg Images} {.jpeg} {}}
+		#{{Bitmap Images} {.bmp} {}}
+		#{{Tiff Images} {.tiff} {}}
+		global canvasBkgMode wi
+
+		set chbgdialog .chbgDialog
+		set prevcanvas $wi.bgconf.right.pc
+		set imgsize $wi.bgconf.right.l2
+		set bgsrcfile [tk_getOpenFile -parent $chbgdialog -filetypes $fType]
+		$wi.bgconf.left.center.left.e delete 0 end
+		$wi.bgconf.left.center.left.e insert 0 "$bgsrcfile"
+		if { $bgsrcfile != "" } {
+			updateBkgPreview $prevcanvas $imgsize $bgsrcfile
+		}
+	}
+	ttk::button $wi.bgconf.left.center.right.b -text "Browse" -width 8 \
+		-command $tmp_command
+
+	if { $bgsrcfile != "" } {
+		set prevcanvas $wi.bgconf.right.pc
+		set imgsize $wi.bgconf.right.l2
+		updateBkgPreview $prevcanvas $imgsize $bgsrcfile
+	}
+
+	ttk::frame $wi.bgconf.left.down
+	pack $wi.bgconf.left.down -pady 5
+	ttk::frame $wi.bgconf.left.down.r
+	ttk::label $wi.bgconf.left.down.r.l -text "Image alignment:"
+	pack $wi.bgconf.left.down.r.l -anchor w
+
+	ttk::frame $wi.bgconf.left.down.r.align -relief groove -borderwidth 2
+	pack $wi.bgconf.left.down.r.align
+	#lower right frame with alignment options
+	###frame that contains NORTH alignment
+	ttk::frame $wi.bgconf.left.down.r.align.n
+	ttk::radiobutton $wi.bgconf.left.down.r.align.n.w \
+		-variable alignCanvasBkg -value northwest -state enabled
+	ttk::radiobutton $wi.bgconf.left.down.r.align.n.c \
+		-variable alignCanvasBkg -value north -state enabled
+	ttk::radiobutton $wi.bgconf.left.down.r.align.n.e \
+		-variable alignCanvasBkg -value northeast -state enabled
+	pack $wi.bgconf.left.down.r.align.n.w  $wi.bgconf.left.down.r.align.n.c \
+		$wi.bgconf.left.down.r.align.n.e -padx 10 -side left
+	pack $wi.bgconf.left.down.r.align.n -pady 3
+
+	###frame that contains CENTER alignment
+	ttk::frame $wi.bgconf.left.down.r.align.c
+	ttk::radiobutton $wi.bgconf.left.down.r.align.c.w \
+		-variable alignCanvasBkg -value west -state enabled
+	ttk::radiobutton $wi.bgconf.left.down.r.align.c.c \
+		-variable alignCanvasBkg -value center -state enabled
+	ttk::radiobutton $wi.bgconf.left.down.r.align.c.e \
+		-variable alignCanvasBkg -value east -state enabled
+	pack $wi.bgconf.left.down.r.align.c.w  $wi.bgconf.left.down.r.align.c.c \
+		$wi.bgconf.left.down.r.align.c.e -padx 10 -side left
+	pack $wi.bgconf.left.down.r.align.c -pady 3
+
+	###frame that contains SOUTH alignment
+	ttk::frame $wi.bgconf.left.down.r.align.s
+	ttk::radiobutton $wi.bgconf.left.down.r.align.s.w \
+		-variable alignCanvasBkg -value southwest -state enabled
+	ttk::radiobutton $wi.bgconf.left.down.r.align.s.c \
+		-variable alignCanvasBkg -value south -state enabled
+	ttk::radiobutton $wi.bgconf.left.down.r.align.s.e \
+		-variable alignCanvasBkg -value southeast -state enabled
+	pack $wi.bgconf.left.down.r.align.s.w  $wi.bgconf.left.down.r.align.s.c \
+		$wi.bgconf.left.down.r.align.s.e -padx 10 -side left
+	pack $wi.bgconf.left.down.r.align.s -pady 3
+
+	#lower left frame with options
+	ttk::frame $wi.bgconf.left.down.l
+
+	ttk::radiobutton $wi.bgconf.left.down.l.original -text "Use original/cropped image" \
+		-variable canvasBkgMode -value original
+	pack $wi.bgconf.left.down.l.original -anchor w
+
+	ttk::radiobutton $wi.bgconf.left.down.l.str_shr -text "Stretch/shrink image" \
+		-variable canvasBkgMode -value str_shr
+	pack $wi.bgconf.left.down.l.str_shr -anchor w
+
+	ttk::radiobutton $wi.bgconf.left.down.l.adjust -text "Adjust canvas to image" \
+		-variable canvasBkgMode -value adjustC2I
+	pack $wi.bgconf.left.down.l.adjust -anchor w
+
+	ttk::radiobutton $wi.bgconf.left.down.l.adjust2 -text "Adjust image to canvas" \
+		-variable canvasBkgMode -value adjustI2C
+	pack $wi.bgconf.left.down.l.adjust2 -anchor w
+
+	#packing left side
+	pack $wi.bgconf.left.up.l -anchor w
+	pack $wi.bgconf.left.center.left.e -pady 2
+	pack $wi.bgconf.left.center.right.b
+	pack $wi.bgconf.left.down.l $wi.bgconf.left.down.r -pady 2 -padx 10 -anchor w -side left
+	pack $wi -fill both
+
+	#bottom frame with information about imagemagick
+	ttk::frame $wi.bgconf.left.downdown
+	if { ! $hasIM } {
+		set canvasBkgMode "adjustC2I"
+		$wi.bgconf.left.down.l.original configure -state disabled
+		$wi.bgconf.left.down.l.str_shr configure -state disabled
+		$wi.bgconf.left.down.l.adjust2 configure -state disabled
+		set warning "Package ImageMagick is required for additional background settings."
+		ttk::label $wi.bgconf.left.downdown.l -text $warning -foreground red
+		pack $wi.bgconf.left.downdown.l -anchor w
+	}
+	pack $wi.bgconf.left.downdown -side top -anchor w -expand 1
+
+	#adding panes to paned window
+	$wi.bgconf add $wi.bgconf.left
+	$wi.bgconf add $wi.bgconf.right
+
+	#lower frame that contains buttons
+	ttk::frame $wi.buttons
+	pack $wi.buttons -side bottom -fill x -pady 2m
+	ttk::button $wi.buttons.apply -text "Apply" -command {
+		global canvasBkgMode cc chbgdialog
+		popupBkgApply $chbgdialog $cc
+	}
+	ttk::button $wi.buttons.cancel -text "Cancel" -command "destroy $chbgdialog"
+	set tmp_command [list apply {
+		{ cc canvas_bkg chbgdialog } {
+			global changed
+
+			removeCanvasBkg $cc
+			if { $canvas_bkg != "" } {
+				removeImageReference $canvas_bkg $cc
+			}
+			destroy $chbgdialog
+
+			set changed 1
+			updateUndoLog
+			redrawAll
+		}
+	} \
+		$cc \
+		[getCanvasBkg $cc] \
+		$chbgdialog
+	]
+	ttk::button $wi.buttons.remove -text "Remove background" -command $tmp_command
+	pack $wi.buttons.remove $wi.buttons.cancel $wi.buttons.apply -side right -expand 1
+
+	bind $chbgdialog <Key-Return> "popupBkgApply $chbgdialog $cc"
+	bind $chbgdialog <Key-Escape> "destroy $chbgdialog"
+}
+
+#****f* canvas.tcl/updateBkgPreview
+# NAME
+#   updateBkgPreview -- function that refreshes the background preview
+# SYNOPSIS
+#   updateBkgPreview $pc $imgsize $prsrcfile
+# FUNCTION
+#   Select image file and configure the current canvas background.
+# INPUTS
+#   * pc -- path to the preview canvas
+#   * imgsize -- path to the image size label
+#   * prsrcfile -- path to the image that needs to be previewed
+#****
+proc updateBkgPreview { pc imgsize prsrcfile } {
+	set image 0
+	$pc delete "preview"
+
+	image create photo $image -file $prsrcfile
+	set image_h [image height $image]
+	set image_w [image width $image]
+	$imgsize configure -text "Image: $image_w*$image_h"
+
+	if { $image_w > 150 || $image_h > 150 } {
+		set preview 0
+		if { $image_w > $image_h } {
+			set x [expr {int($image_w/150.0)}]
+			set y [expr {int($image_h/((150.0/$image_w)*$image_h))}]
+			$preview copy $image -subsample $x $y
+
+			$preview configure -width 150 \
+				-height [expr {int((150.0/$image_w)*$image_h)}]
+		} else {
+			set x [expr {int($image_w/((150.0/$image_h)*$image_w))}]
+			set y [expr {int($image_h/150.0)}]
+			$preview copy $image -subsample $x $y
+
+			$preview configure -width [expr {int((150.0/$image_h)*$image_w)}] \
+				-height 150
+		}
+	} else {
+		set preview $image
+	}
+
+	$pc create image 0 0 -anchor nw -image $preview -tags "preview"
+}
+
+#****f* canvas.tcl/popupBkgApply
+# NAME
+#   popupBkgApply -- function that applies the changeBkgPopup properties
+# SYNOPSIS
+#   popupBkgApply $wi $cnv
+# FUNCTION
+#   Render and set the background image.
+# INPUTS
+#   * wi -- path to the changeBkgPopup frame
+#   * cnv -- canvas on which the background is being modified
+#****
+proc popupBkgApply { wi cnv } {
+	global changed bgsrcfile canvasBkgMode alignCanvasBkg hasIM winOS
+
+	$wi config -cursor watch
+	update
+
+	#OS detection (windows or unix) - needed to change the slash sign (/) into backslash (\)
+	#in the path of the image file
+	#also used to change the exec command because of portability problems
+	if { $winOS } {
+		set bgsrcfile [string map {/ \\} $bgsrcfile]
+	}
+
+	set pastBkg [getCanvasBkg $cnv]
+	if { $pastBkg != "" } {
+		removeImageReference $pastBkg $cnv
+	}
+
+	# if there is ImageMagick create a new image, load it and then remove it from the drive.
+	if { $bgsrcfile != "" && $hasIM } {
+		set randNum [random 899 100]
+		set destImgFile "background_$cnv\_$randNum.gif"
+		while { [file exists $destImgFile] == 1 } {
+			set randNum [random 899 100]
+			set destImgFile "background_$c_$randNum.gif"
+		}
+
+		set size [getCanvasSize $cnv]
+		set sizex [lrange $size 0 0]
+		set sizey [lrange $size 1 1]
+
+		image create photo bkg -file $bgsrcfile
+		set image_x [image width bkg]
+		set image_y [image height bkg]
+		image delete bkg
+		if { $image_x > $sizex || $image_y > $sizey } {
+			set crop 1
+		} else {
+			set crop 0
+		}
+
+		if { $bgsrcfile != "" } {
+			switch $canvasBkgMode {
+				original {
+					if { $crop == 1 } {
+						if { ! $winOS } {
+							exec magick $bgsrcfile -gravity $alignCanvasBkg -background white \
+								-extent $sizex\x$sizey $destImgFile
+						} else {
+							exec cmd /c magick $bgsrcfile -gravity $alignCanvasBkg -background white \
+								-extent $sizex\x$sizey $destImgFile
+						}
+					} else {
+						if { ! $winOS } {
+							exec magick $bgsrcfile -gravity $alignCanvasBkg -background white \
+								-extent $sizex\x$sizey $destImgFile
+						} else {
+							exec cmd /c magick $bgsrcfile -gravity $alignCanvasBkg -background white \
+								-extent $sizex\x$sizey $destImgFile
+						}
+					}
+
+					set bkgname [loadImage $destImgFile $cnv canvasBackground $bgsrcfile]
+					if { $bkgname == 2 } {
+						return 0
+					}
+					setCanvasBkg $cnv $bkgname
+					set changed 1
+					destroy $wi
+				}
+				str_shr {
+					if { ! $winOS } {
+						exec magick $bgsrcfile -resize $sizex\x$sizey \
+							-size $sizex\x$sizey xc:white +swap -gravity $alignCanvasBkg -composite $destImgFile
+					} else {
+						exec cmd /c magick $bgsrcfile -resize $sizex\x$sizey \
+							-size $sizex\x$sizey xc:white +swap -gravity $alignCanvasBkg -composite $destImgFile
+					}
+
+					set bkgname [loadImage $destImgFile $cnv canvasBackground $bgsrcfile]
+					if { $bkgname == 2 } {
+						return 0
+					}
+					setCanvasBkg $cnv $bkgname
+					set changed 1
+					destroy $wi
+				}
+				adjustC2I {
+					set ix [lindex [getMostDistantNodeCoordinates] 0]
+					set iy [lindex [getMostDistantNodeCoordinates] 1]
+
+					if { $image_x < $ix || $image_y < $iy } {
+						$wi config -cursor arrow
+						update
+						set errmsg "Canvas cannot be set to this size: $image_x $image_y. \
+							The most distant icons are on $ix $iy."
+						after idle { .dialog1.msg configure -wraplength 4i }
+						tk_dialog .dialog1 "IMUNES error" \
+							$errmsg \
+							info 0 Dismiss
+					} else {
+						setCanvasSize $cnv $image_x $image_y
+						set changed 1
+						switchCanvas none
+						set bkgname [loadImage $bgsrcfile $cnv canvasBackground $bgsrcfile]
+						if { $bkgname == 2 } {
+							return 0
+						}
+						setCanvasBkg $cnv $bkgname
+						set changed 1
+						destroy $wi
+					}
+				}
+				adjustI2C {
+					if { ! $winOS } {
+						exec magick $bgsrcfile -resize $sizex\x$sizey\! $destImgFile
+					} else {
+						exec cmd /c magick $bgsrcfile -resize $sizex\x$sizey\! $destImgFile
+					}
+
+					set bkgname [loadImage $destImgFile $cnv canvasBackground $bgsrcfile]
+					if { $bkgname == 2 } {
+						return 0
+					}
+					setCanvasBkg $cnv $bkgname
+					set changed 1
+					destroy $wi
+				}
+			}
+		}
+
+		if { ! $winOS && $canvasBkgMode != "adjustC2I" } {
+			exec rm $destImgFile
+		}
+		if { $winOS && $canvasBkgMode != "adjustC2I" } {
+			catch { exec cmd /c del $destImgFile } err
+		}
+	}
+
+	#if there is no IM then apply only the adjsut canvas to image option
+	if { $bgsrcfile != "" && !$hasIM && $canvasBkgMode == "adjustC2I" } {
+		image create photo bkg -file $bgsrcfile
+		set image_x [image width bkg]
+		set image_y [image height bkg]
+		image delete bkg
+
+		set ix [lindex [getMostDistantNodeCoordinates] 0]
+		set iy [lindex [getMostDistantNodeCoordinates] 1]
+
+		if { $image_x < $ix || $image_y < $iy } {
+			$wi config -cursor arrow
+			update
+			set errmsg "Canvas cannot be set to this size: $image_x $image_y. \
+				The most distant icons are on $ix $iy."
+			after idle { .dialog1.msg configure -wraplength 4i }
+			tk_dialog .dialog1 "IMUNES error" \
+				$errmsg \
+				info 0 Dismiss
+		} else {
+			setCanvasSize $cnv $image_x $image_y
+			set changed 1
+			switchCanvas none
+			set bkgname [loadImage $bgsrcfile $cnv canvasBackground $bgsrcfile]
+			if { $bkgname == 2 } {
+				return 0
+			}
+			setCanvasBkg $cnv $bkgname
+			set changed 1
+			destroy $wi
+		}
+	}
+
+	if { $changed == 1 } {
+		updateUndoLog
+		redrawAll
+	}
+}
+
 #****f* editor.tcl/printCanvas
 # NAME
 #   printCanvas -- print canvas

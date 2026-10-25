@@ -79,6 +79,21 @@ proc redrawAll {} {
 
 	$main_canvas_elem delete all
 
+	set canvasBkgImage [getCanvasBkg $curcanvas]
+	if { [getActiveOption "show_background_image"] && "$canvasBkgImage" != "" } {
+		set ret [backgroundImage $canvasBkgImage]
+		if { "$ret" == 2 } {
+			set background [$main_canvas_elem create rectangle 0 0 $e_sizex $e_sizey \
+				-fill white -tags "background"]
+		} else {
+			set background [$main_canvas_elem create rectangle 0 0 $e_sizex $e_sizey \
+				-tags "background"]
+		}
+	} else {
+		set background [$main_canvas_elem create rectangle 0 0 $e_sizex $e_sizey \
+			-fill white -tags "background"]
+	}
+
 	if { [getActiveOption "show_annotations"] } {
 		foreach annotation_id [getFromRunning_gui "annotation_list"] {
 			if { [getAnnotationCanvas $annotation_id] == $curcanvas } {
@@ -86,6 +101,8 @@ proc redrawAll {} {
 			}
 		}
 	}
+
+	$main_canvas_elem lower -withtags background
 
 	foreach node_id [getFromRunning "node_list"] {
 		set node_canvas [getNodeCanvas $node_id]
