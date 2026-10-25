@@ -465,8 +465,7 @@ proc getRouterProtocolCfg { node_id protocol } {
 	switch -exact -- $model {
 		"quagga" -
 		"frr" {
-			lappend cfg "vtysh << __EOF__"
-			lappend cfg "conf term"
+			lappend cfg "cat > /tmp/vtysh << __EOF__"
 
 			set router_id [ip::intToString [expr 1 + [string trimleft $node_id "n"]]]
 			switch -exact -- $protocol {
@@ -532,6 +531,7 @@ proc getRouterProtocolCfg { node_id protocol } {
 			}
 
 			lappend cfg "__EOF__"
+			lappend cfg "vtysh --no-fork -f /tmp/vtysh"
 		}
 		"static" {
 			# nothing to return
@@ -552,8 +552,7 @@ proc getRouterProtocolUnconfig { node_id protocol } {
 	switch -exact -- $model {
 		"quagga" -
 		"frr" {
-			lappend cfg "vtysh << __EOF__"
-			lappend cfg "conf term"
+			lappend cfg "cat > /tmp/vtysh << __EOF__"
 
 			set router_id [ip::intToString [expr 1 + [string trimleft $node_id "n"]]]
 			switch -exact -- $protocol {
@@ -583,6 +582,7 @@ proc getRouterProtocolUnconfig { node_id protocol } {
 			}
 
 			lappend cfg "__EOF__"
+			lappend cfg "vtysh --no-fork -f /tmp/vtysh"
 		}
 		"static" {
 			# nothing to return
@@ -604,14 +604,14 @@ proc routerRoutesCfggen { node_id } {
 				set routes6 [nodeCfggenStaticRoutes6 $node_id 1]
 
 				if { $routes4 != "" || $routes6 != "" } {
-					lappend cfg "vtysh << __EOF__"
-					lappend cfg "conf term"
+					lappend cfg "cat > /tmp/vtysh << __EOF__"
 
 					set cfg [concat $cfg $routes4]
 					set cfg [concat $cfg $routes6]
 
 					lappend cfg "!"
 					lappend cfg "__EOF__"
+					lappend cfg "vtysh --no-fork -f /tmp/vtysh"
 				}
 			}
 
@@ -619,14 +619,14 @@ proc routerRoutesCfggen { node_id } {
 			set routes6 [nodeCfggenAutoRoutes6 $node_id 1]
 
 			if { $routes4 != "" || $routes6 != "" } {
-				lappend cfg "vtysh << __EOF__"
-				lappend cfg "conf term"
+				lappend cfg "cat > /tmp/vtysh << __EOF__"
 
 				set cfg [concat $cfg $routes4]
 				set cfg [concat $cfg $routes6]
 
 				lappend cfg "!"
 				lappend cfg "__EOF__"
+				lappend cfg "vtysh --no-fork -f /tmp/vtysh"
 			}
 		}
 		"static" {
@@ -655,24 +655,24 @@ proc routerRoutesUncfggen { node_id } {
 		"quagga" -
 		"frr" {
 			if { [getNodeCustomEnabled $node_id] != true } {
-				lappend cfg "vtysh << __EOF__"
-				lappend cfg "conf term"
+				lappend cfg "cat > /tmp/vtysh << __EOF__"
 
 				set cfg [concat $cfg [nodeUncfggenStaticRoutes4 $node_id 1]]
 				set cfg [concat $cfg [nodeUncfggenStaticRoutes6 $node_id 1]]
 
 				lappend cfg "!"
 				lappend cfg "__EOF__"
+				lappend cfg "vtysh --no-fork -f /tmp/vtysh"
 			}
 
-			lappend cfg "vtysh << __EOF__"
-			lappend cfg "conf term"
+			lappend cfg "cat > /tmp/vtysh << __EOF__"
 
 			set cfg [concat $cfg [nodeUncfggenAutoRoutes4 $node_id 1]]
 			set cfg [concat $cfg [nodeUncfggenAutoRoutes6 $node_id 1]]
 
 			lappend cfg "!"
 			lappend cfg "__EOF__"
+			lappend cfg "vtysh --no-fork -f /tmp/vtysh"
 		}
 		"static" {
 			if { [getNodeCustomEnabled $node_id] != true } {
