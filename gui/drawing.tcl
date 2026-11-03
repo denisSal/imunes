@@ -2050,6 +2050,19 @@ proc getViewPan {} {
 	return [viewToCanvasCoords "[expr $wx/2] [expr $wy/2]"]
 }
 
+proc panToBoundingBox {} {
+	global main_canvas_elem
+
+	lassign [$main_canvas_elem bbox withtag node] x1 y1 x2 y2
+	set offset_x [$main_canvas_elem canvasx 0]
+	set offset_y [$main_canvas_elem canvasy 0]
+
+	$main_canvas_elem scan mark 0 0
+	$main_canvas_elem scan dragto [expr {int(($offset_x - $x1) / 10.0 + 2)}] [expr {int(($offset_y - $y1) / 10.0 + 2)}]
+
+	redrawAll
+}
+
 #****f* drawing.tcl/drawGradientCircle
 # NAME
 #   drawGradientCircle -- create an image of a gradient circle
