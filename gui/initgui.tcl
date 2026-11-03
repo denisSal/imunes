@@ -1452,6 +1452,10 @@ bind . <Control-j> {
 	redrawAll
 }
 
+bind . <F12> {
+	panToBoundingBox
+}
+
 set key_bindings [list \
 	"1"	"select" \
 	"2"	"link" \
