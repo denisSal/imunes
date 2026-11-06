@@ -242,24 +242,35 @@ proc popupAnnotationDialog { target new_type modify } {
 		}
 
 		"text" {
+			wm resizable $top_window 1 1
+
 			set input_frame "$top_window.input"
 			ttk::frame $input_frame -relief groove -borderwidth 2 -padding 2
 
 			set label_frame "$input_frame.label_frame"
 			ttk::frame $label_frame
 
-			set input_label "$label_frame.label"
-			ttk::label $input_label -text "Text:"
-
+			set text_hscrollbar_elem "$input_frame.hsb"
+			set text_vscrollbar_elem "$input_frame.vsb"
 			set input_entry_elem "$label_frame.entry"
-			ttk::entry $input_entry_elem -width 32 -background white \
-				-foreground $label_color \
-				-font $label_font
-			$input_entry_elem insert 0 $label_text
+			text $input_entry_elem -width 40 -height 10 \
+				-background white -wrap none \
+				-xscrollcommand "$text_hscrollbar_elem set" \
+				-yscrollcommand "$text_vscrollbar_elem set" \
+				-foreground $label_color
+			$input_entry_elem insert end $label_text
 			dict set callback_elems "label_elem" $input_entry_elem
 
-			pack $input_label $input_entry_elem \
+			ttk::scrollbar $text_hscrollbar_elem -orient horizontal \
+				-command "$input_entry_elem xview"
+
+			ttk::scrollbar $text_vscrollbar_elem -orient vertical \
+				-command "$input_entry_elem yview"
+
+			pack $input_entry_elem \
 				-side left -anchor w -padx 2 -pady 2 -fill x
+			pack $text_hscrollbar_elem -side bottom -fill x
+			pack $text_vscrollbar_elem -side right -fill y
 			pack $label_frame -side top -fill x
 			pack $input_frame -side top -fill x
 
@@ -447,6 +458,8 @@ proc popupAnnotationDialog { target new_type modify } {
 
 	bind $top_window <Key-Escape> $cancel_cmd
 	bind $top_window <Key-Return> $apply_cmd
+	bind $top_window <Shift-Return> { break }
+	bind $top_window <Control-Return> { break }
 
 	return
 }
@@ -526,9 +539,9 @@ proc popupAnnotationApply { target callback_elems } {
 
 	set label_elem [dictGet $callback_elems "label_elem"]
 	if { $label_elem != "" } {
-		set label_text [string trim [$label_elem get]]
+		set label_text [string trim [$label_elem get 1.0 {end -1c}]]
 		set label_color [$label_elem cget -foreground]
-		set label_font [$label_elem cget -font]
+		set label_font [_getAnnotationFont $node_cfg_gui]
 	}
 
 	# just quit if text is empty
@@ -765,6 +778,22 @@ proc drawAnnotation { annotation_id } {
 				-text $label_text \
 				-font $label_font \
 				-fill $label_color]
+
+			# get text bounding box
+			lassign [$main_canvas_elem bbox $new_annotation] x1 y1 x2 y2
+
+			# create background with 3px padding
+			set padding 3
+			set text_bg_rectangle [$main_canvas_elem create rectangle \
+				[expr {$x1 - $padding}] [expr {$y1 - $padding}] \
+				[expr {$x2 + $padding}] [expr {$y2 + $padding}] \
+				-fill "lightyellow" \
+				-outline ""]
+
+			# place rectangle behind the text
+			$main_canvas_elem lower $text_bg_rectangle $new_annotation
+			$main_canvas_elem itemconfigure $text_bg_rectangle \
+				-tags "text_bg_rectangle $annotation_id"
 		}
 
 		"image" {
@@ -1086,7 +1115,10 @@ proc fontchooserToggle {} {
 #   * w -- widget
 #****
 proc fontchooserFocus { w } {
-	tk fontchooser configure -font [$w cget -font] \
+	global node_cfg_gui
+
+	set cur_font [_getAnnotationFont $node_cfg_gui]
+	tk fontchooser configure -font $cur_font \
 		-command [list fontchooserFontSelection $w]
 }
 
@@ -1103,7 +1135,9 @@ proc fontchooserFocus { w } {
 #   * args -- font arguments
 #****
 proc fontchooserFontSelection { w font args } {
-	$w configure -font [font actual $font]
+	global node_cfg_gui
+
+	set node_cfg_gui [_setAnnotationFont $node_cfg_gui [font actual $font]]
 }
 
 #****f* annotations.tcl/popupColor

@@ -1354,7 +1354,7 @@ proc button1-motion { x y } {
 
 			$main_canvas_elem move $img [expr {$x - $lastX}] [expr {$y - $lastY}]
 
-			foreach elem "selectmark nodedisabled node_running nodelabel link" {
+			foreach elem "selectmark nodedisabled node_running nodelabel link text_bg_rectangle" {
 				set obj [$main_canvas_elem find withtag "$elem && $node_id"]
 				$main_canvas_elem move $obj [expr {$x - $lastX}] [expr {$y - $lastY}]
 
@@ -1627,7 +1627,7 @@ proc button1-release { x y } {
 					setAnnotationCoords $node_id $newcoords
 				}
 
-				if { [lindex [$main_canvas_elem gettags $node_id] 0] == "text" } {
+				if { [lindex [$main_canvas_elem gettags $node_id] 0] in "text text_bg_rectangle" } {
 					lassign [$main_canvas_elem bbox "selectmark && $node_id"] bx1 by1 bx2 by2
 					set bx1 [expr {$bx1 / $zoom}]
 					set by1 [expr {$by1 / $zoom}]
