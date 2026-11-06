@@ -1354,7 +1354,7 @@ proc button1-motion { x y } {
 
 			$main_canvas_elem move $img [expr {$x - $lastX}] [expr {$y - $lastY}]
 
-			foreach elem "selectmark nodedisabled node_running nodelabel link" {
+			foreach elem "selectmark nodedisabled node_running nodelabel link text_bg_rectangle" {
 				set obj [$main_canvas_elem find withtag "$elem && $node_id"]
 				$main_canvas_elem move $obj [expr {$x - $lastX}] [expr {$y - $lastY}]
 
@@ -1627,8 +1627,8 @@ proc button1-release { x y } {
 					setAnnotationCoords $node_id $newcoords
 				}
 
-				if { [lindex [$main_canvas_elem gettags $node_id] 0] == "text" } {
-					lassign [$main_canvas_elem bbox "selectmark && $node_id"] bx1 by1 bx2 by2
+				if { [lindex [$main_canvas_elem gettags $node_id] 0] in "text text_bg_rectangle" } {
+					lassign [$main_canvas_elem bbox "text && $node_id"] bx1 by1 bx2 by2
 					set bx1 [expr {$bx1 / $zoom}]
 					set by1 [expr {$by1 / $zoom}]
 					set bx2 [expr {$bx2 / $zoom}]
@@ -1636,27 +1636,29 @@ proc button1-release { x y } {
 					set width [expr { int($bx2 - $bx1) }]
 					set height [expr { int($by2 - $by1) }]
 
-					lassign [$main_canvas_elem coords [lindex [$main_canvas_elem gettags $node_id] 1]] x1 y1
+					# background has 1px padding
+					set padding 1
 
-					set x1 [expr {$x1 / $zoom}]
-					set y1 [expr {$y1 / $zoom}]
+					set outofbounds 0
+					if { $bx1 - $padding < 0 } {
+						set bx1 $padding
+						set outofbounds 1
+					}
+					if { $by1 - $padding < 0 } {
+						set by1 $padding
+						set outofbounds 1
+					}
+					if { $bx2 + $padding > $sizex } {
+						set bx1 [expr { $sizex - $width - $padding + 1 }]
+						set outofbounds 1
+					}
+					if { $by2 + $padding > $sizey } {
+						set by1 [expr { $sizey - $height - $padding + 1 }]
+						set outofbounds 1
+					}
 
-					if { $bx1 < 0 } {
-						set x1 5
-						set outofbounds 1
-					}
-					if { $by1 < 0 } {
-						set y1 [expr $height/2]
-						set outofbounds 1
-					}
-					if { $bx2 > $sizex } {
-						set x1 [expr $sizex-$width+5]
-						set outofbounds 1
-					}
-					if { $by2 > $sizey } {
-						set y1 [expr {$sizey-$height/2}]
-						set outofbounds 1
-					}
+					set x1 [expr { $bx1 + 1 }]
+					set y1 [expr { $by1 + $height / 2 }]
 
 					setAnnotationCoords $node_id "$x1 $y1"
 				}

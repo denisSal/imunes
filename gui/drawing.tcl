@@ -1215,6 +1215,7 @@ proc raiseAll {} {
 			continue
 		}
 
+		$main_canvas_elem raise [$main_canvas_elem find withtag "text_bg_rectangle && $object_id"]
 		$main_canvas_elem raise \
 			[$main_canvas_elem find withtag "[getAnnotationType $object_id] && $object_id"]
 	}
