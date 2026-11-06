@@ -242,24 +242,35 @@ proc popupAnnotationDialog { target new_type modify } {
 		}
 
 		"text" {
+			#wm resizable $top_window 1 1
+
 			set input_frame "$top_window.input"
 			ttk::frame $input_frame -relief groove -borderwidth 2 -padding 2
 
 			set label_frame "$input_frame.label_frame"
 			ttk::frame $label_frame
 
-			set input_label "$label_frame.label"
-			ttk::label $input_label -text "Text:"
-
+			set text_hscrollbar_elem "$input_frame.hsb"
+			set text_vscrollbar_elem "$input_frame.vsb"
 			set input_entry_elem "$label_frame.entry"
-			ttk::entry $input_entry_elem -width 32 -background white \
-				-foreground $label_color \
-				-font $label_font
-			$input_entry_elem insert 0 $label_text
+			text $input_entry_elem -width 40 -height 10 \
+				-background white -wrap none \
+				-xscrollcommand "$text_hscrollbar_elem set" \
+				-yscrollcommand "$text_vscrollbar_elem set" \
+				-foreground $label_color
+			$input_entry_elem insert end $label_text
 			dict set callback_elems "label_elem" $input_entry_elem
 
-			pack $input_label $input_entry_elem \
+			ttk::scrollbar $text_hscrollbar_elem -orient horizontal \
+				-command "$input_entry_elem xview"
+
+			ttk::scrollbar $text_vscrollbar_elem -orient vertical \
+				-command "$input_entry_elem yview"
+
+			pack $input_entry_elem \
 				-side left -anchor w -padx 2 -pady 2 -fill x
+			pack $text_hscrollbar_elem -side bottom -fill x
+			pack $text_vscrollbar_elem -side right -fill y
 			pack $label_frame -side top -fill x
 			pack $input_frame -side top -fill x
 
@@ -446,7 +457,9 @@ proc popupAnnotationDialog { target new_type modify } {
 	pack $buttons_frame -side bottom
 
 	bind $top_window <Key-Escape> $cancel_cmd
-	bind $top_window <Key-Return> $apply_cmd
+	bind $top_window <Shift-Return> $apply_cmd
+	bind $top_window <Control-Return> $apply_cmd
+	bind $top_window <Key-Return> { break }
 
 	return
 }
@@ -482,8 +495,6 @@ proc popupAnnotationCancel { annotation_id top_window } {
 proc popupAnnotationApply { target callback_elems } {
 	global main_canvas_elem changed
 	global node_cfg_gui
-
-	show callback_elems
 
 	set annotation_type [_getAnnotationType $node_cfg_gui]
 	global new$annotation_type
@@ -526,9 +537,9 @@ proc popupAnnotationApply { target callback_elems } {
 
 	set label_elem [dictGet $callback_elems "label_elem"]
 	if { $label_elem != "" } {
-		set label_text [string trim [$label_elem get]]
+		set label_text [string trim [$label_elem get 1.0 {end -1c}]]
 		set label_color [$label_elem cget -foreground]
-		set label_font [$label_elem cget -font]
+		set label_font [_getAnnotationFont $node_cfg_gui]
 	}
 
 	# just quit if text is empty
@@ -681,6 +692,7 @@ proc popupAnnotationApply { target callback_elems } {
 #****
 proc drawAnnotation { annotation_id } {
 	global main_canvas_elem all_annotation_types
+	global sizex sizey
 
 	set annotation_type [getAnnotationType $annotation_id]
 	if { $annotation_type ni $all_annotation_types } {
@@ -765,6 +777,69 @@ proc drawAnnotation { annotation_id } {
 				-text $label_text \
 				-font $label_font \
 				-fill $label_color]
+
+			# get text bounding box
+			lassign [$main_canvas_elem bbox $new_annotation] bx1 by1 bx2 by2
+			set bx1 [expr { $bx1 / $zoom }]
+			set by1 [expr { $by1 / $zoom }]
+			set bx2 [expr { $bx2 / $zoom }]
+			set by2 [expr { $by2 / $zoom }]
+			set width [expr { int($bx2 - $bx1) }]
+			set height [expr { int($by2 - $by1) }]
+
+			# background has 1px padding
+			set padding 1
+
+			# re-position if rectangle is out of canvas after editing
+			set outofbounds 0
+			if { $bx1 - $padding < 0 } {
+				set bx1 $padding
+				set bx2 [expr $bx1 + $width]
+				set outofbounds 1
+			}
+			if { $by1 - $padding < 0 } {
+				set by1 $padding
+				set by2 [expr $by1 + $height]
+				set outofbounds 1
+			}
+			if { $bx2 + $padding > $sizex } {
+				set bx1 [expr { $sizex - $width - $padding + 1 }]
+				set bx2 [expr $bx1 + $width - 1]
+				set outofbounds 1
+			}
+			if { $by2 + $padding > $sizey } {
+				set by1 [expr { $sizey - $height - $padding + 1 }]
+				set by2 [expr $by1 + $height - 1]
+				set outofbounds 1
+			}
+
+			if { $outofbounds } {
+				set x1 [expr { $bx1 + 1 }]
+				set y1 [expr { $by1 + $height / 2 }]
+
+				$main_canvas_elem delete $new_annotation
+				$main_canvas_elem delete [$main_canvas_elem find withtag "text_bg_rectangle $annotation_id"]
+
+				set new_annotation [$main_canvas_elem create text \
+					[expr $x1 * $zoom] [expr $y1 * $zoom] \
+					-anchor w -justify left \
+					-text $label_text \
+					-font $label_font \
+					-fill $label_color]
+
+				setAnnotationCoords $annotation_id "$x1 $y1"
+			}
+
+			set text_bg_rectangle [$main_canvas_elem create rectangle \
+				[expr { ($bx1 - $padding) * $zoom }] [expr { ($by1 - $padding) * $zoom }] \
+				[expr { ($bx2 + $padding) * $zoom }] [expr { ($by2 + $padding) * $zoom }] \
+				-fill "#ffffbe" \
+				-outline ""]
+
+			# place rectangle behind the text
+			$main_canvas_elem lower $text_bg_rectangle $new_annotation
+			$main_canvas_elem itemconfigure $text_bg_rectangle \
+				-tags "text_bg_rectangle $annotation_id"
 		}
 
 		"image" {
@@ -1086,7 +1161,10 @@ proc fontchooserToggle {} {
 #   * w -- widget
 #****
 proc fontchooserFocus { w } {
-	tk fontchooser configure -font [$w cget -font] \
+	global node_cfg_gui
+
+	set cur_font [_getAnnotationFont $node_cfg_gui]
+	tk fontchooser configure -font $cur_font \
 		-command [list fontchooserFontSelection $w]
 }
 
@@ -1103,7 +1181,9 @@ proc fontchooserFocus { w } {
 #   * args -- font arguments
 #****
 proc fontchooserFontSelection { w font args } {
-	$w configure -font [font actual $font]
+	global node_cfg_gui
+
+	set node_cfg_gui [_setAnnotationFont $node_cfg_gui [font actual $font]]
 }
 
 #****f* annotations.tcl/popupColor
