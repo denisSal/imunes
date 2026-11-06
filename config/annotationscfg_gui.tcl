@@ -94,6 +94,10 @@ addCase "updateAnnotationGUI" "labelcolor" {
 	setAnnotationLabelColor $annotation_id $new_value
 }
 
+addCase "updateAnnotationGUI" "bg_color" {
+	setAnnotationBgColor $annotation_id $new_value
+}
+
 addCase "updateAnnotationGUI" "bordercolor" {
 	setAnnotationBorderColor $annotation_id $new_value
 }

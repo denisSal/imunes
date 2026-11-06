@@ -94,6 +94,14 @@ proc _setAnnotationLabelColor { annotation_cfg labelcolor } {
 	return [_cfgSet $annotation_cfg "labelcolor" $labelcolor]
 }
 
+proc _getAnnotationBgColor { annotation_cfg } {
+	return [_cfgGet $annotation_cfg "bg_color"]
+}
+
+proc _setAnnotationBgColor { annotation_cfg bg_color } {
+	return [_cfgSet $annotation_cfg "bg_color" $bg_color]
+}
+
 proc _getAnnotationBorderColor { annotation_cfg } {
 	return [_cfgGet $annotation_cfg "bordercolor"]
 }
