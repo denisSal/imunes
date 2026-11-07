@@ -910,6 +910,10 @@ proc button1 { x y button } {
 		set curobj [getGridClosestObject $x $y]
 		set curobj_tags [$main_canvas_elem gettags $curobj]
 		set curtype [lindex $curobj_tags 0]
+	} elseif { $curtype == "text_bg_rectangle" } {
+		set curobj [$main_canvas_elem find withtag "text && [lindex $curobj_tags 1]"]
+		set curobj_tags [$main_canvas_elem gettags $curobj]
+		set curtype [lindex $curobj_tags 0]
 	}
 
 	set x [$main_canvas_elem canvasx $x]

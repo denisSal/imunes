@@ -1327,6 +1327,7 @@ $main_canvas_elem bind linklabel <Double-1> "linkConfigGUI {}"
 foreach annotation_type $all_annotation_types {
 	$main_canvas_elem bind $annotation_type <Double-1> "annotationConfigGUI"
 }
+$main_canvas_elem bind "text_bg_rectangle" <Double-1> "annotationConfigGUI"
 
 $main_canvas_elem bind text <KeyPress> "textInsert %A"
 $main_canvas_elem bind text <Return> "textInsert \\n"
@@ -1344,6 +1345,7 @@ $main_canvas_elem bind text <Any-Leave> "anyLeave"
 foreach annotation_type $all_annotation_types {
 	$main_canvas_elem bind $annotation_type $rightClick "button3annotation $annotation_type %x %y"
 }
+$main_canvas_elem bind "text_bg_rectangle" $rightClick "button3annotation text %x %y \[lindex \[$main_canvas_elem gettags current] 1]"
 
 $main_canvas_elem bind selectmark <Any-Enter> "selectmarkEnter %x %y"
 $main_canvas_elem bind selectmark <Any-Leave> "selectmarkLeave %x %y"
@@ -1362,6 +1364,7 @@ if { $isOSmac_gui } {
 	foreach annotation_type $all_annotation_types {
 		$main_canvas_elem bind $annotation_type <Control-Button-1> "button3annotation $annotation_type %x %y"
 	}
+$main_canvas_elem bind "text_bg_rectangle" $rightClick "button3annotation text %x %y \[lindex \[$main_canvas_elem gettags current] 1]"
 
 	$main_canvas_elem bind background <Control-Button-1> "button3background %x %y"
 	$main_canvas_elem bind grid <Control-Button-1> "button3grid %x %y"
