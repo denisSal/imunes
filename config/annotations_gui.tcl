@@ -181,6 +181,14 @@ proc setAnnotationLabelColor { annotation_id labelcolor } {
 	cfgSet "gui" "annotations" $annotation_id "labelcolor" $labelcolor
 }
 
+proc getAnnotationBgColor { annotation_id } {
+	return [cfgGet "gui" "annotations" $annotation_id "bg_color"]
+}
+
+proc setAnnotationBgColor { annotation_id bg_color } {
+	cfgSet "gui" "annotations" $annotation_id "bg_color" $bg_color
+}
+
 #****f* annotations_gui.tcl/getAnnotationBorderColor
 # NAME
 #   getAnnotationBorderColor -- get annotation border color
