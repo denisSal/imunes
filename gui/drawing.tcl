@@ -894,9 +894,8 @@ proc redrawLink { link_id } {
 		return
 	}
 
-	# limage1 = white link, limage2 = red link
-	lassign [$main_canvas_elem find withtag "link && $link_id"] limage1 limage2
-	if { $limage1 == "" || $limage2 == "" } {
+	lassign [$main_canvas_elem find withtag "link && $link_id"] link_bkg_obj link_obj
+	if { $link_bkg_obj == "" || $link_obj == "" } {
 		return
 	}
 
@@ -937,10 +936,9 @@ proc redrawLink { link_id } {
 				-fill $link_color -tags "point $point $link_id"]
 			$main_canvas_elem raise $tmpoval
 
-			lassign [$main_canvas_elem find withtag "link && $prev_point && $point"] limage1 limage2
-			# limage1 = white link, limage2 = red link
-			$main_canvas_elem coords $limage1 $x1 $y1 $x2 $y2
-			$main_canvas_elem coords $limage2 $x1 $y1 $x2 $y2
+			lassign [$main_canvas_elem find withtag "link && $prev_point && $point"] link_bkg_obj link_obj
+			$main_canvas_elem coords $link_bkg_obj $x1 $y1 $x2 $y2
+			$main_canvas_elem coords $link_obj $x1 $y1 $x2 $y2
 
 			set prev_point $point
 			set x1 $x2
@@ -949,9 +947,9 @@ proc redrawLink { link_id } {
 
 		lassign [$main_canvas_elem coords "node && $node2_id"] x2 y2
 
-		lassign [$main_canvas_elem find withtag "link && $prev_point && $node2_id"] limage1 limage2
-		$main_canvas_elem coords $limage1 $x1 $y1 $x2 $y2
-		$main_canvas_elem coords $limage2 $x1 $y1 $x2 $y2
+		lassign [$main_canvas_elem find withtag "link && $prev_point && $node2_id"] link_bkg_obj link_obj
+		$main_canvas_elem coords $link_bkg_obj $x1 $y1 $x2 $y2
+		$main_canvas_elem coords $link_obj $x1 $y1 $x2 $y2
 
 		$main_canvas_elem coords "linklabel && $link_id" $lx $ly
 
@@ -974,15 +972,15 @@ proc redrawLink { link_id } {
 		updateIfcLabelParams $link_id $node2_id $iface2_id $x2 $y2 $px $py
 		updateIfcLabel $link_id $node2_id $iface2_id
 	} else {
-		lassign [$main_canvas_elem gettags $limage1] {} link_id node1_id node2_id -
+		lassign [$main_canvas_elem gettags $link_bkg_obj] {} link_id node1_id node2_id -
 		if { [getNodeType $node1_id] == "wlan" || [getNodeType $node2_id] == "wlan" } {
 			return
 		}
 
 		lassign [$main_canvas_elem coords "node && $node1_id"] x1 y1
 		lassign [$main_canvas_elem coords "node && $node2_id"] x2 y2
-		$main_canvas_elem coords $limage1 $x1 $y1 $x2 $y2
-		$main_canvas_elem coords $limage2 $x1 $y1 $x2 $y2
+		$main_canvas_elem coords $link_bkg_obj $x1 $y1 $x2 $y2
+		$main_canvas_elem coords $link_obj $x1 $y1 $x2 $y2
 
 		set lx [expr {int(0.5 * ($x1 + $x2))}]
 		set ly [expr {int(0.5 * ($y1 + $y2))}]
@@ -1010,12 +1008,12 @@ proc redrawPseudoLink { link_id } {
 		return
 	}
 
-	lassign [$main_canvas_elem find withtag "link && $link_id"] limage1 limage2
-	if { $limage1 == "" || $limage2 == "" } {
+	lassign [$main_canvas_elem find withtag "link && $link_id"] link_bkg_obj link_obj
+	if { $link_bkg_obj == "" || $link_obj == "" } {
 		return
 	}
 
-	lassign [$main_canvas_elem gettags $limage1] {} {} node1_id node2_id
+	lassign [$main_canvas_elem gettags $link_bkg_obj] {} {} node1_id node2_id
 	if { [getNodeType $node1_id] == "wlan" || [getNodeType $node2_id] == "wlan" } {
 		return
 	}
@@ -1029,8 +1027,8 @@ proc redrawPseudoLink { link_id } {
 		lassign [getNodeLabelCoords $node2_id] x2 y2
 	}
 
-	$main_canvas_elem coords $limage1 $x1 $y1 $x2 $y2
-	$main_canvas_elem coords $limage2 $x1 $y1 $x2 $y2
+	$main_canvas_elem coords $link_bkg_obj $x1 $y1 $x2 $y2
+	$main_canvas_elem coords $link_obj $x1 $y1 $x2 $y2
 
 	if { [isPseudoNode $node1_id] } {
 		set lx [expr {int(0.25 * ($x2 - $x1) + $x1)}]
