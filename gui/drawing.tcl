@@ -925,15 +925,20 @@ proc redrawLink { link_id } {
 		for {set idx 0} {$idx < [llength $points]} {incr idx} {
 			set point [lindex $points $idx]
 
-			lassign [lmap coord [getPoint_gui $point] {expr int($coord * $zoom)}] x2 y2
+			lassign [lmap coord [getPoint_gui $point] {expr { $coord * $zoom }}] x2 y2
 
 			set ox1 [expr $x2 - $link_width - 1]
 			set ox2 [expr $x2 + $link_width + 1]
 			set oy1 [expr $y2 - $link_width - 1]
 			set oy2 [expr $y2 + $link_width + 1]
-			$main_canvas_elem delete -withtags "point && $point && $link_id"
-			set tmpoval [$main_canvas_elem create oval $ox1 $oy1 $ox2 $oy2 \
-				-fill $link_color -tags "point $point $link_id"]
+			set tmpoval [$main_canvas_elem find withtag "point && $point && $link_id"]
+			if { $tmpoval == "" } {
+				set tmpoval [$main_canvas_elem create oval $ox1 $oy1 $ox2 $oy2 \
+					-fill $link_color -tags "point $point $link_id"]
+			} else {
+				$main_canvas_elem coords $tmpoval $ox1 $oy1 $ox2 $oy2
+				$main_canvas_elem itemconfigure $tmpoval -fill $link_color
+			}
 			$main_canvas_elem raise $tmpoval
 
 			lassign [$main_canvas_elem find withtag "link && $prev_point && $point"] link_bkg_obj link_obj

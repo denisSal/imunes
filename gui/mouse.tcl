@@ -74,8 +74,12 @@ proc removeLinkGUI { link_id atomic { keep_ifaces 0 } } {
 		return
 	}
 
+	set deleted_points [getLinkPoints_gui $link_id]
 	removeLink [lindex [linkFromPseudoLink $link_id] 0] $keep_ifaces
 	cfgUnset "gui" "links" $link_id
+	foreach point_id $deleted_points {
+		setPoint_gui $point_id ""
+	}
 
 	if { $atomic == "atomic" } {
 		$main_canvas_elem delete $link_id
@@ -238,6 +242,9 @@ proc selectNode { obj } {
 	set annotation_type [getAnnotationType $node_id]
 	if { [isPseudoNode $node_id] } {
 		set bbox [$main_canvas_elem bbox "nodelabel && $node_id"]
+	} elseif { [lindex [$main_canvas_elem gettags $obj] 0] == "point" } {
+		$main_canvas_elem addtag selected withtag "point && $node_id"
+		set bbox [$main_canvas_elem bbox "point && $node_id"]
 	} elseif { $annotation_type in $all_annotation_types } {
 		$main_canvas_elem addtag selected withtag "$annotation_type && $node_id"
 		set bbox [$main_canvas_elem bbox "$annotation_type && $node_id"]
@@ -270,7 +277,7 @@ proc selectNode { obj } {
 proc selectAllObjects {} {
 	global main_canvas_elem all_annotation_types
 
-	set tags [join "node $all_annotation_types" " || "]
+	set tags [join "node point $all_annotation_types" " || "]
 	foreach obj [$main_canvas_elem find withtag $tags] {
 		selectNode $obj
 	}
@@ -289,7 +296,7 @@ proc selectAllObjects {} {
 proc selectNodes { nodelist } {
 	global main_canvas_elem all_annotation_types
 
-	set tags [join "node $all_annotation_types" " || "]
+	set tags [join "node point $all_annotation_types" " || "]
 	foreach node_id $nodelist {
 		selectNode [$main_canvas_elem find withtag \
 			"($tags) && $node_id"]
@@ -334,6 +341,20 @@ proc selectedAnnotations {} {
 	foreach annotation_type $all_annotation_types {
 		foreach obj [$main_canvas_elem find withtag "$annotation_type && selected"] {
 			lappend selected [lindex [$main_canvas_elem gettags $obj] 1]
+		}
+	}
+
+	return $selected
+}
+
+proc selectedPoints {} {
+	global main_canvas_elem
+
+	set selected {}
+	foreach obj [$main_canvas_elem find withtag "point && selected"] {
+		set point_id [lindex [$main_canvas_elem gettags $obj] 1]
+		if { $point_id ni $selected } {
+			lappend selected $point_id
 		}
 	}
 
@@ -926,12 +947,12 @@ proc button1 { x y button } {
 	set wasselected 0
 	if {
 		! $skip_select &&
-		(($active_tool == "select" && $curtype in "node node_running $all_annotation_types") ||
+		(($active_tool == "select" && $curtype in "node node_running point $all_annotation_types") ||
 		($curtype == "nodelabel" &&
 		[isPseudoNode [lindex [$main_canvas_elem gettags $curobj] 1]]))
 	} {
 		set node_id [lindex $curobj_tags 1]
-		set wasselected [expr {$node_id in "[selectedNodes] [selectedAnnotations]"}]
+		set wasselected [expr {$node_id in "[selectedNodes] [selectedAnnotations] [selectedPoints]"}]
 
 		if { $button == "ctrl" } {
 			if { $wasselected } {
@@ -941,7 +962,7 @@ proc button1 { x y button } {
 			}
 		} elseif { ! $wasselected } {
 			# deselect all objects
-			foreach node_type "node $all_annotation_types" {
+			foreach node_type "node point $all_annotation_types" {
 				$main_canvas_elem dtag $node_type selected
 			}
 			$main_canvas_elem delete -withtags selectmark
@@ -951,10 +972,6 @@ proc button1 { x y button } {
 		if { $active_tool != "link" && ! $wasselected } {
 			selectNode $curobj
 		}
-	} elseif { $active_tool == "select" && $curtype == "point" } {
-		set point_id [lindex $curobj_tags 1]
-		$main_canvas_elem dtag "point" "point_selected"
-		$main_canvas_elem addtag "point_selected" withtag "point && $point_id"
 	} elseif { $active_tool == "select" && $curtype == "selectmark" } {
 		set o1 [lindex $curobj_tags 1]
 		if { [getAnnotationType $o1] in "oval rectangle" } {
@@ -999,7 +1016,7 @@ proc button1 { x y button } {
 			}
 		}
 	} elseif { $button != "ctrl" || $active_tool != "select" } {
-		foreach node_type "node $all_annotation_types" {
+		foreach node_type "node point $all_annotation_types" {
 			$main_canvas_elem dtag $node_type selected
 		}
 
@@ -1152,20 +1169,6 @@ proc button1-motion { x y } {
 		set changed 1
 		set lastX $x
 		set lastY $y
-	} elseif { $active_tool == "select" && $curtype == "point" } {
-		$main_canvas_elem move $curobj [expr { $x - $lastX }] [expr { $y - $lastY }]
-
-		set changed 1
-		set lastX $x
-		set lastY $y
-
-		lassign [$main_canvas_elem gettags $curobj] - point_id link_id
-
-		set coordinates [$main_canvas_elem coords $curobj]
-		set x [expr { int([lindex $coordinates 0] / $zoom) }]
-		set y [expr { int([lindex $coordinates 1] / $zoom) }]
-
-		setPoint_gui $point_id "$x $y"
 	} elseif {
 		$active_tool == "select" &&
 		$curobj == "" &&
@@ -1330,6 +1333,18 @@ proc button1-motion { x y } {
 			}
 
 			$main_canvas_elem move $img [expr {$x - $lastX}] [expr {$y - $lastY}]
+			if { [lindex [$main_canvas_elem gettags $img] 0] == "point" } {
+				# the point is an oval - its coords are a bounding box and we
+				# save the coords as its center
+				lassign [$main_canvas_elem coords $img] ox1 oy1 ox2 oy2
+				set px [expr { ($ox1 + $ox2) / (2.0 * $zoom) }]
+				set py [expr { ($oy1 + $oy2) / (2.0 * $zoom) }]
+
+				setPoint_gui $node_id "$px $py"
+
+				set link_id [lindex [$main_canvas_elem gettags $img] 2]
+				$main_canvas_elem addtag need_redraw withtag "link && $link_id"
+			}
 
 			foreach elem "selectmark nodedisabled node_running nodelabel link" {
 				set obj [$main_canvas_elem find withtag "$elem && $node_id"]
@@ -1458,6 +1473,31 @@ proc button1-release { x y } {
 			foreach img [$main_canvas_elem find withtag "selected"] {
 				set node_id [lindex [$main_canvas_elem gettags $img] 1]
 				lappend selected $node_id
+
+				if { [lindex [$main_canvas_elem gettags $img] 0] == "point" } {
+					# snap the oval center coordinate
+					lassign [$main_canvas_elem coords $img] ox1 oy1 ox2 oy2
+					set px [expr { ($ox1 + $ox2) / (2.0 * $zoom) }]
+					set py [expr { ($oy1 + $oy2) / (2.0 * $zoom) }]
+
+					lassign [snapCoordsToGrid $px $py] px py
+					if { $px < 0 || $px > $sizex || $py < 0 || $py > $sizey } {
+						set outofbounds 1
+					}
+
+					set px [expr { max(0, min($sizex, int($px))) }]
+					set py [expr { max(0, min($sizey, int($py))) }]
+
+					setPoint_gui $node_id "$px $py"
+
+					set link_id [lindex [$main_canvas_elem gettags $img] 2]
+					$main_canvas_elem addtag need_redraw withtag "link && $link_id"
+
+					set changed 1
+
+					continue
+				}
+
 				lassign [$main_canvas_elem coords $img] view_x view_y
 				set x [expr { $view_x / $zoom }]
 				set y [expr { $view_y / $zoom }]
@@ -1641,40 +1681,6 @@ proc button1-release { x y } {
 				$main_canvas_elem addtag need_redraw withtag "link && $node_id"
 				set changed 1
 			} ;# end of: foreach img selected
-
-			foreach img [$main_canvas_elem find withtag "point_selected"] {
-				lassign [$main_canvas_elem gettags $img] - point_id link_id
-
-				set coordinates [$main_canvas_elem coords $img]
-				set x [expr { [lindex $coordinates 0] / $zoom }]
-				set y [expr { [lindex $coordinates 1] / $zoom }]
-
-				set dx [expr { (int($x / $grid + 0.5) * $grid - $x) * $zoom }]
-				set dy [expr { (int($y / $grid + 0.5) * $grid - $y) * $zoom }]
-				$main_canvas_elem move $img $dx $dy
-
-				set coordinates [$main_canvas_elem coords $img]
-				set x [expr { int([lindex $coordinates 0] / $zoom) }]
-				set y [expr { int([lindex $coordinates 1] / $zoom) }]
-
-				if { $x < 0 } {
-					set x 0
-				}
-				if { $y < 0 } {
-					set y 0
-				}
-				if { $x > $sizex } {
-					set x $sizex
-				}
-				if { $y > $sizey } {
-					set y $sizey
-				}
-
-				setPoint_gui $point_id "$x $y"
-
-				redrawLink $link_id
-				updateLinkLabel $link_id
-			}
 		}
 
 		if { $outofbounds } {
@@ -1701,9 +1707,21 @@ proc button1-release { x y } {
 				redrawLink [lindex [$main_canvas_elem gettags $link_id] 1]
 				updateLinkLabel [lindex [$main_canvas_elem gettags $link_id] 1]
 			}
+
+			foreach point_id [selectedPoints] {
+				set obj [$main_canvas_elem find withtag "point && $point_id"]
+				if { $obj != "" } {
+					selectNode $obj
+				}
+			}
 		} else {
 			if { $newnode != "" } {
 				removeNode $newnode
+			}
+
+			set save_point_change 0
+			if { ! $outofbounds && [llength [selectedPoints]] > 0 } {
+				set save_point_change 1
 			}
 
 			$main_canvas_elem config -cursor watch
@@ -1715,7 +1733,9 @@ proc button1-release { x y } {
 				selectNodes $selected
 			}
 
-			set changed 0
+			# redrawAll resets 'changed', so restore it when point coordinates
+			# still need to be recorded.
+			set changed $save_point_change
 		}
 
 		$main_canvas_elem dtag link need_redraw
@@ -1753,7 +1773,7 @@ proc button1-release { x y } {
 			foreach obj $enc_objs {
 				set tags [$main_canvas_elem gettags $obj]
 
-				foreach object_type "node $all_annotation_types" {
+				foreach object_type "node point $all_annotation_types" {
 					if { [lindex $tags 0] == $object_type && [lsearch $tags selected] == -1 } {
 						lappend enclosed $obj
 					}
@@ -2138,6 +2158,20 @@ proc deleteSelection { { keep_other_ifaces 0 } { no_warning "" } } {
 		deleteAnnotation $annotation_id
 
 		set changed 1
+	}
+
+	# the point may already have been removed along with its parent link
+	foreach point_id [selectedPoints] {
+		foreach link_id [getFromRunning "link_list"] {
+			if { $point_id in [getLinkPoints_gui $link_id] } {
+				setLinkPoints_gui $link_id [removeFromList [getLinkPoints_gui $link_id] $point_id]
+				setPoint_gui $point_id ""
+
+				set changed 1
+
+				break
+			}
+		}
 	}
 
 	if { $changed } {

@@ -94,6 +94,9 @@ proc copySelection {} {
 					lappend clipboard_link_list $link_id
 					clipboardSet "links" $link_id [cfgGet "links" $link_id]
 					clipboardSet "gui" "links" $link_id [cfgGet "gui" "links" $link_id]
+					foreach point_id [getLinkPoints_gui $link_id] {
+						clipboardSet "gui" "points" $point_id [getPoint_gui $point_id]
+					}
 				}
 			}
 		}
@@ -125,6 +128,7 @@ proc paste {} {
 		return
 	}
 
+	set all_new_points {}
 	set new_annotations {}
 	set curcanvas [getFromRunning_gui "curcanvas"]
 	set annotation_order [getCanvasAnnotationOrder $curcanvas]
@@ -248,7 +252,19 @@ proc paste {} {
 	foreach {link_orig link_orig_cfg} [clipboardGet "links"] {
 		set new_link_id [newObjectId [getFromRunning "link_list"] "l"]
 		cfgSet "links" $new_link_id $link_orig_cfg
-		cfgSet "gui" "links" $new_link_id [cfgGet "gui" "links" $link_orig]
+		cfgSet "gui" "links" $new_link_id [clipboardGet "gui" "links" $link_orig]
+		set new_points {}
+		foreach point_id [getLinkPoints_gui $new_link_id] {
+			set new_point_id [newObjectId [cfgGet "gui" "points"] "p"]
+			setPoint_gui $new_point_id [clipboardGet "gui" "points" $point_id]
+			lappend new_points $new_point_id
+		}
+		setLinkPoints_gui $new_link_id $new_points
+
+		if { $new_points != {} } {
+			lappend all_new_points {*}$new_points
+		}
+
 		lappendToRunning "link_list" $new_link_id
 		# XXX Why?
 		if { ! [isRunningLink $new_link_id] } {
@@ -284,5 +300,5 @@ proc paste {} {
 
 	redrawAll
 	setActiveToolGroup select
-	selectNodes [concat $copypaste_list $new_annotations]
+	selectNodes [concat $copypaste_list $new_annotations $all_new_points]
 }
