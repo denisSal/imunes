@@ -100,8 +100,8 @@ set config_path "$config_dir/config"
 try {
 	source "$ROOTDIR/$LIBDIR/helpers.tcl"
 } on error { result options } {
-	sputs stderr "Could not find file helpers.tcl in $ROOTDIR/$LIBDIR:"
-	sputs stderr $result
+	puts stderr "Could not find file helpers.tcl in $ROOTDIR/$LIBDIR:"
+	puts stderr $result
 	exit 1
 }
 
