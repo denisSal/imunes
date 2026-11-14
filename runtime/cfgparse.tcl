@@ -1892,6 +1892,8 @@ proc jumpToUndoLevel { undolevel } {
 	upvar 0 ::cf::[set ::curcfg]::dict_run_gui dict_run_gui
 	upvar 0 ::cf::[set ::curcfg]::dict_cfg dict_cfg
 
+	set zoom [getActiveOption "zoom"]
+
 	foreach list_var "node_list link_list mac_used_list ipv4_used_list ipv6_used_list" {
 		setToRunning $list_var [dictGet $dict_run "undolog" $undolevel $list_var]
 	}
@@ -1901,6 +1903,7 @@ proc jumpToUndoLevel { undolevel } {
 		setToRunning_gui $list_var [dictGet $dict_run_gui "undolog" $undolevel $list_var]
 	}
 	dict set dict_cfg "gui" [dictGet $dict_run_gui "undolog" $undolevel "config"]
+	setGlobalOption "zoom" $zoom
 
 	return $dict_cfg
 }
@@ -2086,7 +2089,7 @@ proc setGlobalOption { option_name new_value { toggle "" } } {
 
 	setOption$gui_suffix $option_name [set $option_name]
 
-	if { $gui && $execMode == "interactive" } {
+	if { $gui && $execMode == "interactive" && $option_name != "zoom" } {
 		updateUndoLog
 	}
 
