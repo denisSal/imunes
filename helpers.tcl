@@ -54,17 +54,55 @@ proc getPrettyUsage { options } {
 	return $usage
 }
 
-proc safePackageRequire { plist args } {
-	foreach p $plist {
-		try {
-			package require $p
-		} on error { result options } {
-			sputs stderr "Error loading package $p: $result"
-			if { [llength $args] } {
-				sputs stderr [lindex $args 0]
+proc safePackageRequireSingle { p } {
+	set package [lindex $p 0]
+	set optional 0
+	set version ""
+
+	foreach option [lrange $p 1 end] {
+		switch -- [lindex $option 0] {
+			optional {
+				set optional 1
 			}
-			exit 1
+			version {
+				if { [llength $option] != 2 } {
+					error "Invalid version option for package $package"
+				}
+				set version [lindex $option 1]
+			}
+			errorMessage {
+				if { [llength $option] != 2 } {
+					error "Invalid error-message option for package $package"
+				}
+				set errorMessage [lindex $option 1]
+			}
+			default {
+				error "Unknown option '[lindex $option 0]' for package $package"
+			}
 		}
+	}
+
+	try {
+		if { $version eq "" } {
+			package require $package
+		} else {
+			package require $package $version
+		}
+	} on error { result options } {
+		sputs stderr "Error loading package $package: $result"
+		if { [info exists errorMessage] } {
+			sputs stderr "$errorMessage"
+		}
+		if { $optional } {
+			return
+		}
+		exit 1
+	}
+}
+
+proc safePackageRequire { plist } {
+	foreach p $plist {
+		safePackageRequireSingle $p
 	}
 }
 
@@ -564,7 +602,7 @@ proc reloadSources {} {
 
 	if { $execMode == "interactive" } {
 		if { $gui } {
-			safePackageRequire Tk "To run the IMUNES GUI, Tk must be installed."
+			safePackageRequire { { Tk { errorMessage "To run the IMUNES GUI, Tk must be installed." } } }
 		}
 
 		catch { namespace delete ::genericL2::gui }

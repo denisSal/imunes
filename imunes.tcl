@@ -622,7 +622,7 @@ if { $execMode == "interactive" } {
 	}
 
 	if { $gui } {
-		safePackageRequire Tk "To run the IMUNES GUI, Tk must be installed."
+		safePackageRequire { { Tk { errorMessage "To run the IMUNES GUI, Tk must be installed." } } }
 
 		safeSourceFile "$ROOTDIR/$LIBDIR/gui/nodes/generic_l2.tcl"
 		safeSourceFile "$ROOTDIR/$LIBDIR/gui/nodes/generic_l3.tcl"
