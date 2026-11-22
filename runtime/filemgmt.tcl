@@ -262,12 +262,29 @@ proc openFile { { no_recent "" } } {
 	applyOptionsToGUI
 
 	if { $gui } {
-		global all_annotation_types
+		global main_canvas_elem all_annotation_types
 
 		set gui_node_list [dict keys [cfgGet "gui" "nodes"]]
 		set annotation_list [getFromRunning_gui "annotation_list"]
 
 		switchCanvas none
+
+		lassign [getOption_gui "pan"] pan_x pan_y
+		if { $pan_x == "" } {
+			set pan_x 0
+		}
+
+		if { $pan_y == "" } {
+			set pan_y 0
+		}
+
+		unsetOption_gui "pan"
+
+		set offset_x [$main_canvas_elem canvasx 0]
+		set offset_y [$main_canvas_elem canvasy 0]
+
+		$main_canvas_elem scan mark 0 0
+		$main_canvas_elem scan dragto [expr {int(($offset_x - $pan_x) / 10.0)}] [expr {int(($offset_y - $pan_y) / 10.0)}]
 
 		set node_list [getFromRunning "node_list"]
 		foreach gui_node_id $gui_node_list {
@@ -475,7 +492,7 @@ proc applyOptionsToGUI {} {
 #   * selected_file -- name of the file where current configuration is saved.
 #****
 proc saveFile { selected_file } {
-	global recent_files pinned_recent_files
+	global main_canvas_elem recent_files pinned_recent_files
 
 	if { $selected_file != "" } {
 		set current_file $selected_file
@@ -493,7 +510,10 @@ proc saveFile { selected_file } {
 			return
 		}
 
+		setOption_gui "pan" \
+			"[expr int([$main_canvas_elem canvasx 0] - 9)] [expr int([$main_canvas_elem canvasy 0] - 7)]"
 		saveCfgJson $current_file
+		unsetOption_gui "pan"
 
 		statusLineGUI "Saved [file tail $current_file]"
 
