@@ -746,13 +746,16 @@ namespace eval genericL3 {
 		return $created
 	}
 
-	proc nodePhysIfacesCreate { eid node_id ifaces } {
+	proc nodePhysIfacesCreate { eid node_id ifaces { are_direct "" } } {
 		global isOSlinux isOSfreebsd
 
 		addStateNode $node_id "pifaces_creating"
 
 		set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-d"]
-		runNodeHook $os_cmd "pre-pifaces_create"
+
+		if { $are_direct == "" } {
+			runNodeHook $os_cmd "pre-pifaces_create"
+		}
 
 		set private_ns [invokeNodeProc $node_id "getPrivateNs" $eid $node_id]
 		set public_ns [invokeNodeProc $node_id "getPublicNs" $eid $node_id]
@@ -808,7 +811,9 @@ namespace eval genericL3 {
 			}
 		}
 
-		runNodeHook $os_cmd "post-pifaces_create"
+		if { $are_direct == "" } {
+			runNodeHook $os_cmd "post-pifaces_create"
+		}
 	}
 
 	proc nodePhysIfacesDirectCreate { eid node_id ifaces } {
@@ -910,7 +915,7 @@ namespace eval genericL3 {
 
 		if { $isOSfreebsd } {
 			# same as regular interfaces
-			return [invokeNodeProc $node_id "nodePhysIfacesCreate" $eid $node_id $ifaces]
+			invokeNodeProc $node_id "nodePhysIfacesCreate" $eid $node_id $ifaces "are_direct"
 		}
 
 		runNodeHook $os_cmd "post-pifaces_dcreate"
@@ -1069,7 +1074,7 @@ namespace eval genericL3 {
 
 		runNodeHook $os_cmd "pre-ifaces_config"
 		pipesExec "$os_cmd sh -c '$cmds' &" "hold"
-		runNodeHook $os_cmd "post-ifaces_config"
+		runNodeHook $os_cmd "post-ifaces_config" $startup_fname
 	}
 
 	proc nodeIfacesConfigure_check { eid node_id ifaces } {
@@ -1150,7 +1155,7 @@ namespace eval genericL3 {
 
 		runNodeHook $os_cmd "pre-node_config"
 		pipesExec "$os_cmd sh -c '$cmds' &" "hold"
-		runNodeHook $os_cmd "post-node_config"
+		runNodeHook $os_cmd "post-node_config" $startup_fname
 	}
 
 	proc nodeConfigure_check { eid node_id } {
@@ -1255,7 +1260,7 @@ namespace eval genericL3 {
 		set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-d"]
 		runNodeHook $os_cmd "pre-node_unconfig"
 		pipesExec "$os_cmd sh -c '$cmds'" "hold"
-		runNodeHook $os_cmd "post-node_unconfig"
+		runNodeHook $os_cmd "post-node_unconfig" $startup_fname
 	}
 
 	proc nodeUnconfigure_check { eid node_id } {
@@ -1398,7 +1403,7 @@ namespace eval genericL3 {
 		set os_cmd [invokeNodeProc $node_id "getExecCommand" $eid $node_id "-d"]
 		runNodeHook $os_cmd "pre-ifaces_unconfig"
 		pipesExec "$os_cmd sh -c '$cmds'" "hold"
-		runNodeHook $os_cmd "post-ifaces_unconfig"
+		runNodeHook $os_cmd "post-ifaces_unconfig" $startup_fname
 	}
 
 	proc nodeIfacesUnconfigure_check { eid node_id ifaces } {

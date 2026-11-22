@@ -2180,6 +2180,14 @@ proc getExperimentRuntimeDir { { eid "" } } {
 	return $runtimeDir/$eid
 }
 
-proc runNodeHook { os_cmd hook } {
-	pipesExec "$os_cmd sh -c '. /var/imunes/$hook/* > /var/imunes/$hook.log 2>&1'" "hold"
+proc runNodeHook { os_cmd hook { startup_fname "" } } {
+	# startup_fname has a PID of the process to wait for - only after that
+	# process is finished, run the hook
+	if { $startup_fname != "" } {
+		set cmds "while true; do wait_pid=\$(cat $startup_fname 2>/dev/null); test -n \"\$wait_pid\" && ! kill -0 \$wait_pid 2>/dev/null && break ; sleep 1 ; done"
+	} else {
+		set cmds ":"
+	}
+
+	pipesExec "$os_cmd sh -c '$cmds ; . /var/imunes/$hook/* > /var/imunes/$hook.log 2>&1'" "hold"
 }
